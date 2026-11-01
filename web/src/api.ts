@@ -1,0 +1,145 @@
+const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+
+export type Role = "viewer" | "editor" | "admin";
+export type Status = "new" | "read" | "archived" | "spam";
+
+export interface Profile {
+  email: string;
+  first_name: string;
+  last_name: string;
+  avatar_url: string | null;
+}
+export interface Me extends Profile {
+  id: string;
+  is_superadmin: boolean;
+  memberships: { site_id: string; role: Role }[];
+}
+export interface Site {
+  id: string;
+  name: string;
+  public_key: string;
+  allowed_origins: string[];
+  is_active: boolean;
+  daily_limit: number;
+  my_role: Role | null;
+}
+export interface Feedback {
+  id: string;
+  message: string;
+  rating: number | null;
+  name: string | null;
+  email: string | null;
+  page_url: string | null;
+  metadata: Record<string, unknown>;
+  status: Status;
+  user_agent: string | null;
+  created_at: string;
+}
+export interface Member extends Profile {
+  user_id: string;
+  role: Role;
+}
+export interface User extends Profile {
+  id: string;
+  is_superadmin: boolean;
+  is_active: boolean;
+}
+
+/** Avatar URLs from the API are relative to the API origin. */
+export function avatarSrc(url: string | null | undefined): string | null {
+  return url ? BASE + url : null;
+}
+
+export function displayName(p: Pick<Profile, "email" | "first_name" | "last_name">): string {
+  return `${p.first_name} ${p.last_name}`.trim() || p.email;
+}
+
+export interface DayStats {
+  day: string; // YYYY-MM-DD (UTC)
+  accepted: number;
+  quarantined: number;
+  honeypot: number;
+  duplicate: number;
+  origin_denied: number;
+  rate_limited: number;
+  daily_limit: number;
+}
+
+export class ApiError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+  }
+}
+
+// Access token lives in memory only; the refresh token is an httpOnly cookie.
+let accessToken: string | null = null;
+let onLoggedOut: () => void = () => {};
+let refreshing: Promise<boolean> | null = null;
+
+export function setLogoutHandler(fn: () => void) {
+  onLoggedOut = fn;
+}
+
+async function detail(res: Response): Promise<string> {
+  try {
+    const body = await res.json();
+    if (typeof body.detail === "string") return body.detail;
+    if (Array.isArray(body.detail)) return body.detail.map((d: { msg: string }) => d.msg).join("; ");
+  } catch {
+    /* not JSON */
+  }
+  return res.statusText;
+}
+
+async function tokenRequest(path: string, init?: RequestInit): Promise<boolean> {
+  const res = await fetch(BASE + path, { method: "POST", credentials: "include", ...init });
+  if (!res.ok) return false;
+  accessToken = (await res.json()).access_token;
+  return true;
+}
+
+export function refresh(): Promise<boolean> {
+  refreshing ??= tokenRequest("/auth/refresh").finally(() => (refreshing = null));
+  return refreshing;
+}
+
+export async function login(email: string, password: string) {
+  const res = await fetch(BASE + "/auth/login", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) throw new ApiError(res.status, await detail(res));
+  accessToken = (await res.json()).access_token;
+}
+
+export async function changePassword(current_password: string, new_password: string) {
+  // Other sessions are revoked server-side; this one gets a fresh token pair.
+  const r = await api<{ access_token: string }>("/auth/me/password", json("POST", { current_password, new_password }));
+  accessToken = r.access_token;
+}
+
+export async function logout() {
+  await fetch(BASE + "/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
+  accessToken = null;
+}
+
+export async function api<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
+  const headers = new Headers(init.headers);
+  if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
+  const res = await fetch(BASE + path, { ...init, headers, credentials: "include" });
+  if (res.status === 401 && retry) {
+    if (await refresh()) return api<T>(path, init, false);
+    accessToken = null;
+    onLoggedOut();
+  }
+  if (!res.ok) throw new ApiError(res.status, await detail(res));
+  return res.status === 204 ? (undefined as T) : res.json();
+}
+
+export const json = (method: string, body: unknown): RequestInit => ({
+  method,
+  body: JSON.stringify(body),
+});

@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Feedback form example</title>
+<form id="fb">
+  <textarea name="message" required maxlength="5000"></textarea>
+  <input name="email" type="email" placeholder="Email (optional)">
+  <!-- Honeypot: hidden from humans, bots fill it in and get silently dropped. -->
+  <input name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
+  <button>Send</button>
+  <p id="status"></p>
+</form>
+<script>
+  const API = "http://localhost:8000";
+  const KEY = "pk_REPLACE_ME"; // public by design; origin allow-list + rate limits protect it
+  document.getElementById("fb").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const res = await fetch(`${API}/v1/feedback`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-API-Key": KEY },
+      body: JSON.stringify({
+        message: f.get("message"),
+        email: f.get("email") || null,
+        website: f.get("website"),
+        page_url: location.href,
+      }),
+    });
+    document.getElementById("status").textContent =
+      res.ok ? "Thanks!" : res.status === 429 ? "Too many requests, try again later." : "Could not send.";
+  });
+</script>
