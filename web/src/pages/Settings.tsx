@@ -1,9 +1,8 @@
 import { useState, type FormEvent } from "react";
-import { api, json, type Site } from "../api";
+import { API_URL, api, json, type Site } from "../api";
 
 export default function Settings({ site, onChange }: { site: Site; onChange: (s: Site) => void }) {
   const [msg, setMsg] = useState("");
-  const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
   async function run(p: Promise<Site>, ok: string) {
     try {
@@ -33,7 +32,7 @@ export default function Settings({ site, onChange }: { site: Site; onChange: (s:
     run(api<Site>(`/sites/${site.id}/rotate-key`, { method: "POST" }), "Key rotated");
   }
 
-  const snippet = `fetch("${apiUrl}/v1/feedback", {
+  const snippet = `fetch("${API_URL}/v1/feedback", {
   method: "POST",
   headers: { "Content-Type": "application/json", "X-API-Key": "${site.public_key}" },
   body: JSON.stringify({ message, rating, email, page_url: location.href }),

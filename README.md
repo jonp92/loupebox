@@ -3,13 +3,32 @@
 FastAPI + Postgres API with a React admin UI (`web/`). Static sites post feedback with a public
 site key; staff review it in the UI under per-site roles.
 
-## Run locally
+## Run with Docker
 
 ```bash
-docker compose up -d db                # Postgres
+cp .env.example .env     # set JWT_SECRET and POSTGRES_PASSWORD (see comments inside)
+docker compose up -d --build
+docker compose run --rm api python -m scripts.create_superadmin you@example.com
+```
+
+* Web UI: http://localhost:8080 · API + docs: http://localhost:8000/docs
+* Services: `db` (Postgres), `migrate` (one-shot `alembic upgrade head`, the API waits for it),
+  `api`, `web` (static build served by nginx, non-root).
+* The web image reads `API_URL` at container start, so one image works in any environment.
+  `ADMIN_ORIGINS` (API side) must include the origin the UI is served from.
+* Behind HTTPS set `COOKIE_SECURE=true`, `TRUST_PROXY=true` (if a proxy overwrites
+  `X-Forwarded-For`), and update `API_URL` / `ADMIN_ORIGINS`. Put TLS in front (Caddy, Traefik,
+  nginx, a cloud load balancer); the containers speak plain HTTP.
+* Keep the API at **one replica/worker** until rate limiting is moved to Redis (see below).
+* Data lives in the `pgdata` volume. Back it up; `docker compose down -v` deletes it.
+
+## Run locally (without Docker for the app)
+
+```bash
+docker compose up -d db                # Postgres only (needs POSTGRES_PASSWORD in .env)
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env                   # set JWT_SECRET
+pip install -r requirements-dev.txt
+cp .env.example .env                   # set JWT_SECRET and DATABASE_URL
 alembic upgrade head
 python -m scripts.create_superadmin you@example.com
 uvicorn app.main:app --reload          # http://127.0.0.1:8000/docs
@@ -17,7 +36,8 @@ uvicorn app.main:app --reload          # http://127.0.0.1:8000/docs
 cd web && cp .env.example .env && npm install && npm run dev   # http://localhost:5173
 ```
 
-Tests (SQLite in memory, no Postgres needed): `pytest`
+Tests run on in-memory SQLite by default: `pytest`. To run them on Postgres, point
+`TEST_DATABASE_URL` at a **throwaway** database (the suite drops all its tables).
 
 ## Model
 

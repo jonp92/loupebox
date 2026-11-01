@@ -1,11 +1,58 @@
+# Full stack:   docker compose up -d --build
+# Dev (DB only): docker compose up -d db   (then run the API/UI on the host, see README)
 services:
   db:
     image: postgres:17
     environment:
       POSTGRES_USER: ganymede
-      POSTGRES_PASSWORD: ganymede
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ganymede
-    ports: ["5432:5432"]
+    # Localhost only: the other containers reach it over the compose network.
+    ports: ["127.0.0.1:5432:5432"]
     volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ganymede -d ganymede"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # One-shot: applies migrations, then exits. The API waits for it to succeed.
+  migrate:
+    build: .
+    image: ganymede-api
+    command: ["alembic", "upgrade", "head"]
+    environment: &api-env
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      DATABASE_URL: postgresql+psycopg://ganymede:${POSTGRES_PASSWORD}@db:5432/ganymede
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env (32+ chars)}
+      ADMIN_ORIGINS: '${ADMIN_ORIGINS:-["http://localhost:8080"]}'
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      COOKIE_SAMESITE: ${COOKIE_SAMESITE:-lax}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build: .
+    image: ganymede-api
+    environment: *api-env
+    ports: ["8000:8000"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  web:
+    build: ./web
+    image: ganymede-web
+    environment:
+      # URL the *browser* uses to reach the API.
+      API_URL: ${API_URL:-http://localhost:8000}
+    ports: ["8080:8080"]
+    depends_on: [api]
+    restart: unless-stopped
+
 volumes:
   pgdata:

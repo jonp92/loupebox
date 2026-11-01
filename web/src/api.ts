@@ -1,4 +1,13 @@
-const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+declare global {
+  interface Window {
+    __CONFIG__?: { API_URL?: string };
+  }
+}
+
+// Runtime config (container) wins over the build-time dev default.
+export const API_URL: string =
+  window.__CONFIG__?.API_URL || import.meta.env.VITE_API_URL || "http://localhost:8000";
+const BASE = API_URL;
 
 export type Role = "viewer" | "editor" | "admin";
 export type Status = "new" | "read" | "archived" | "spam";

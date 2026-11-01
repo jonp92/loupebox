@@ -1,7 +1,8 @@
 import os
 
 # Must be set before the app (and its settings) are imported.
-os.environ["DATABASE_URL"] = "sqlite://"
+# Set TEST_DATABASE_URL to run the suite on Postgres. It DROPS ALL TABLES in that database.
+os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL", "sqlite://")
 os.environ["JWT_SECRET"] = "test-secret-test-secret-test-secret-123"
 os.environ["ADMIN_ORIGINS"] = '["http://admin.test"]'
 
