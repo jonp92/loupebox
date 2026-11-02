@@ -12,18 +12,31 @@ from app.core.config import settings
 ACCENT = "#5b5bd6"
 FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif"
 
-_DARK = """
-@media (prefers-color-scheme: dark) {
-  .bg { background: #0f1117 !important; }
-  .card { background: #181b25 !important; border-color: #2b3040 !important; }
-  .text { color: #e8eaf2 !important; }
-  .muted { color: #98a0b8 !important; }
-  .quote { background: #20242f !important; border-left-color: #8c8cf5 !important; }
-  .lnk { color: #8c8cf5 !important; }
-  .rule { border-color: #2b3040 !important; }
-  .btn { background: #8c8cf5 !important; color: #10111a !important; }
-}
-"""
+# Dark theme rules, listed once and emitted for two kinds of client:
+# - prefers-color-scheme: Apple Mail, iOS Mail, Thunderbird, Outlook for Mac's classic engine.
+# - [data-ogsc] / [data-ogsb]: Outlook.com and the new Outlook apps, which darken backgrounds on their own
+#   and mark the page with these attributes. Without these overrides they keep our light text colours on
+#   their darkened backgrounds, which is unreadable.
+_DARK_RULES = [
+    (".bg", "background: #0f1117 !important"),
+    (".card", "background: #181b25 !important; border-color: #2b3040 !important"),
+    (".text", "color: #e8eaf2 !important"),
+    (".muted", "color: #98a0b8 !important"),
+    (".quote", "background: #20242f !important; border-left-color: #8c8cf5 !important"),
+    (".lnk", "color: #8c8cf5 !important"),
+    (".btn", "background: #8c8cf5 !important; color: #10111a !important"),
+]
+
+
+def _dark_css() -> str:
+    media = "\n".join(f"  {sel} {{ {decl}; }}" for sel, decl in _DARK_RULES)
+    outlook = "\n".join(
+        f"{prefix} {sel} {{ {decl}; }}" for sel, decl in _DARK_RULES for prefix in ("[data-ogsc]", "[data-ogsb]")
+    )
+    return f"@media (prefers-color-scheme: dark) {{\n{media}\n}}\n{outlook}\n"
+
+
+_DARK = _dark_css()
 
 
 def facts_table(rows: list[tuple[str, str]]) -> str:
@@ -74,15 +87,15 @@ def render(*, heading: str, preheader: str, body: str, link: str | None, site: s
 <title>{escape(heading)}</title>
 <style>{_DARK}</style>
 </head>
-<body class="bg" style="margin:0;padding:0;background:#f0f1f6">
+<body class="bg" bgcolor="#f0f1f6" style="margin:0;padding:0;background:#f0f1f6">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">{escape(preheader)}</div>
-<table role="presentation" class="bg" width="100%" cellpadding="0" cellspacing="0" style="background:#f0f1f6">
+<table role="presentation" class="bg" bgcolor="#f0f1f6" width="100%" cellpadding="0" cellspacing="0" style="background:#f0f1f6">
 <tr><td align="center" style="padding:24px 12px">
   <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="width:100%;max-width:560px">
     <tr><td style="padding:0 4px 14px;font-family:{FONT};font-size:15px;font-weight:700;color:{ACCENT}">
       {_brand()}
     </td></tr>
-    <tr><td class="card" style="background:#ffffff;border:1px solid #e1e3ec;border-radius:10px;padding:24px;font-family:{FONT}">
+    <tr><td class="card" bgcolor="#ffffff" style="background:#ffffff;border:1px solid #e1e3ec;border-radius:10px;padding:24px;font-family:{FONT}">
       <div class="muted" style="color:#6a6f85;font-size:13px">{escape(site)}</div>
       <h1 class="text" style="margin:4px 0 0;color:#171923;font-size:20px;line-height:1.3;letter-spacing:-0.01em">{escape(heading)}</h1>
       {body}
