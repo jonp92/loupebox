@@ -234,3 +234,15 @@ code.key { display: inline-block; margin-right: .75rem; background: var(--surfac
   .page-head { flex-wrap: wrap; }
   .login-card { padding: 1.5rem 1.25rem; }
 }
+
+/* notifications */
+.badge.sent { background: var(--ok-soft); color: var(--ok); }
+.badge.failed { background: var(--danger-soft); color: var(--danger); }
+.badge.held, .badge.pending, .badge.sending { background: var(--warn-soft); color: var(--warn); }
+.log-table { min-width: 560px; }
+.log-table td, .log-table th { text-align: left; }
+.list li.channel { flex-wrap: wrap; }
+.list li.channel .grow { flex: 1 1 14rem; }
+.log-table td:last-child { overflow-wrap: anywhere; }
+fieldset { border: 0; padding: 0; margin: .8rem 0; }
+legend { padding: 0; font-size: .85rem; font-weight: 500; color: var(--muted); }

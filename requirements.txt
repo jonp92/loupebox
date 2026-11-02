@@ -7,3 +7,4 @@ psycopg[binary]
 pyjwt
 argon2-cffi
 email-validator
+httpx

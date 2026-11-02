@@ -5,6 +5,7 @@ from app.api import (
     avatar_routes,
     default_routes,
     feedback_routes,
+    notification_routes,
     public_routes,
     site_routes,
     stats_routes,
@@ -12,8 +13,10 @@ from app.api import (
 )
 from app.core.config import settings
 from app.core.middleware import BodySizeLimitMiddleware, DynamicCORSMiddleware
+from app.notifications.registry import load_providers
 
 prefix = settings.api_prefix
+load_providers()  # the admin API lists providers and sends test messages
 
 # Interactive docs only outside production, so a deployed instance doesn't advertise its schema.
 _docs = settings.environment != "production"
@@ -41,6 +44,7 @@ for module in (
     user_routes,
     site_routes,
     feedback_routes,
+    notification_routes,
     stats_routes,
 ):
     api.include_router(module.router)

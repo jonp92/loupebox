@@ -44,6 +44,18 @@ class Settings(BaseSettings):
     # Profile avatar image size cap (bytes), stored in the DB and served from {api_prefix}/avatars/{id}.
     avatar_max_bytes: int = 65_536
 
+    # Notification worker (python -m app.worker)
+    worker_poll_seconds: int = 5
+    notify_hourly_cap: int = 5  # emails per channel per hour; the overflow is rolled into one summary
+    notify_summary_delay_minutes: int = 15  # wait this long after the cap is hit before the summary
+    notify_max_recipients: int = 20  # per channel
+    # Brevo (email). Operator-owned, never stored in the database.
+    brevo_api_key: str = ""
+    notify_sender_email: str = ""
+    notify_sender_name: str = "Ganymede"
+    # Public origin of the admin UI, used for links in emails. Links are omitted when empty.
+    public_url: str = ""
+
     # Login brute-force protection
     login_ip_limit: int = 20
     login_account_limit: int = 5

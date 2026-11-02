@@ -155,3 +155,40 @@ export const json = (method: string, body: unknown): RequestInit => ({
   method,
   body: JSON.stringify(body),
 });
+
+export type OutboxStatus = "pending" | "sending" | "sent" | "failed" | "held";
+export interface JsonSchemaProp {
+  type?: string;
+  title?: string;
+  description?: string;
+  enum?: string[];
+  default?: unknown;
+}
+export interface ProviderInfo {
+  key: string;
+  label: string;
+  configured: boolean;
+  config_schema: { properties?: Record<string, JsonSchemaProp>; required?: string[] };
+}
+export interface Channel {
+  id: string;
+  provider: string;
+  name: string;
+  enabled: boolean;
+  config: Record<string, unknown>;
+  events: string[];
+  min_role: Role;
+  extra_recipients: string[];
+  created_at: string;
+}
+export interface Delivery {
+  id: string;
+  channel_name: string | null;
+  event_type: string;
+  status: OutboxStatus;
+  attempts: number;
+  summary: boolean;
+  last_error: string | null;
+  created_at: string;
+  sent_at: string | null;
+}

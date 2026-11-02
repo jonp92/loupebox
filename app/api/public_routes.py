@@ -12,6 +12,7 @@ from app.core.security import hash_ip
 from app.core.stats import record
 from app.db.session import get_db
 from app.models import Feedback, FeedbackStatus, Site, StatKind
+from app.notifications.outbox import enqueue_feedback_created
 from app.schemas.feedback import FeedbackIn, FeedbackReceipt
 
 router = APIRouter(tags=["public"])
@@ -111,5 +112,7 @@ def submit_feedback(
         user_agent=(request.headers.get("user-agent") or "")[:256] or None,
     )
     db.add(item)
+    db.flush()  # assigns the id the notification payload needs
+    enqueue_feedback_created(db, item)
     db.commit()
     return FeedbackReceipt(id=item.id)

@@ -4,6 +4,7 @@ import { api, type Site } from "../api";
 import Activity from "./Activity";
 import FeedbackList from "./FeedbackList";
 import Members from "./Members";
+import Notifications from "./Notifications";
 import Settings from "./Settings";
 
 export default function SiteDetail() {
@@ -32,12 +33,14 @@ export default function SiteDetail() {
         <NavLink to="activity">Activity</NavLink>
         {isAdmin && <NavLink to="settings">Settings</NavLink>}
         {isAdmin && <NavLink to="members">Members</NavLink>}
+        {isAdmin && <NavLink to="notifications">Notifications</NavLink>}
       </nav>
       <Routes>
         <Route index element={<FeedbackList site={site} />} />
         <Route path="activity" element={<Activity site={site} />} />
         {isAdmin && <Route path="settings" element={<Settings site={site} onChange={setSite} />} />}
         {isAdmin && <Route path="members" element={<Members site={site} />} />}
+        {isAdmin && <Route path="notifications" element={<Notifications site={site} />} />}
         <Route path="*" element={<Navigate to="" replace />} />
       </Routes>
     </>
