@@ -7,7 +7,7 @@ from app.core.config import settings
 from app.models import NotificationOutbox, OutboxStatus, Role
 from app.models.user import utcnow
 from app.notifications.base import SendResult
-from app.notifications.dispatcher import RETRY_DELAYS, process_due
+from app.notifications.dispatcher import RETRY_DELAYS, process_due, purge_finished
 from app.notifications.messages import build_message, build_summary
 from app.notifications.recipients import resolve_recipients
 from tests.conftest import add_member, make_site, make_user
@@ -269,3 +269,19 @@ def test_held_rows_of_a_removed_channel_fail_instead_of_lingering(db, fake, how)
 
     assert by_status(db) == {"sent": 5, "failed": 1}
     assert len(fake.sent) == 5
+
+
+def test_purge_removes_only_old_finished_rows(db, fake):
+    site = make_site(db)
+    channel = make_channel(db, site)
+    old = utcnow() - timedelta(days=settings.notify_retention_days + 1)
+    rows = queue(db, channel, n=5)
+    for row, status in zip(rows, [OutboxStatus.sent, OutboxStatus.failed, OutboxStatus.pending,
+                                  OutboxStatus.held, OutboxStatus.sent]):
+        row.status = status
+        row.created_at = old
+    rows[4].created_at = utcnow()  # recent sent row stays
+    db.commit()
+    assert purge_finished(db, utcnow()) == 2
+    assert {r.status for r in outbox(db)} == {OutboxStatus.pending, OutboxStatus.held, OutboxStatus.sent}
+    assert len(outbox(db)) == 3

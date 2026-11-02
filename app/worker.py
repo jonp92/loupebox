@@ -6,12 +6,14 @@ import time
 
 from app.core.config import settings
 from app.db.session import get_sessionmaker
-from app.notifications.dispatcher import process_due
+from app.models.user import utcnow
+from app.notifications.dispatcher import process_due, purge_finished
 from app.notifications.registry import load_providers
 
 log = logging.getLogger("ganymede.worker")
 
 _stop = False
+PURGE_EVERY = 3600  # seconds between retention sweeps
 
 
 def _request_stop(*_: object) -> None:
@@ -25,10 +27,16 @@ def run() -> None:
     signal.signal(signal.SIGINT, _request_stop)
     load_providers()
     log.info("worker started, polling every %ss", settings.worker_poll_seconds)
+    last_purge = float("-inf")  # sweep once at startup, then hourly
     while not _stop:
         try:
             with get_sessionmaker()() as db:
                 handled = process_due(db)
+                if time.monotonic() - last_purge >= PURGE_EVERY:
+                    last_purge = time.monotonic()
+                    removed = purge_finished(db, utcnow())
+                    if removed:
+                        log.info("purged %s finished outbox rows", removed)
         except Exception:
             log.exception("worker pass failed")
             handled = 0

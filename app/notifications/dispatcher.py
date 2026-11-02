@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from pydantic import BaseModel, ValidationError
-from sqlalchemy import func, or_, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -203,3 +203,16 @@ def process_due(db: Session, *, limit: int = 20) -> int:
         _send_row(db, row, now)
         db.commit()
     return len(rows) + process_summaries(db, utcnow())
+
+
+def purge_finished(db: Session, now: datetime) -> int:
+    """Delete sent and failed rows older than the retention period. Returns the number removed."""
+    cutoff = now - timedelta(days=settings.notify_retention_days)
+    result = db.execute(
+        delete(NotificationOutbox).where(
+            NotificationOutbox.status.in_([OutboxStatus.sent, OutboxStatus.failed]),
+            NotificationOutbox.created_at < cutoff,
+        )
+    )
+    db.commit()
+    return result.rowcount

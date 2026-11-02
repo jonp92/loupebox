@@ -1,6 +1,6 @@
 # Notification plugins (Brevo first): plan
 
-Status: **planned, not implemented.** Decisions below are settled; build in the phase order at the end.
+Status: **implemented** (phases 1-4). Decisions below are settled. Setup: [BREVO_SETUP.md](BREVO_SETUP.md).
 
 ## Goal
 

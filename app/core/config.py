@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     notify_hourly_cap: int = 5  # emails per channel per hour; the overflow is rolled into one summary
     notify_summary_delay_minutes: int = 15  # wait this long after the cap is hit before the summary
     notify_max_recipients: int = 20  # per channel
+    notify_retention_days: int = 30  # finished (sent/failed) outbox rows are deleted after this
     # Brevo (email). Operator-owned, never stored in the database.
     brevo_api_key: str = ""
     notify_sender_email: str = ""

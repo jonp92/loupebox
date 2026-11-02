@@ -16,7 +16,7 @@ docker compose run --rm api python -m scripts.create_superadmin you@example.com
 * Host ports are bound to localhost only; use a reverse proxy for anything public. Override them
   with `API_PORT`, `WEB_PORT` and `DB_PORT` in `.env` (defaults 8000 / 8080 / 5432).
 * Services: `db` (Postgres), `migrate` (one-shot `alembic upgrade head`, the API waits for it),
-  `api`, `web` (static build served by nginx, non-root).
+  `api`, `worker` (sends notification emails), `web` (static build served by nginx, non-root).
 * The web image reads `API_URL` at container start, so one image works in any environment.
   `ADMIN_ORIGINS` (API side) must include the origin the UI is served from.
 * For a public deployment see **Deploy behind Caddy** below; the containers speak plain HTTP.
@@ -39,6 +39,20 @@ cd web && cp .env.example .env && npm install && npm run dev   # http://localhos
 
 Tests run on in-memory SQLite by default: `pytest`. To run them on Postgres, point
 `TEST_DATABASE_URL` at a **throwaway** database (the suite drops all its tables).
+
+## Notifications
+
+Per-site email alerts for new feedback, sent through Brevo. Admins configure channels in the UI
+(site, **Notifications** tab). The API only queues rows in an outbox table; the `worker` service
+(`python -m app.worker`) delivers them with retries, so nothing sends without it running.
+
+* Set `BREVO_API_KEY` and `NOTIFY_SENDER_EMAIL` in `.env`; the provider shows as disabled in the UI
+  until both are set. Setup steps: [docs/BREVO_SETUP.md](docs/BREVO_SETUP.md).
+* `PUBLIC_URL` (admin UI origin) adds links to emails. `NOTIFY_HOURLY_CAP` (default 5) limits emails
+  per channel per hour; the overflow is rolled into one summary email.
+* Locally, run the worker next to the API with the same `.env`: `python -m app.worker`.
+* Sent and failed outbox rows are deleted after 30 days (`NOTIFY_RETENTION_DAYS`).
+* Design and decisions: [docs/NOTIFICATIONS_PLAN.md](docs/NOTIFICATIONS_PLAN.md).
 
 ## Model
 
