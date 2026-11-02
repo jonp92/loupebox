@@ -13,7 +13,8 @@ docker compose run --rm api python -m scripts.create_superadmin you@example.com
 
 * Web UI: http://localhost:8080 · API: http://localhost:8000/v1/api (interactive docs at `/v1/api/docs` only when
   `ENVIRONMENT` is not `production`; compose defaults to production, set `ENVIRONMENT=development` locally)
-* Both ports are bound to localhost only; use a reverse proxy for anything public.
+* Host ports are bound to localhost only; use a reverse proxy for anything public. Override them
+  with `API_PORT`, `WEB_PORT` and `DB_PORT` in `.env` (defaults 8000 / 8080 / 5432).
 * Services: `db` (Postgres), `migrate` (one-shot `alembic upgrade head`, the API waits for it),
   `api`, `web` (static build served by nginx, non-root).
 * The web image reads `API_URL` at container start, so one image works in any environment.
@@ -58,7 +59,8 @@ UI needs no CORS, and client sites post to `https://feedback.pressler.tech/v1/ap
    `docker compose run --rm api python -m scripts.create_superadmin you@pressler.tech`
 4. Add [deploy/Caddyfile](deploy/Caddyfile) to the host's Caddyfile and `caddy reload`. It proxies
    to `127.0.0.1:8000` (API) and `127.0.0.1:8080` (UI), which compose binds to localhost only, so
-   nothing is reachable except through Caddy.
+   nothing is reachable except through Caddy. If you change `API_PORT` / `WEB_PORT` in `.env`,
+   change the Caddyfile upstreams to match.
 5. In the admin UI create a site and list the client site's origins. Give clients
    `https://feedback.pressler.tech/v1/api` as their API URL.
 
