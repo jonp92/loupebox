@@ -61,7 +61,7 @@ export default function Users() {
     <>
       <div className="page-head"><h1>Users</h1><span className="count">{users.length}</span></div>
       {error && <p className="error" role="alert">{error}</p>}
-      <ul className="list">
+      <ul className="list users">
         {users.map((u) =>
           editing === u.id ? (
             <li key={u.id} className="editing">
@@ -81,9 +81,13 @@ export default function Users() {
               <span className="grow stack">
                 <strong>{displayName(u)}</strong>
                 {displayName(u) !== u.email && <span className="muted">{u.email}</span>}
+                {(u.is_superadmin || !u.is_active) && (
+                  <span className="origins">
+                    {u.is_superadmin && <span className="badge">superadmin</span>}
+                    {!u.is_active && <span className="badge warn">disabled</span>}
+                  </span>
+                )}
               </span>
-              {u.is_superadmin && <span className="badge">superadmin</span>}
-              {!u.is_active && <span className="badge warn">disabled</span>}
               <button onClick={() => setEditing(u.id)}>Edit</button>
               {u.id !== me.id && <button onClick={() => toggle(u)}>{u.is_active ? "Disable" : "Enable"}</button>}
             </li>

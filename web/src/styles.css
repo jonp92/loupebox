@@ -230,7 +230,11 @@ code.key { display: inline-block; margin-right: .75rem; background: var(--surfac
   .mainnav a { flex: 1; text-align: center; }
   .grid-2, .edit-user { grid-template-columns: 1fr; }
   .profile-head { flex-direction: column; text-align: center; }
-  .tabs { overflow-x: auto; white-space: nowrap; }
+  /* overflow-x makes the box scroll vertically too; the tabs' -1px margin would then overflow by 1px. */
+  .tabs { overflow-x: auto; overflow-y: hidden; white-space: nowrap; }
+  .tabs a { margin-bottom: 0; }
+  /* User cards: name and badges on the first row, buttons wrap below. */
+  .users li .grow { flex-basis: calc(100% - 3rem); }
   .toolbar { flex-wrap: wrap; }
   .toolbar input { flex: 1 0 100%; }
   .add-member { flex-wrap: wrap; }
