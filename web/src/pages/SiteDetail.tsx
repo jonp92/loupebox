@@ -22,7 +22,7 @@ export default function SiteDetail() {
 
   return (
     <>
-      <Link to="/" className="back">← All sites</Link>
+      <Link to="/sites" className="back">← All sites</Link>
       <div className="page-head">
         <h1>{site.name}</h1>
         <span className="badge">{site.my_role}</span>

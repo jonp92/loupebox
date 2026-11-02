@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import SiteDetail from "./pages/SiteDetail";
 import Dashboard from "./pages/Dashboard";
+import Sites from "./pages/Sites";
 import Users from "./pages/Users";
 import { useTheme } from "./theme";
 
@@ -62,7 +63,6 @@ function UserMenu({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
 
 function Layout() {
   const { me, loading, signOut } = useAuth();
-  const { pathname } = useLocation();
   if (loading) return <p className="center muted">Loading…</p>;
   if (!me) return <Navigate to="/login" replace />;
   return (
@@ -70,8 +70,9 @@ function Layout() {
       <header className="topbar">
         <NavLink to="/" className="brand"><Logo /> Ganymede</NavLink>
         <nav className="mainnav">
-          {/* Dashboard stays highlighted on /sites/:id too */}
-          <NavLink to="/" className={pathname.startsWith("/users") || pathname === "/profile" ? "" : "active"}>Dashboard</NavLink>
+          <NavLink to="/" end>Dashboard</NavLink>
+          {/* Sites stays highlighted on /sites/:id too (NavLink matches the prefix) */}
+          <NavLink to="/sites">Sites</NavLink>
           {me.is_superadmin && <NavLink to="/users">Users</NavLink>}
         </nav>
         <div className="spacer" />
@@ -91,6 +92,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route element={<Layout />}>
           <Route index element={<Dashboard />} />
+          <Route path="sites" element={<Sites />} />
           <Route path="sites/:siteId/*" element={<SiteDetail />} />
           <Route path="users" element={<Users />} />
           <Route path="profile" element={<Profile />} />
