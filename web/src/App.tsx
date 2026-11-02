@@ -6,7 +6,7 @@ import { useAuth } from "./auth";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import SiteDetail from "./pages/SiteDetail";
-import Sites from "./pages/Sites";
+import Dashboard from "./pages/Dashboard";
 import Users from "./pages/Users";
 import { useTheme } from "./theme";
 
@@ -70,8 +70,8 @@ function Layout() {
       <header className="topbar">
         <NavLink to="/" className="brand"><Logo /> Ganymede</NavLink>
         <nav className="mainnav">
-          {/* Sites stays highlighted on /sites/:id too */}
-          <NavLink to="/" className={pathname.startsWith("/users") || pathname === "/profile" ? "" : "active"}>Sites</NavLink>
+          {/* Dashboard stays highlighted on /sites/:id too */}
+          <NavLink to="/" className={pathname.startsWith("/users") || pathname === "/profile" ? "" : "active"}>Dashboard</NavLink>
           {me.is_superadmin && <NavLink to="/users">Users</NavLink>}
         </nav>
         <div className="spacer" />
@@ -90,7 +90,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route element={<Layout />}>
-          <Route index element={<Sites />} />
+          <Route index element={<Dashboard />} />
           <Route path="sites/:siteId/*" element={<SiteDetail />} />
           <Route path="users" element={<Users />} />
           <Route path="profile" element={<Profile />} />

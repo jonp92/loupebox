@@ -9,6 +9,7 @@ from app.api import (
     public_routes,
     site_routes,
     stats_routes,
+    dashboard_routes,
     user_routes,
 )
 from app.core.config import settings
@@ -46,6 +47,7 @@ for module in (
     feedback_routes,
     notification_routes,
     stats_routes,
+    dashboard_routes,
 ):
     api.include_router(module.router)
 app.include_router(api)

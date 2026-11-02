@@ -35,6 +35,20 @@ export interface Site {
   daily_limit: number;
   my_role: Role | null;
 }
+export interface DashboardSite extends Site {
+  new_count: number;
+}
+export interface DashboardItem extends Feedback {
+  site_id: string;
+  site_name: string;
+}
+export interface Dashboard {
+  new_total: number;
+  new_24h: number;
+  sites_with_new: number;
+  sites: DashboardSite[];
+  recent_new: DashboardItem[];
+}
 export interface Feedback {
   id: string;
   message: string;

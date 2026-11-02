@@ -145,6 +145,11 @@ button.icon { width: 34px; height: 34px; padding: 0; font-size: 1rem; }
 .toolbar { display: flex; gap: .75rem; align-items: center; margin: 1rem 0; }
 .toolbar input { flex: 1; margin: 0; }
 .toolbar select { width: auto; margin: 0; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .75rem; margin-bottom: 1.5rem; }
+.stat { display: flex; flex-direction: column; gap: .15rem; padding: .9rem 1.1rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.stat strong { font-size: 1.75rem; line-height: 1.1; }
+h2.section { margin-top: 1.5rem; }
+.unread .excerpt { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .fb { border-left: 4px solid var(--border); }
 .fb.new { border-left-color: var(--accent); }
 .fb.read { border-left-color: var(--ok); }
