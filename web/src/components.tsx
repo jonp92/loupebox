@@ -1,5 +1,41 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { useOnline } from "./online";
 import { api, avatarSrc, displayName, type Profile } from "./api";
+
+/** Bottom toast: "offline" while disconnected, then a brief "back online" when it returns. */
+export function OfflineBanner() {
+  const online = useOnline();
+  const [wasOffline, setWasOffline] = useState(false);
+  const [showBack, setShowBack] = useState(false);
+
+  useEffect(() => {
+    if (!online) {
+      setWasOffline(true);
+      setShowBack(false);
+      return;
+    }
+    if (!wasOffline) return;
+    setShowBack(true);
+    const t = setTimeout(() => {
+      setShowBack(false);
+      setWasOffline(false);
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [online, wasOffline]);
+
+  if (online && !showBack) return null;
+  return (
+    <div className={`net-toast ${online ? "back" : "off"}`} role="status" aria-live="polite">
+      <span className="net-dot" aria-hidden />
+      {online ? "Back online" : "You're offline. Changes won't save."}
+    </div>
+  );
+}
+
+/** Brand mark; decorative wherever the "Ganymede" name is next to it. */
+export function Logo({ size = 28, className = "" }: { size?: number; className?: string }) {
+  return <img className={`logo ${className}`} src="/ganymede-icon.svg" width={size} height={size} alt="" />;
+}
 
 export function Avatar({ user, size }: { user: Partial<Profile> & { email: string }; size?: "lg" | "xl" }) {
   const initials =

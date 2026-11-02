@@ -2,7 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- App-style: double-tap zoom is off via CSS (touch-action: manipulation). Pinch zoom stays available for accessibility, so no user-scalable=no / maximum-scale here. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <script>
       try {
         var t = localStorage.getItem("theme");
@@ -10,6 +11,16 @@
       } catch (e) {}
     </script>
     <script src="/config.js"></script>
+    <link rel="icon" type="image/svg+xml" href="/ganymede-icon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- Kept in sync with the active theme by src/theme.ts -->
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#181b25" media="(prefers-color-scheme: dark)" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Ganymede" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>Ganymede Feedback</title>
   </head>
   <body>

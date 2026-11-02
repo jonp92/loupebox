@@ -1,0 +1,19 @@
+{
+  "id": "/",
+  "name": "Ganymede Feedback",
+  "short_name": "Ganymede",
+  "description": "Review and triage feedback from your sites.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#5b5bd6",
+  "theme_color": "#5b5bd6",
+  "categories": ["productivity", "business"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/ganymede-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

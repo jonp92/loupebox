@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { displayName, type Me } from "./api";
-import { Avatar } from "./components";
+import { Avatar, Logo, OfflineBanner } from "./components";
 import { useAuth } from "./auth";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
@@ -68,7 +68,7 @@ function Layout() {
   return (
     <>
       <header className="topbar">
-        <NavLink to="/" className="brand"><span className="logo">G</span> Ganymede</NavLink>
+        <NavLink to="/" className="brand"><Logo /> Ganymede</NavLink>
         <nav className="mainnav">
           {/* Sites stays highlighted on /sites/:id too */}
           <NavLink to="/" className={pathname.startsWith("/users") || pathname === "/profile" ? "" : "active"}>Sites</NavLink>
@@ -85,15 +85,18 @@ function Layout() {
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route element={<Layout />}>
-        <Route index element={<Sites />} />
-        <Route path="sites/:siteId/*" element={<SiteDetail />} />
-        <Route path="users" element={<Users />} />
-        <Route path="profile" element={<Profile />} />
-      </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <OfflineBanner />
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route element={<Layout />}>
+          <Route index element={<Sites />} />
+          <Route path="sites/:siteId/*" element={<SiteDetail />} />
+          <Route path="users" element={<Users />} />
+          <Route path="profile" element={<Profile />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   );
 }

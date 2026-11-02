@@ -27,7 +27,10 @@
 :root[data-theme="dark"] { color-scheme: dark; --bg: #0f1117; --surface: #181b25; --surface-2: #20242f; --border: #2b3040; --text: #e8eaf2; --muted: #98a0b8; --accent: #8c8cf5; --accent-hover: #a2a2fa; --accent-soft: #272a4a; --on-accent: #10111a; --danger: #ff7a8a; --danger-soft: #3b1f26; --ok-soft: #153325; --ok: #6fdba0; --warn-soft: #3a2d10; --warn: #f2c55c; --star: #ffc23d; --shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 4px 16px rgb(0 0 0 / 30%); --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; }
 
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; transition: background .2s, color .2s; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+/* App-style touch: no double-tap-to-zoom (and no tap delay). Pinch zoom is deliberately left on. */
+html, body, #root, a, button, input, select, textarea, label, summary, [role="button"], [role="menuitem"], [role="option"] { touch-action: manipulation; }
+body { margin: 0; padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); -webkit-tap-highlight-color: transparent; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; transition: background .2s, color .2s; }
 h1 { font-size: 1.6rem; margin: 0; letter-spacing: -.02em; }
 h2 { font-size: 1.05rem; margin: 0 0 .75rem; }
 a { color: var(--accent); }
@@ -36,8 +39,8 @@ code { font-family: ui-monospace, Menlo, monospace; }
 /* top bar */
 .topbar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: .75rem; padding: .6rem 1.25rem; background: var(--surface); border-bottom: 1px solid var(--border); }
 .brand { display: flex; align-items: center; gap: .5rem; font-weight: 700; color: var(--text); text-decoration: none; }
-.logo { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--accent); color: var(--on-accent); font-weight: 800; }
-.logo.big { width: 52px; height: 52px; font-size: 1.6rem; border-radius: 14px; margin: 0 auto .75rem; }
+.logo { display: block; flex: none; }
+.logo.big { margin: 0 auto .75rem; }
 .mainnav { display: flex; gap: .25rem; margin-left: 1rem; }
 .mainnav a { padding: .4rem .8rem; border-radius: 8px; color: var(--muted); text-decoration: none; font-weight: 500; }
 .mainnav a:hover { background: var(--surface-2); color: var(--text); }
@@ -167,6 +170,14 @@ code.key { display: inline-block; margin-right: .75rem; background: var(--surfac
 .menu li.active { background: var(--accent-soft); }
 .menu li.empty { color: var(--muted); cursor: default; }
 
+/* offline / back-online toast */
+.net-toast { position: fixed; z-index: 40; left: 50%; bottom: calc(1rem + env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; align-items: center; gap: .55rem; width: max-content; max-width: calc(100vw - 2rem); padding: .55rem .95rem; border-radius: 999px; border: 1px solid var(--border); box-shadow: var(--shadow); font-size: .88rem; font-weight: 500; animation: net-in .18s ease-out; }
+.net-toast.off { background: var(--warn-soft); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 35%, var(--border)); }
+.net-toast.back { background: var(--ok-soft); color: var(--ok); border-color: color-mix(in srgb, var(--ok) 35%, var(--border)); }
+.net-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+@keyframes net-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) { .net-toast { animation: none; } }
+
 /* activity: stat tiles + chart */
 .range { margin: 0; display: flex; align-items: center; gap: .6rem; }
 .range select { width: auto; margin: 0; }
@@ -198,6 +209,12 @@ code.key { display: inline-block; margin-right: .75rem; background: var(--surfac
 .viz-table th, .viz-table td { padding: .4rem .6rem; text-align: right; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
 .viz-table th:first-child, .viz-table td:first-child { text-align: left; }
 .viz-table th { position: sticky; top: 0; background: var(--surface); color: var(--muted); font-weight: 600; }
+
+/* Touch devices: iOS Safari zooms the whole page when focusing an input under 16px, which makes the
+   app jump around. Pinch / double-tap zoom stay enabled; only this focus-zoom is avoided. */
+@media (pointer: coarse) {
+  input:not([type=checkbox]), select, textarea { font-size: 16px; }
+}
 
 @media (max-width: 640px) {
   .viz-card figcaption { flex-direction: column; }

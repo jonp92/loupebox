@@ -73,6 +73,23 @@ Notes:
   (`/v1/api/docs`) exist only when `ENVIRONMENT` is not `production`.
 * If Caddy runs in a container, join it to the compose network and proxy to `api:8000` / `web:8080`.
 
+## Mobile and PWA
+
+The admin UI is an installable single-page app (add to home screen / install from the browser):
+
+* `web/public/manifest.webmanifest` (standalone display, indigo splash, 192/512 and maskable icons)
+  and `web/public/sw.js`, registered in production builds only.
+* The service worker caches the app shell, hashed assets and icons so the UI opens offline. It
+  never touches the API, `/config.js` or non-GET requests, so no API data or auth ends up cached.
+  Offline, the shell loads but data screens need the network.
+* Updating: a new deploy is picked up on the next navigation (the shell is fetched network-first).
+  Bump `VERSION` in `sw.js` if you ever need to drop all cached assets.
+* App-style touch: double-tap zoom is disabled with `touch-action: manipulation` and inputs are 16px
+  on touch devices so iOS doesn't zoom on focus. Pinch zoom is intentionally left on (accessibility).
+  To lock it fully, add `maximum-scale=1` to the viewport meta in `web/index.html` (Android honors it;
+  iOS ignores it).
+* The browser/status-bar color follows the active theme (`src/theme.ts`).
+
 ## Public API
 
 `POST /v1/api/feedback` with header `X-API-Key`. See [examples/static-site.html](examples/static-site.html).

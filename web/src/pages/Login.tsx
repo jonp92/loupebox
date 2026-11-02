@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { ThemeToggle } from "../App";
 import { useAuth } from "../auth";
+import { Logo } from "../components";
 
 export default function Login() {
   const { me, loading, signIn } = useAuth();
@@ -30,7 +31,7 @@ export default function Login() {
     <div className="login-page">
       <div className="login-theme"><ThemeToggle /></div>
       <form className="login-card" onSubmit={submit}>
-        <div className="logo big">G</div>
+        <Logo size={56} className="big" />
         <h1>Ganymede</h1>
         <p className="muted">Sign in to review feedback</p>
         <label>Email<input name="email" type="email" autoComplete="username" required autoFocus /></label>
