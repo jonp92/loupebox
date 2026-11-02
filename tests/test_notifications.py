@@ -4,6 +4,7 @@ import pytest
 from pydantic import BaseModel
 from sqlalchemy import select
 
+from app.db.session import get_engine
 from app.models import (
     Feedback,
     NotificationChannel,
@@ -15,7 +16,6 @@ from app.models.user import utcnow
 from app.notifications import registry
 from app.notifications.base import Message, NotificationProvider, SendResult
 from app.notifications.dispatcher import LEASE, RETRY_DELAYS, process_due
-from app.db.session import get_engine
 from tests.conftest import SITE_ORIGIN, make_site
 
 HEADERS = {"X-API-Key": "pk_test_Shop", "Origin": SITE_ORIGIN}

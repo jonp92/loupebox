@@ -16,7 +16,6 @@ from app.core.security import (
 )
 from app.db.session import get_db
 from app.models import RefreshToken, User
-from app.schemas.common import sniff_image
 from app.schemas.auth import (
     LoginRequest,
     MembershipOut,
@@ -24,6 +23,7 @@ from app.schemas.auth import (
     PasswordChange,
     TokenResponse,
 )
+from app.schemas.common import sniff_image
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

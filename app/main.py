@@ -3,13 +3,13 @@ from fastapi import APIRouter, FastAPI
 from app.api import (
     auth_routes,
     avatar_routes,
+    dashboard_routes,
     default_routes,
     feedback_routes,
     notification_routes,
     public_routes,
     site_routes,
     stats_routes,
-    dashboard_routes,
     user_routes,
 )
 from app.core.config import settings

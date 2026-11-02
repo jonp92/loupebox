@@ -1,7 +1,6 @@
 from datetime import timedelta
 
 import pytest
-from sqlalchemy import select
 
 from app.core.config import settings
 from app.models import NotificationOutbox, OutboxStatus, Role
@@ -285,3 +284,27 @@ def test_purge_removes_only_old_finished_rows(db, fake):
     assert purge_finished(db, utcnow()) == 2
     assert {r.status for r in outbox(db)} == {OutboxStatus.pending, OutboxStatus.held, OutboxStatus.sent}
     assert len(outbox(db)) == 3
+
+
+def test_html_escapes_site_name_and_only_links_http_pages(db, monkeypatch):
+    monkeypatch.setattr(settings, "public_url", "")
+    site = make_site(db, "<b>Shop</b>")
+    (row,) = queue(db, make_channel(db, site))
+    row.payload = {"excerpt": "hi", "page_url": "javascript:alert(1)"}
+
+    m = build_message(row, site, ["r@x.com"])
+
+    assert "<b>Shop</b>" not in m.html and "&lt;b&gt;Shop&lt;/b&gt;" in m.html
+    assert "javascript:alert(1)" in m.html and 'href="javascript' not in m.html
+
+    row.payload = {"excerpt": "hi", "page_url": "https://x.com/a?b=1&c=2"}
+    assert 'href="https://x.com/a?b=1&amp;c=2"' in build_message(row, site, ["r@x.com"]).html
+
+
+def test_email_shows_logo_only_when_public_url_is_set(db, monkeypatch):
+    site = make_site(db)
+    (row,) = queue(db, make_channel(db, site))
+    monkeypatch.setattr(settings, "public_url", "")
+    assert "email-logo.png" not in build_message(row, site, ["r@x.com"]).html
+    monkeypatch.setattr(settings, "public_url", "https://admin.example.com/")
+    assert 'src="https://admin.example.com/email-logo.png"' in build_message(row, site, ["r@x.com"]).html

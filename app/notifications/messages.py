@@ -3,6 +3,7 @@ from html import escape
 from app.core.config import settings
 from app.models import NotificationOutbox, Site
 from app.notifications.base import Message
+from app.notifications.layout import facts_table, quote, render
 
 SUMMARY_EXCERPTS = 5
 SUMMARY_EXCERPT_CHARS = 140
@@ -17,12 +18,8 @@ def _one_line(text: str) -> str:
     return " ".join(text.split())
 
 
-def _html(paragraphs: list[str], link: str | None) -> str:
-    """Every user-supplied string goes through escape(); `paragraphs` are already-escaped HTML."""
-    body = "".join(f"<p>{p}</p>" for p in paragraphs)
-    if link:
-        body += f'<p><a href="{escape(link, quote=True)}">Open in Ganymede</a></p>'
-    return f"<!doctype html><html><body>{body}</body></html>"
+def _safe_href(url: str) -> str | None:
+    return url if url.lower().startswith(("http://", "https://")) else None
 
 
 def build_message(row: NotificationOutbox, site: Site, recipients: list[str]) -> Message:
@@ -38,13 +35,18 @@ def build_message(row: NotificationOutbox, site: Site, recipients: list[str]) ->
         facts.append(("Page", p["page_url"]))
 
     text = "\n".join([p.get("excerpt", ""), "", *(f"{k}: {v}" for k, v in facts)] + ([link] if link else []))
-    paragraphs = [escape(p.get("excerpt", "")).replace("\n", "<br>")]
-    paragraphs += [f"<b>{k}:</b> {escape(v)}" for k, v in facts]
+    rows = [
+        (k, f'<a class="lnk" href="{escape(v, quote=True)}" style="color:#5b5bd6">{escape(v)}</a>' if k == "Page" and _safe_href(v) else escape(v))
+        for k, v in facts
+    ]
+    body = quote(escape(p.get("excerpt", "")).replace("\n", "<br>")) + (facts_table(rows) if rows else "")
     return Message(
         to=recipients,
         subject=f"New feedback on {_one_line(site.name)}",
         text=text.strip(),
-        html=_html(paragraphs, link),
+        html=render(
+            heading="New feedback", preheader=_one_line(p.get("excerpt", ""))[:120], body=body, link=link, site=_one_line(site.name)
+        ),
         reply_to=p.get("email"),
         tags=[row.event_type],
     )
@@ -62,12 +64,17 @@ def build_summary(rows: list[NotificationOutbox], site: Site, recipients: list[s
     text = "\n".join([head, "", *(f"- {e}" for e in excerpts)] + ([f"...and {more} more"] if more else []))
     if link:
         text += f"\n\n{link}"
-    paragraphs = [escape(head)]
-    paragraphs.append("<br>".join(f"&bull; {escape(e)}" for e in excerpts) + (f"<br>...and {more} more" if more else ""))
+    items = "".join(f'<li style="margin:0 0 6px">{escape(e)}</li>' for e in excerpts)
+    body = (
+        f'<p class="text" style="margin:12px 0 0;color:#171923;font-size:15px">{escape(head)}</p>'
+        + quote(f'<ul style="margin:0;padding-left:18px">{items}</ul>' + (f'<div style="margin-top:8px;opacity:.7">...and {more} more</div>' if more else ""))
+    )
     return Message(
         to=recipients,
         subject=f"{n} more feedback on {_one_line(site.name)}",
         text=text,
-        html=_html(paragraphs, link),
+        html=render(
+            heading=f"{n} more feedback", preheader=head, body=body, link=link, site=_one_line(site.name)
+        ),
         tags=["feedback.summary"],
     )

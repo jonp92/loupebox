@@ -81,7 +81,7 @@ def test_lists_expose_avatar_url_not_data(client, db):
     site = make_site(db)
     admin = make_user(db, "boss@example.com")
     add_member(db, admin, site, Role.admin)
-    root = make_user(db, "root@example.com", superadmin=True)
+    make_user(db, "root@example.com", superadmin=True)
     h = login(client, "boss@example.com")
     put_avatar(client, h)
     members = client.get(f"/sites/{site.id}/members", headers=h).json()

@@ -1,4 +1,5 @@
 import uuid
+from html import escape
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import ValidationError
@@ -10,6 +11,7 @@ from app.core.rate_limit import enforce
 from app.db.session import get_db
 from app.models import Membership, NotificationChannel, NotificationOutbox, Role, User
 from app.notifications.base import Message, NotificationProvider
+from app.notifications.layout import quote, render
 from app.notifications.registry import all_providers, get_provider
 from app.schemas.notification import (
     ChannelCreate,
@@ -174,6 +176,13 @@ def send_test(
             to=[to],
             subject=f"Test notification for {' '.join(access.site.name.split())}",
             text=f'This is a test from the "{channel.name}" channel. Notifications are working.',
+            html=render(
+                heading="Notifications are working",
+                preheader="This is a test notification.",
+                body=quote(escape(f'This is a test from the "{channel.name}" channel.')),
+                link=None,
+                site=" ".join(access.site.name.split()),
+            ),
             tags=["test"],
         ),
         config,

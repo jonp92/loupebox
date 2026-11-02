@@ -35,7 +35,7 @@ def send(message: Message):
 
 
 def msg(**kw) -> Message:
-    base = dict(to=["a@example.com"], subject="Hi", text="body", html="<p>body</p>")
+    base = {"to": ["a@example.com"], "subject": "Hi", "text": "body", "html": "<p>body</p>"}
     return Message(**{**base, **kw})
 
 

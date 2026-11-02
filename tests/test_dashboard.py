@@ -28,7 +28,7 @@ def test_dashboard_counts_only_unread_on_visible_sites(client, db):
     assert (r["new_total"], r["new_24h"], r["sites_with_new"]) == (3, 2, 2)
     assert {s["name"]: s["new_count"] for s in r["sites"]} == {"A": 2, "B": 1}
     assert {s["name"]: s["my_role"] for s in r["sites"]} == {"A": "viewer", "B": "editor"}
-    assert [i["message"] for i in r["recent_new"]][0] in {"a1", "b1"}
+    assert r["recent_new"][0]["message"] in {"a1", "b1"}
     assert {i["message"] for i in r["recent_new"]} == {"a1", "a2", "b1"}
     assert "secret" not in str(r)
 
