@@ -12,6 +12,20 @@ server. You build the form (UI + a small submit function) inside this app.
 | `GANYMEDE_KEY` | `pk_...` | The site's **public** key. Safe to ship in client JS. |
 | This app's origin(s) | `https://app.example.com`, `http://localhost:3000` | Each must be on the site's **allowed origins** list in the Ganymede admin UI (Site → Settings). Ask the user to confirm, including local dev origins. |
 
+### URL format
+
+Every Ganymede route lives under the `/v1/api` prefix, and `GANYMEDE_URL` includes it:
+
+```
+GANYMEDE_URL = https://feedback.pressler.tech/v1/api        (origin + /v1/api, no trailing slash)
+Endpoint     = {GANYMEDE_URL}/feedback
+             = https://feedback.pressler.tech/v1/api/feedback
+```
+
+Store `GANYMEDE_URL` as **one** config value with the prefix included, so the code only ever appends
+`/feedback`. Older paths such as `/v1/feedback` and `/api/v1/feedback` **do not exist** and return
+`404`; if you see them in notes or old snippets, they are out of date.
+
 If the user doesn't have a key yet: a Ganymede **superadmin** creates a site in the admin UI
 (Sites → New site) and lists this app's origins. The key is shown on the site's Settings tab.
 
@@ -51,6 +65,7 @@ Total body must be ≤16 KB.
 |---|---|---|
 | `201` `{"id": "<uuid>"}` | Accepted (also returned for honeypot drops and for exact duplicates sent within 10 min, so retries are safe) | Show a thank-you, clear the form |
 | `403` `{"detail":"Forbidden"}` | Bad/unknown/disabled key, **or origin not allowed**. Deliberately the same message for all. | Generic "couldn't send" message. During setup, check the key and that this origin is in the allowed list. |
+| `404` | Wrong URL (missing `/v1/api`, or an old path like `/v1/feedback`) | Fix `GANYMEDE_URL`; see debugging below |
 | `413` | Body too large | Shouldn't happen; cap `message` at 5000 |
 | `422` | Validation failed; `detail` is a list of `{loc, msg}` | Show the field error if you can map `loc`; otherwise generic |
 | `429` | Rate limited or daily cap reached; `Retry-After` header (seconds) on rate limits | "Too many submissions, try again later." Don't auto-retry in a loop. |
@@ -126,16 +141,19 @@ Plain-HTML variant, for non-framework pages:
 
 ## Verify it works
 
-1. Confirm this app's exact origin (scheme + host + port, e.g. `http://localhost:3000`) is in the
+1. Confirm the URL is right: `curl "$GANYMEDE_URL/health"` must return `{"status":"ok"}`. If it
+   returns HTML, `404`, or another JSON shape, `GANYMEDE_URL` is wrong or the server is down.
+2. Confirm this app's exact origin (scheme + host + port, e.g. `http://localhost:3000`) is in the
    Ganymede site's allowed origins. **No wildcards, no paths, no trailing slash.**
-2. Submit from the running app. Expect `201`. The message should appear in the Ganymede admin UI
+3. Submit from the running app. Expect `201`. The message should appear in the Ganymede admin UI
    under the site's Feedback tab.
-3. Check failure paths: wrong key → `403`; empty message → client-side block (and `422` if bypassed);
+4. Check failure paths: wrong key → `403`; empty message → client-side block (and `422` if bypassed);
    submit the same text twice quickly → one entry, both succeed.
-4. Quick server check without the browser (this bypasses origin checks only if the server allows
+5. Quick server check without the browser (this bypasses origin checks only if the server allows
    missing Origin; by default it does not, so include one):
 
 ```bash
+GANYMEDE_URL=https://feedback.pressler.tech/v1/api   # includes the prefix
 curl -i -X POST "$GANYMEDE_URL/feedback" \
   -H "Content-Type: application/json" \
   -H "X-API-Key: $GANYMEDE_KEY" \
@@ -148,6 +166,7 @@ curl -i -X POST "$GANYMEDE_URL/feedback" \
 | Symptom | Likely cause |
 |---|---|
 | Browser console CORS error, no response | This app's origin isn't on the site's allowed list (preflight returns 403), or the URL is wrong |
+| `404`, or an HTML page where JSON was expected | `GANYMEDE_URL` is missing the `/v1/api` prefix, has a stale path (`/v1/feedback`, `/api/v1/feedback`), or has a trailing slash/typo. Check `{GANYMEDE_URL}/health` first. A plain-text `Not found` instead of JSON means the request never reached the API (server-side proxy/deploy problem, not this app). |
 | `403 Forbidden` but no CORS error | Wrong/rotated key, site disabled, or origin mismatch (e.g. `http` vs `https`, `www.` vs bare, different port) |
 | `422` | A field broke a rule above, or an unknown top-level field was sent |
 | `429` immediately in dev | Many test submissions from one IP within a minute; wait for `Retry-After` |

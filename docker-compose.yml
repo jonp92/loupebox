@@ -11,16 +11,30 @@ services:
     ports: ["127.0.0.1:${DB_PORT:-5432}:5432"]
     volumes: [pgdata:/var/lib/postgresql/data]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ganymede -d ganymede"]
+      # -h forces TCP. Without it pg_isready uses the unix socket, which the temporary server
+      # that runs during first-time init also serves, so the DB looks ready before it accepts
+      # network connections (and then restarts).
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ganymede -d ganymede"]
       interval: 5s
       timeout: 3s
       retries: 10
+      start_period: 10s
 
   # One-shot: applies migrations, then exits. The API waits for it to succeed.
   migrate:
     build: .
     image: ganymede-api
-    command: ["alembic", "upgrade", "head"]
+    # Retries cover the DB or the network still settling on first start. `$$` escapes compose interpolation.
+    command:
+      - sh
+      - -c
+      - |
+        for i in 1 2 3 4 5 6 7 8 9 10; do
+          alembic upgrade head && exit 0
+          echo "migration attempt $$i failed, retrying in 3s" >&2
+          sleep 3
+        done
+        exit 1
     environment: &api-env
       ENVIRONMENT: ${ENVIRONMENT:-production}
       DATABASE_URL: postgresql+psycopg://ganymede:${POSTGRES_PASSWORD}@db:5432/ganymede

@@ -36,7 +36,11 @@ export default function Sites() {
           <li key={s.id}>
             <Link to={`/sites/${s.id}`} className="grow site-link">
               <strong>{s.name}</strong>
-              <span className="muted">{s.allowed_origins.length ? s.allowed_origins.join(", ") : "No allowed origins yet"}</span>
+              <span className="origins">
+                {s.allowed_origins.length
+                  ? s.allowed_origins.map((o) => <span key={o} className="origin">{o}</span>)
+                  : <span className="muted">No allowed origins yet</span>}
+              </span>
             </Link>
             <span className="badge">{s.my_role}</span>
             {!s.is_active && <span className="badge warn">disabled</span>}
