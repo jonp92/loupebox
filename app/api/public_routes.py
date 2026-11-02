@@ -14,7 +14,7 @@ from app.db.session import get_db
 from app.models import Feedback, FeedbackStatus, Site, StatKind
 from app.schemas.feedback import FeedbackIn, FeedbackReceipt
 
-router = APIRouter(prefix="/v1", tags=["public"])
+router = APIRouter(tags=["public"])
 
 _URL_RE = re.compile(r"https?://|www\.", re.IGNORECASE)
 

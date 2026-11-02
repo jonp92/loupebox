@@ -64,8 +64,8 @@ def test_rotate_key_invalidates_old(client, db):
     root = login(client, "root@example.com")
     new_key = client.post(f"/sites/{site.id}/rotate-key", headers=root).json()["public_key"]
     old = {"X-API-Key": "pk_test_Shop", "Origin": SITE_ORIGIN}
-    assert client.post("/v1/feedback", json={"message": "x"}, headers=old).status_code == 403
-    assert client.post("/v1/feedback", json={"message": "x"}, headers={**old, "X-API-Key": new_key}).status_code == 201
+    assert client.post("/feedback", json={"message": "x"}, headers=old).status_code == 403
+    assert client.post("/feedback", json={"message": "x"}, headers={**old, "X-API-Key": new_key}).status_code == 201
 
 
 def test_origin_change_takes_effect_for_cors(client, db):
@@ -73,9 +73,9 @@ def test_origin_change_takes_effect_for_cors(client, db):
     make_user(db, "root@example.com", superadmin=True)
     root = login(client, "root@example.com")
     pre = {"Origin": "https://new.example.com", "Access-Control-Request-Method": "POST"}
-    assert client.options("/v1/feedback", headers=pre).status_code == 403
+    assert client.options("/feedback", headers=pre).status_code == 403
     client.patch(f"/sites/{site.id}", json={"allowed_origins": ["https://new.example.com"]}, headers=root)
-    assert client.options("/v1/feedback", headers=pre).status_code == 204
+    assert client.options("/feedback", headers=pre).status_code == 204
 
 
 def test_membership_management(client, db):

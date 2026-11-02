@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from sqlalchemy import Boolean, DateTime, ForeignKey, LargeBinary, String
 from sqlalchemy.orm import Mapped, deferred, mapped_column, relationship
 
+from app.core.config import settings
 from app.db.base import Base
 
 
@@ -18,7 +19,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
     first_name: Mapped[str] = mapped_column(String(100), default="", server_default="")
     last_name: Mapped[str] = mapped_column(String(100), default="", server_default="")
-    # Image bytes are deferred so ordinary user queries never load them; /avatars/{id} does.
+    # Image bytes are deferred so ordinary user queries never load them; the avatar route does.
     avatar_data: Mapped[bytes | None] = deferred(mapped_column(LargeBinary, default=None))
     avatar_type: Mapped[str | None] = mapped_column(String(16), default=None)
     avatar_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
@@ -34,7 +35,7 @@ class User(Base):
             return None
         ts = self.avatar_updated_at
         ts = ts if ts.tzinfo else ts.replace(tzinfo=UTC)
-        return f"/avatars/{self.id}?v={int(ts.timestamp())}"
+        return f"{settings.api_prefix}/avatars/{self.id}?v={int(ts.timestamp())}"
 
     memberships: Mapped[list["Membership"]] = relationship(  # noqa: F821
         back_populates="user", cascade="all, delete-orphan"

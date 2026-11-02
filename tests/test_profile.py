@@ -18,10 +18,10 @@ def test_avatar_upload_serve_and_delete(client, db):
     r = put_avatar(client, h)
     assert r.status_code == 200
     url = r.json()["avatar_url"]
-    assert url.startswith(f"/avatars/{user.id}?v=")
+    assert url.startswith(f"{settings.api_prefix}/avatars/{user.id}?v=")
     assert "avatar" not in r.json()  # no inline image data in JSON
 
-    img = client.get(url)  # no auth needed so <img src> works
+    img = client.get(url.removeprefix(settings.api_prefix))  # no auth needed so <img src> works
     assert img.status_code == 200 and img.content == PNG
     assert img.headers["content-type"] == "image/png"
     assert "immutable" in img.headers["cache-control"]
@@ -85,7 +85,7 @@ def test_lists_expose_avatar_url_not_data(client, db):
     h = login(client, "boss@example.com")
     put_avatar(client, h)
     members = client.get(f"/sites/{site.id}/members", headers=h).json()
-    assert members[0]["avatar_url"].startswith("/avatars/") and "avatar" not in members[0]
+    assert members[0]["avatar_url"].startswith(f"{settings.api_prefix}/avatars/") and "avatar" not in members[0]
     rh = login(client, "root@example.com")
     users = client.get("/users", headers=rh).json()
     assert {u["email"]: bool(u["avatar_url"]) for u in users} == {"boss@example.com": True, "root@example.com": False}

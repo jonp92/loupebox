@@ -10,12 +10,12 @@
   <p id="status"></p>
 </form>
 <script>
-  const API = "http://localhost:8000";
+  const API = "http://localhost:8000/v1/api";
   const KEY = "pk_REPLACE_ME"; // public by design; origin allow-list + rate limits protect it
   document.getElementById("fb").addEventListener("submit", async (e) => {
     e.preventDefault();
     const f = new FormData(e.target);
-    const res = await fetch(`${API}/v1/feedback`, {
+    const res = await fetch(`${API}/feedback`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-API-Key": KEY },
       body: JSON.stringify({

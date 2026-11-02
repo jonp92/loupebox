@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     app_description: str = "A simple, open-source, self-hosted link submission and voting platform."
 
     environment: str = "development"
+    # Every route lives under this prefix, so a reverse proxy can send /v1/api/* to the API
+    # and everything else to the web UI with no path rewriting.
+    api_prefix: str = "/v1/api"
     database_url: str = "postgresql+psycopg://ganymede:ganymede@localhost:5432/ganymede"
 
     # Auth for the admin UI
@@ -22,7 +25,7 @@ class Settings(BaseSettings):
     # Use "none" (with cookie_secure) if the SPA is on a different *site* than the API.
     cookie_samesite: str = "lax"
 
-    # Origins allowed to call the admin API (the SPA). Public /v1 origins are per-site.
+    # Origins allowed to call the admin API (the SPA). Public ingest origins are per-site.
     admin_origins: list[str] = ["http://localhost:5173"]
 
     # Only honour X-Forwarded-For when running behind a trusted reverse proxy.
@@ -38,13 +41,18 @@ class Settings(BaseSettings):
     dedupe_window_minutes: int = 10
     spam_link_threshold: int = 3  # messages with more links than this are quarantined
 
-    # Profile avatar image size cap (bytes), stored in the DB and served from /avatars/{id}.
+    # Profile avatar image size cap (bytes), stored in the DB and served from {api_prefix}/avatars/{id}.
     avatar_max_bytes: int = 65_536
 
     # Login brute-force protection
     login_ip_limit: int = 20
     login_account_limit: int = 5
     login_window_seconds: int = 60
+
+    @property
+    def cookie_path(self) -> str:
+        """Refresh cookie is only sent to the auth routes."""
+        return f"{self.api_prefix}/auth"
 
     @model_validator(mode="after")
     def _check_production_secret(self) -> "Settings":

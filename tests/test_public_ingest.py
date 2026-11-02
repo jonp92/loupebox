@@ -8,7 +8,7 @@ HEADERS = {"X-API-Key": "pk_test_Shop", "Origin": SITE_ORIGIN}
 
 
 def post(client, body=None, headers=None):
-    return client.post("/v1/feedback", json=body or {"message": "Love it"}, headers=headers or HEADERS)
+    return client.post("/feedback", json=body or {"message": "Love it"}, headers=headers or HEADERS)
 
 
 def test_accepts_valid_submission(client, db):
@@ -56,7 +56,7 @@ def test_nul_bytes_stripped(client, db):
 
 def test_body_size_limit(client, db):
     make_site(db)
-    r = client.post("/v1/feedback", content=b"x" * (settings.max_body_bytes + 1), headers=HEADERS)
+    r = client.post("/feedback", content=b"x" * (settings.max_body_bytes + 1), headers=HEADERS)
     assert r.status_code == 413
 
 
@@ -104,7 +104,7 @@ def test_site_daily_limit(client, db):
 def test_cors_preflight_and_headers(client, db):
     make_site(db)
     pre = client.options(
-        "/v1/feedback",
+        "/feedback",
         headers={
             "Origin": SITE_ORIGIN,
             "Access-Control-Request-Method": "POST",
@@ -116,7 +116,7 @@ def test_cors_preflight_and_headers(client, db):
     assert "access-control-allow-credentials" not in pre.headers
 
     bad = client.options(
-        "/v1/feedback",
+        "/feedback",
         headers={"Origin": "https://evil.example", "Access-Control-Request-Method": "POST"},
     )
     assert bad.status_code == 403

@@ -4,10 +4,13 @@ declare global {
   }
 }
 
-// Runtime config (container) wins over the build-time dev default.
-export const API_URL: string =
-  window.__CONFIG__?.API_URL || import.meta.env.VITE_API_URL || "http://localhost:8000";
-const BASE = API_URL;
+// Origin of the API server. Runtime config (container) wins over the build-time dev default.
+export const API_URL: string = (
+  window.__CONFIG__?.API_URL || import.meta.env.VITE_API_URL || "http://localhost:8000"
+).replace(/\/+$/, "");
+// The server mounts every route under this prefix (settings.api_prefix).
+export const API_PREFIX = "/v1/api";
+const BASE = API_URL + API_PREFIX;
 
 export type Role = "viewer" | "editor" | "admin";
 export type Status = "new" | "read" | "archived" | "spam";
@@ -54,9 +57,9 @@ export interface User extends Profile {
   is_active: boolean;
 }
 
-/** Avatar URLs from the API are relative to the API origin. */
+/** Avatar URLs from the API are paths on the API origin. */
 export function avatarSrc(url: string | null | undefined): string | null {
-  return url ? BASE + url : null;
+  return url ? API_URL + url : null; // server-supplied paths already include the prefix
 }
 
 export function displayName(p: Pick<Profile, "email" | "first_name" | "last_name">): string {

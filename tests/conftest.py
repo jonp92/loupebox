@@ -9,6 +9,7 @@ os.environ["ADMIN_ORIGINS"] = '["http://admin.test"]'
 import pytest
 from fastapi.testclient import TestClient
 
+from app.core.config import settings
 from app.core.origins import public_origins
 from app.core.rate_limit import limiter
 from app.core.security import hash_password
@@ -31,7 +32,8 @@ def _clean_state():
 
 @pytest.fixture
 def client() -> TestClient:
-    return TestClient(app)
+    # Base URL carries the API prefix so tests can use short relative paths.
+    return TestClient(app, base_url=f"http://testserver{settings.api_prefix}")
 
 
 @pytest.fixture

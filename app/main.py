@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI
 
 from app.api import (
     auth_routes,
@@ -13,21 +13,35 @@ from app.api import (
 from app.core.config import settings
 from app.core.middleware import BodySizeLimitMiddleware, DynamicCORSMiddleware
 
-app = FastAPI(title=settings.app_name)
+prefix = settings.api_prefix
+
+# Interactive docs only outside production, so a deployed instance doesn't advertise its schema.
+_docs = settings.environment != "production"
+app = FastAPI(
+    title=settings.app_name,
+    docs_url=f"{prefix}/docs" if _docs else None,
+    redoc_url=f"{prefix}/redoc" if _docs else None,
+    openapi_url=f"{prefix}/openapi.json" if _docs else None,
+)
 
 # Added first = innermost, so 413s from the size limit still get CORS headers.
 app.add_middleware(
     BodySizeLimitMiddleware,
     max_bytes=settings.max_body_bytes,
-    overrides={"/auth/me/avatar": settings.avatar_max_bytes + 1024},
+    overrides={f"{prefix}/auth/me/avatar": settings.avatar_max_bytes + 1024},
 )
 app.add_middleware(DynamicCORSMiddleware)
 
-app.include_router(default_routes.router)
-app.include_router(public_routes.router)
-app.include_router(auth_routes.router)
-app.include_router(avatar_routes.router)
-app.include_router(user_routes.router)
-app.include_router(site_routes.router)
-app.include_router(feedback_routes.router)
-app.include_router(stats_routes.router)
+api = APIRouter(prefix=prefix)
+for module in (
+    default_routes,
+    public_routes,
+    auth_routes,
+    avatar_routes,
+    user_routes,
+    site_routes,
+    feedback_routes,
+    stats_routes,
+):
+    api.include_router(module.router)
+app.include_router(api)

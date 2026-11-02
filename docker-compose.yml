@@ -38,7 +38,8 @@ services:
     build: .
     image: ganymede-api
     environment: *api-env
-    ports: ["8000:8000"]
+    # Localhost only: put a reverse proxy (Caddy) in front for anything public.
+    ports: ["127.0.0.1:8000:8000"]
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -50,7 +51,7 @@ services:
     environment:
       # URL the *browser* uses to reach the API.
       API_URL: ${API_URL:-http://localhost:8000}
-    ports: ["8080:8080"]
+    ports: ["127.0.0.1:8080:8080"]
     depends_on: [api]
     restart: unless-stopped
 

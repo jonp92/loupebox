@@ -10,7 +10,7 @@ HEADERS = {"X-API-Key": "pk_test_Shop", "Origin": SITE_ORIGIN}
 
 
 def post(client, body=None, headers=None):
-    return client.post("/v1/feedback", json=body or {"message": "hi"}, headers=headers or HEADERS)
+    return client.post("/feedback", json=body or {"message": "hi"}, headers=headers or HEADERS)
 
 
 def counts(db) -> dict[str, int]:

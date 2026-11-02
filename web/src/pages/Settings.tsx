@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { API_URL, api, json, type Site } from "../api";
+import { API_PREFIX, API_URL, api, json, type Site } from "../api";
 
 export default function Settings({ site, onChange }: { site: Site; onChange: (s: Site) => void }) {
   const [msg, setMsg] = useState("");
@@ -32,7 +32,7 @@ export default function Settings({ site, onChange }: { site: Site; onChange: (s:
     run(api<Site>(`/sites/${site.id}/rotate-key`, { method: "POST" }), "Key rotated");
   }
 
-  const snippet = `fetch("${API_URL}/v1/feedback", {
+  const snippet = `fetch("${API_URL}${API_PREFIX}/feedback", {
   method: "POST",
   headers: { "Content-Type": "application/json", "X-API-Key": "${site.public_key}" },
   body: JSON.stringify({ message, rating, email, page_url: location.href }),

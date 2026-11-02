@@ -11,14 +11,14 @@ docker compose up -d --build
 docker compose run --rm api python -m scripts.create_superadmin you@example.com
 ```
 
-* Web UI: http://localhost:8080 · API + docs: http://localhost:8000/docs
+* Web UI: http://localhost:8080 · API: http://localhost:8000/v1/api (interactive docs at `/v1/api/docs` only when
+  `ENVIRONMENT` is not `production`; compose defaults to production, set `ENVIRONMENT=development` locally)
+* Both ports are bound to localhost only; use a reverse proxy for anything public.
 * Services: `db` (Postgres), `migrate` (one-shot `alembic upgrade head`, the API waits for it),
   `api`, `web` (static build served by nginx, non-root).
 * The web image reads `API_URL` at container start, so one image works in any environment.
   `ADMIN_ORIGINS` (API side) must include the origin the UI is served from.
-* Behind HTTPS set `COOKIE_SECURE=true`, `TRUST_PROXY=true` (if a proxy overwrites
-  `X-Forwarded-For`), and update `API_URL` / `ADMIN_ORIGINS`. Put TLS in front (Caddy, Traefik,
-  nginx, a cloud load balancer); the containers speak plain HTTP.
+* For a public deployment see **Deploy behind Caddy** below; the containers speak plain HTTP.
 * Keep the API at **one replica/worker** until rate limiting is moved to Redis (see below).
 * Data lives in the `pgdata` volume. Back it up; `docker compose down -v` deletes it.
 
@@ -46,9 +46,34 @@ Tests run on in-memory SQLite by default: `pytest`. To run them on Postgres, poi
   manages settings, key and members. `superadmin` is global: creates sites/users, admin everywhere.
 * Non-members get 404 for sites they can't see.
 
+## Deploy behind Caddy (feedback.pressler.tech)
+
+Every API route lives under `/v1/api` (`API_PREFIX`), so Caddy needs one rule: `/v1/api/*` goes to
+the API, everything else to the web UI. No path rewriting. UI and API share an origin, so the admin
+UI needs no CORS, and client sites post to `https://feedback.pressler.tech/v1/api/feedback`.
+
+1. DNS: point `feedback.pressler.tech` at the machine. Caddy gets the certificate automatically.
+2. `cp deploy/production.env.example .env` and fill in `JWT_SECRET` and `POSTGRES_PASSWORD`.
+3. `docker compose up -d --build`, then create the first admin:
+   `docker compose run --rm api python -m scripts.create_superadmin you@pressler.tech`
+4. Add [deploy/Caddyfile](deploy/Caddyfile) to the host's Caddyfile and `caddy reload`. It proxies
+   to `127.0.0.1:8000` (API) and `127.0.0.1:8080` (UI), which compose binds to localhost only, so
+   nothing is reachable except through Caddy.
+5. In the admin UI create a site and list the client site's origins. Give clients
+   `https://feedback.pressler.tech/v1/api` as their API URL.
+
+Notes:
+
+* `TRUST_PROXY=true` makes rate limits use the client IP from `X-Forwarded-For`. Caddy replaces any
+  client-supplied value, but that is only safe while the API port is unreachable except through
+  Caddy; never expose it publicly with this on.
+* `/health` is `/v1/api/health` (the container health check uses it). Interactive docs
+  (`/v1/api/docs`) exist only when `ENVIRONMENT` is not `production`.
+* If Caddy runs in a container, join it to the compose network and proxy to `api:8000` / `web:8080`.
+
 ## Public API
 
-`POST /v1/feedback` with header `X-API-Key`. See [examples/static-site.html](examples/static-site.html).
+`POST /v1/api/feedback` with header `X-API-Key`. See [examples/static-site.html](examples/static-site.html).
 Fields: `message` (required), `rating` 1-5, `name`, `email`, `page_url`, `metadata`, `website` (honeypot).
 
 ### Abuse mitigations
@@ -76,14 +101,14 @@ The admin UI renders all feedback as text (never HTML) and only links `http(s)` 
 ## Profiles
 
 Users have a first and last name and an optional avatar. Only superadmins can edit names and
-emails (`PATCH /users/{id}`). Users manage their own avatar and password:
+emails (`PATCH /v1/api/users/{id}`). Users manage their own avatar and password:
 
-* `PUT /auth/me/avatar`: raw image body with `Content-Type` image/png, image/jpeg or image/webp
-  (content-sniffed; SVG rejected), max `AVATAR_MAX_BYTES` (64 KB). `DELETE /auth/me/avatar` removes it.
-* `GET /avatars/{user_id}`: serves the image. Unauthenticated so a plain `<img>` works; ids are
-  random UUIDs and nothing else is exposed. API responses carry `avatar_url` (`/avatars/{id}?v=...`),
+* `PUT /v1/api/auth/me/avatar`: raw image body with `Content-Type` image/png, image/jpeg or image/webp
+  (content-sniffed; SVG rejected), max `AVATAR_MAX_BYTES` (64 KB). `DELETE /v1/api/auth/me/avatar` removes it.
+* `GET /v1/api/avatars/{user_id}`: serves the image. Unauthenticated so a plain `<img>` works; ids are
+  random UUIDs and nothing else is exposed. API responses carry `avatar_url` (`/v1/api/avatars/{id}?v=...`),
   and the `v` changes on upload so browsers cache it forever.
-* `POST /auth/me/password`: requires the current password and signs out all other sessions.
+* `POST /v1/api/auth/me/password`: requires the current password and signs out all other sessions.
 
 The UI crops and resizes uploads to 256x256 before sending.
 

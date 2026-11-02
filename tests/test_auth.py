@@ -42,9 +42,9 @@ def test_refresh_rotates_and_detects_replay(client, db):
     assert new and new != old
 
     # Replaying the rotated token fails and revokes the whole family.
-    client.cookies.set("refresh_token", old, path="/auth")
+    client.cookies.set("refresh_token", old, path=settings.cookie_path)
     assert client.post("/auth/refresh").status_code == 401
-    client.cookies.set("refresh_token", new, path="/auth")
+    client.cookies.set("refresh_token", new, path=settings.cookie_path)
     assert client.post("/auth/refresh").status_code == 401
     assert all(t.revoked_at for t in db.scalars(select(RefreshToken)))
 
@@ -54,7 +54,7 @@ def test_logout_revokes(client, db):
     client.post("/auth/login", json={"email": "a@example.com", "password": "correct-horse-battery"})
     token = client.cookies.get("refresh_token")
     assert client.post("/auth/logout").status_code == 204
-    client.cookies.set("refresh_token", token, path="/auth")
+    client.cookies.set("refresh_token", token, path=settings.cookie_path)
     assert client.post("/auth/refresh").status_code == 401
 
 

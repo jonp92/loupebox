@@ -38,7 +38,7 @@ def _set_refresh_cookie(response: Response, token: str) -> None:
         httponly=True,
         secure=settings.cookie_secure,
         samesite=settings.cookie_samesite,
-        path="/auth",
+        path=settings.cookie_path,
     )
 
 
@@ -120,7 +120,7 @@ def logout(
             .values(revoked_at=datetime.now(UTC))
         )
         db.commit()
-    response.delete_cookie(_COOKIE, path="/auth")
+    response.delete_cookie(_COOKIE, path=settings.cookie_path)
 
 
 def _me(user: User) -> MeResponse:

@@ -8,7 +8,7 @@ server. You build the form (UI + a small submit function) inside this app.
 
 | Needed | Example | Notes |
 |---|---|---|
-| `GANYMEDE_URL` | `https://feedback.example.com` | Base URL of the API, no trailing slash |
+| `GANYMEDE_URL` | `https://feedback.pressler.tech/v1/api` | Base URL of the API **including the `/v1/api` prefix**, no trailing slash |
 | `GANYMEDE_KEY` | `pk_...` | The site's **public** key. Safe to ship in client JS. |
 | This app's origin(s) | `https://app.example.com`, `http://localhost:3000` | Each must be on the site's **allowed origins** list in the Ganymede admin UI (Site → Settings). Ask the user to confirm, including local dev origins. |
 
@@ -21,7 +21,7 @@ Put the URL and key in this app's normal config/env mechanism (e.g. `VITE_GANYME
 ## The API contract
 
 ```
-POST {GANYMEDE_URL}/v1/feedback
+POST {GANYMEDE_URL}/feedback
 Content-Type: application/json
 X-API-Key: {GANYMEDE_KEY}
 ```
@@ -78,7 +78,7 @@ export type SubmitResult =
 export async function submitFeedback(input: FeedbackInput): Promise<SubmitResult> {
   let res: Response;
   try {
-    res = await fetch(`${GANYMEDE_URL}/v1/feedback`, {
+    res = await fetch(`${GANYMEDE_URL}/feedback`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-API-Key": GANYMEDE_KEY },
       body: JSON.stringify({ ...input, page_url: location.href }),
@@ -136,7 +136,7 @@ Plain-HTML variant, for non-framework pages:
    missing Origin; by default it does not, so include one):
 
 ```bash
-curl -i -X POST "$GANYMEDE_URL/v1/feedback" \
+curl -i -X POST "$GANYMEDE_URL/feedback" \
   -H "Content-Type: application/json" \
   -H "X-API-Key: $GANYMEDE_KEY" \
   -H "Origin: http://localhost:3000" \
@@ -158,5 +158,5 @@ curl -i -X POST "$GANYMEDE_URL/v1/feedback" \
 - Don't add a server-side proxy "to hide the key". The key is public by design; origin checks and
   rate limits protect it. A proxy usually breaks the origin check.
 - Don't retry automatically on `403`, `422` or `429`.
-- Don't invent extra endpoints or fields. This integration only uses `POST /v1/feedback`.
+- Don't invent extra endpoints or fields. This integration only uses `POST {GANYMEDE_URL}/feedback`.
 - Don't commit a real production key into code that is shared publicly beyond this app's config.
