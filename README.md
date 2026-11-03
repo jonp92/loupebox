@@ -307,6 +307,6 @@ per user; nothing changes for people who don't enable it.
 
 ## License
 
-Ganymede is licensed under the [GNU AGPL-3.0](LICENSE). The embeddable widget (`web/widget/`) is
+Copyright 2026 Jonathan L. Pressler. Ganymede is licensed under the [GNU AGPL-3.0](LICENSE). The embeddable widget (`web/widget/`) is
 licensed under [Apache-2.0](web/widget/LICENSE). See [CONTRIBUTING.md](CONTRIBUTING.md) for the
 sign-off (DCO) required on contributions.
