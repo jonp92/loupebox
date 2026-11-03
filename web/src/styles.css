@@ -145,6 +145,10 @@ button.icon { width: 34px; height: 34px; padding: 0; font-size: 1rem; }
 .toolbar { display: flex; gap: .75rem; align-items: center; margin: 1rem 0; }
 .toolbar input { flex: 1; margin: 0; }
 .toolbar select { width: auto; margin: 0; }
+.toolbar.filters, .toolbar.bulk { flex-wrap: wrap; margin: .5rem 0; }
+.toolbar.filters label { display: flex; align-items: center; gap: .4rem; }
+.toolbar.filters input[type=date] { width: auto; margin: 0; flex: none; }
+.toolbar.bulk label { display: flex; align-items: center; gap: .4rem; margin-right: auto; }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .75rem; margin-bottom: 1.5rem; }
 .stat { display: flex; flex-direction: column; gap: .15rem; padding: .9rem 1.1rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
 .stat strong { font-size: 1.75rem; line-height: 1.1; }

@@ -4,10 +4,11 @@ import json
 import re
 import uuid
 from collections.abc import Iterator
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, time, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
@@ -15,8 +16,8 @@ from app.api.deps import SiteAccess, site_access
 from app.core.audit import audit
 from app.core.config import settings
 from app.db.session import get_db, get_sessionmaker
-from app.models import Feedback, FeedbackStatus, Role
-from app.schemas.feedback import FeedbackOut, FeedbackPage, FeedbackUpdate
+from app.models import ROLE_RANK, Feedback, FeedbackStatus, Role
+from app.schemas.feedback import BulkResult, FeedbackBulk, FeedbackOut, FeedbackPage, FeedbackUpdate
 
 router = APIRouter(prefix="/sites/{site_id}/feedback", tags=["feedback"])
 
@@ -34,23 +35,61 @@ _ISSUE_TYPE = r"^[a-z0-9_-]{1,32}$"  # what the widget's badges send as metadata
 _issue_type_col = Feedback.meta["issue_type"].as_string()
 
 
-def _filters(
-    site_id: uuid.UUID, status_filter: FeedbackStatus | None, q: str | None, issue_type: str | None = None
-) -> list:
+class Filters(BaseModel):
+    """The list's filters, shared by the list, the CSV export and (via the UI) bulk actions."""
+
+    status: FeedbackStatus | None = None
+    q: str | None = None
+    issue_type: str | None = None
+    rating: int | None = None
+    has_email: bool | None = None
+    created_from: date | None = None  # inclusive, UTC days
+    created_to: date | None = None
+
+
+def filters(
+    status_filter: FeedbackStatus | None = Query(default=None, alias="status"),
+    q: str | None = Query(default=None, max_length=200),
+    issue_type: str | None = Query(default=None, pattern=_ISSUE_TYPE),
+    rating: int | None = Query(default=None, ge=1, le=5),
+    has_email: bool | None = None,
+    created_from: date | None = None,
+    created_to: date | None = None,
+) -> Filters:
+    return Filters(
+        status=status_filter, q=q, issue_type=issue_type, rating=rating, has_email=has_email,
+        created_from=created_from, created_to=created_to,
+    )
+
+
+def _day_start(day: date) -> datetime:
+    return datetime.combine(day, time.min, tzinfo=UTC)
+
+
+def _where(site_id: uuid.UUID, f: Filters) -> list:
     where = [Feedback.site_id == site_id]
-    if issue_type:
-        where.append(_issue_type_col == issue_type)
-    if status_filter:
-        where.append(Feedback.status == status_filter)
+    if f.issue_type:
+        where.append(_issue_type_col == f.issue_type)
+    if f.status:
+        where.append(Feedback.status == f.status)
     else:
         # Spam stays out of the default view; ask for status=spam to see it.
         where.append(Feedback.status != FeedbackStatus.spam)
-    if q:
+    if f.rating:
+        where.append(Feedback.rating == f.rating)
+    if f.has_email is not None:
+        has = Feedback.email.is_not(None) & (Feedback.email != "")
+        where.append(has if f.has_email else ~has)
+    if f.created_from:
+        where.append(Feedback.created_at >= _day_start(f.created_from))
+    if f.created_to:
+        where.append(Feedback.created_at < _day_start(f.created_to + timedelta(days=1)))
+    if f.q:
         where.append(
             or_(
-                Feedback.message.icontains(q, autoescape=True),
-                Feedback.email.icontains(q, autoescape=True),
-                Feedback.name.icontains(q, autoescape=True),
+                Feedback.message.icontains(f.q, autoescape=True),
+                Feedback.email.icontains(f.q, autoescape=True),
+                Feedback.name.icontains(f.q, autoescape=True),
             )
         )
     return where
@@ -60,13 +99,11 @@ def _filters(
 def list_feedback(
     access: SiteAccess = Depends(site_access(Role.viewer)),
     db: Session = Depends(get_db),
-    status_filter: FeedbackStatus | None = Query(default=None, alias="status"),
-    q: str | None = Query(default=None, max_length=200),
-    issue_type: str | None = Query(default=None, pattern=_ISSUE_TYPE),
+    f: Filters = Depends(filters),
     limit: int = Query(default=25, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
 ) -> FeedbackPage:
-    where = _filters(access.site.id, status_filter, q, issue_type)
+    where = _where(access.site.id, f)
     total = db.scalar(select(func.count()).select_from(Feedback).where(*where)) or 0
     rows = db.scalars(
         select(Feedback).where(*where).order_by(Feedback.created_at.desc()).limit(limit).offset(offset)
@@ -155,17 +192,16 @@ def issue_types(
 def export_feedback(
     access: SiteAccess = Depends(site_access(Role.viewer)),
     db: Session = Depends(get_db),
-    status_filter: FeedbackStatus | None = Query(default=None, alias="status"),
-    q: str | None = Query(default=None, max_length=200),
-    issue_type: str | None = Query(default=None, pattern=_ISSUE_TYPE),
+    f: Filters = Depends(filters),
 ) -> StreamingResponse:
     """The same filters as the list, as a CSV download (capped at `EXPORT_MAX_ROWS` rows)."""
-    where = _filters(access.site.id, status_filter, q, issue_type)
+    where = _where(access.site.id, f)
     total = db.scalar(select(func.count()).select_from(Feedback).where(*where)) or 0
     audit(  # bulk personal data leaving the system; the contents are not recorded
         db, access.user, "feedback.export", f"Exported feedback from {access.site.name} as CSV",
         target_type="site", target_id=access.site.id, site=access.site,
-        details={"rows": min(total, settings.export_max_rows), "status": status_filter.value if status_filter else None, "search": bool(q), "issue_type": issue_type},
+        details={"rows": min(total, settings.export_max_rows), "status": f.status.value if f.status else None, "search": bool(f.q), "issue_type": f.issue_type,
+                 "rating": f.rating, "has_email": f.has_email, "from": str(f.created_from or ""), "to": str(f.created_to or "")},
     )
     db.commit()
     slug = re.sub(r"[^a-z0-9]+", "-", access.site.name.lower()).strip("-")[:40] or "site"
@@ -178,6 +214,33 @@ def export_feedback(
             "Cache-Control": "no-store",
         },
     )
+
+
+@router.post("/bulk")
+def bulk_feedback(
+    body: FeedbackBulk,
+    access: SiteAccess = Depends(site_access(Role.editor)),
+    db: Session = Depends(get_db),
+) -> BulkResult:
+    """Change the status of, or delete, several items at once. Ids that are not in this site are
+    skipped (not an error, and not revealed). Deleting needs the admin role, as for a single item."""
+    if body.action == "delete" and ROLE_RANK[access.role] < ROLE_RANK[Role.admin]:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, f"Requires {Role.admin.value} role")
+    ids = set(body.ids)
+    items = list(db.scalars(select(Feedback).where(Feedback.site_id == access.site.id, Feedback.id.in_(ids))))
+    if body.action == "delete":
+        audit(  # as for a single delete: ids and count only, never the messages
+            db, access.user, "feedback.bulk_delete", f"Deleted {len(items)} feedback items from {access.site.name}",
+            target_type="site", target_id=access.site.id, site=access.site,
+            details={"count": len(items), "ids": sorted(str(i.id) for i in items)},
+        )
+        for item in items:
+            db.delete(item)
+    else:
+        for item in items:
+            item.status = body.status
+    db.commit()
+    return BulkResult(affected=len(items), skipped=len(ids) - len(items))
 
 
 @router.get("/{feedback_id}")

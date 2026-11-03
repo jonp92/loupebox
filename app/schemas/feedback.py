@@ -1,9 +1,11 @@
 import re
 import uuid
 from datetime import datetime
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
+from app.core.config import settings
 from app.models import FeedbackStatus
 from app.schemas.common import clean_text
 
@@ -88,3 +90,26 @@ class FeedbackPage(BaseModel):
 
 class FeedbackUpdate(BaseModel):
     status: FeedbackStatus
+
+
+class FeedbackBulk(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ids: list[uuid.UUID] = Field(min_length=1)
+    action: Literal["set_status", "delete"]
+    status: FeedbackStatus | None = None
+
+    @model_validator(mode="after")
+    def _check(self) -> "FeedbackBulk":
+        if len(self.ids) > settings.bulk_max_ids:
+            raise ValueError(f"at most {settings.bulk_max_ids} items per request")
+        if self.action == "set_status" and self.status is None:
+            raise ValueError("status is required for set_status")
+        if self.action == "delete" and self.status is not None:
+            raise ValueError("status is only for set_status")
+        return self
+
+
+class BulkResult(BaseModel):
+    affected: int
+    skipped: int

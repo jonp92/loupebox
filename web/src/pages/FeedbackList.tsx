@@ -25,10 +25,28 @@ export default function FeedbackList({ site }: { site: Site }) {
   const [q, setQ] = useState("");
   const [issueType, setIssueType] = useState("");
   const [issueTypes, setIssueTypes] = useState<{ id: string; count: number }[]>([]);
+  const [rating, setRating] = useState("");
+  const [hasEmail, setHasEmail] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [error, setError] = useState("");
   const [exporting, setExporting] = useState(false);
   const canEdit = site.my_role === "editor" || site.my_role === "admin";
   const canDelete = site.my_role === "admin";
+
+  /** The list's filters as query params; the CSV export takes the same ones. */
+  const filterParams = useCallback(() => {
+    const params = new URLSearchParams();
+    if (status) params.set("status", status);
+    if (q) params.set("q", q);
+    if (issueType) params.set("issue_type", issueType);
+    if (rating) params.set("rating", rating);
+    if (hasEmail) params.set("has_email", hasEmail);
+    if (from) params.set("created_from", from);
+    if (to) params.set("created_to", to);
+    return params;
+  }, [status, q, issueType, rating, hasEmail, from, to]);
 
   const load = useCallback(() => {
     if (feedbackId) {
@@ -41,18 +59,18 @@ export default function FeedbackList({ site }: { site: Site }) {
         .catch((e) => { setItems([]); setError(e.message); });
       return;
     }
-    const params = new URLSearchParams({ limit: String(PAGE), offset: String(offset) });
-    if (status) params.set("status", status);
-    if (q) params.set("q", q);
-    if (issueType) params.set("issue_type", issueType);
+    const params = filterParams();
+    params.set("limit", String(PAGE));
+    params.set("offset", String(offset));
     api<{ items: Feedback[]; total: number }>(`/sites/${site.id}/feedback?${params}`)
       .then((r) => {
         setItems(r.items);
         setTotal(r.total);
+        setSelected(new Set()); // a new page or filter never keeps a hidden selection
         setError("");
       })
       .catch((e) => setError(e.message));
-  }, [site.id, feedbackId, offset, status, q, issueType]);
+  }, [site.id, feedbackId, offset, filterParams]);
   useEffect(load, [load]);
   // The kinds of feedback visitors have tagged (from the widget's badges), for the filter.
   useEffect(() => {
@@ -64,10 +82,7 @@ export default function FeedbackList({ site }: { site: Site }) {
     load();
   }
   async function exportCsv() {
-    const params = new URLSearchParams();
-    if (status) params.set("status", status);
-    if (q) params.set("q", q);
-    if (issueType) params.set("issue_type", issueType);
+    const params = filterParams();
     setExporting(true);
     try {
       await download(`/sites/${site.id}/feedback/export.csv?${params}`, "feedback.csv");
@@ -78,6 +93,33 @@ export default function FeedbackList({ site }: { site: Site }) {
       setExporting(false);
     }
   }
+  function toggle(id: string) {
+    setSelected((cur) => {
+      const next = new Set(cur);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  }
+  const allSelected = items.length > 0 && items.every((f) => selected.has(f.id));
+  async function bulk(body: { action: "set_status"; status: Status } | { action: "delete" }) {
+    if (body.action === "delete" && !(await confirm({
+      title: `Delete ${selected.size} feedback item${selected.size === 1 ? "" : "s"}?`,
+      message: "This cannot be undone.", confirmLabel: "Delete", danger: true,
+    }))) return;
+    try {
+      await api(`/sites/${site.id}/feedback/bulk`, json("POST", { ids: [...selected], ...body }));
+      setError("");
+    } catch (e) {
+      setError((e as Error).message);
+    }
+    load();
+  }
+  const resetTo = (set: (v: string) => void) => (e: { target: { value: string } }) => { set(e.target.value); setOffset(0); };
+  const filtered = Boolean(status || q || issueType || rating || hasEmail || from || to);
+  function clearFilters() {
+    setStatus(""); setQ(""); setIssueType(""); setRating(""); setHasEmail(""); setFrom(""); setTo(""); setOffset(0);
+  }
+
   async function remove(id: string) {
     if (!(await confirm({ title: "Delete this feedback?", message: "This cannot be undone.", confirmLabel: "Delete", danger: true }))) return;
     await api(`/sites/${site.id}/feedback/${id}`, { method: "DELETE" }).catch((e) => setError(e.message));
@@ -104,10 +146,34 @@ export default function FeedbackList({ site }: { site: Site }) {
             {issueTypes.map((t) => <option key={t.id} value={t.id}>{label(t.id)} ({t.count})</option>)}
           </select>
         )}
-        <button onClick={exportCsv} disabled={exporting || total === 0} title="Download what the search and status filter show, as CSV">
+        <button onClick={exportCsv} disabled={exporting || total === 0} title="Download what the filters show, as CSV">
           {exporting ? "Exporting…" : "Export CSV"}
         </button>
       </div>}
+      {!feedbackId && <div className="toolbar filters">
+        <select value={rating} onChange={resetTo(setRating)} aria-label="Rating">
+          <option value="">Any rating</option>
+          {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{"★".repeat(n)}</option>)}
+        </select>
+        <select value={hasEmail} onChange={resetTo(setHasEmail)} aria-label="Email address">
+          <option value="">Email or not</option>
+          <option value="true">Has email</option>
+          <option value="false">No email</option>
+        </select>
+        <label className="muted">From <input type="date" value={from} max={to || undefined} onChange={resetTo(setFrom)} /></label>
+        <label className="muted">To <input type="date" value={to} min={from || undefined} onChange={resetTo(setTo)} /></label>
+        {filtered && <button onClick={clearFilters}>Clear filters</button>}
+      </div>}
+      {!feedbackId && canEdit && items.length > 0 && (
+        <div className="toolbar bulk">
+          <label>
+            <input type="checkbox" checked={allSelected} onChange={() => setSelected(allSelected ? new Set() : new Set(items.map((f) => f.id)))} />
+            {" "}{selected.size > 0 ? `${selected.size} selected` : "Select all on this page"}
+          </label>
+          {selected.size > 0 && STATUSES.map((s) => <button key={s} onClick={() => bulk({ action: "set_status", status: s })}>Mark {s}</button>)}
+          {selected.size > 0 && canDelete && <button className="danger" onClick={() => bulk({ action: "delete" })}>Delete</button>}
+        </div>
+      )}
       {error && <p className="error">{error}</p>}
       {items.length === 0 && !error && <p className="empty-state">No feedback found.</p>}
       {items.map((f) => {
@@ -115,6 +181,7 @@ export default function FeedbackList({ site }: { site: Site }) {
         return (
           <article key={f.id} className={`card fb ${f.status}`}>
             <header>
+              {canEdit && !feedbackId && <input type="checkbox" checked={selected.has(f.id)} onChange={() => toggle(f.id)} aria-label="Select this feedback" />}
               <span className={`badge ${f.status}`}>{f.status}</span>
               {typeof f.metadata.issue_type === "string" && ISSUE_TYPE.test(f.metadata.issue_type) && (
                 <span className="badge kind" data-kind={f.metadata.issue_type} title="Type chosen by the visitor">{label(f.metadata.issue_type)}</span>
