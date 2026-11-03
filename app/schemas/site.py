@@ -50,6 +50,12 @@ class SiteOut(BaseModel):
     my_role: Role | None = None
 
 
+class VerifierOut(BaseModel):
+    key: str
+    label: str
+    config_schema: dict[str, Any]
+
+
 class MemberOut(BaseModel):
     user_id: uuid.UUID
     email: str

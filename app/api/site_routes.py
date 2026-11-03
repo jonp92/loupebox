@@ -6,7 +6,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import SiteAccess, get_current_user, require_superadmin, site_access
-from app.challenges.registry import OFF, get_verifier
+from app.challenges.registry import OFF, all_verifiers, get_verifier
 from app.core.config import settings
 from app.core.origins import public_origins
 from app.core.security import new_public_key
@@ -19,6 +19,7 @@ from app.schemas.site import (
     SiteOut,
     SiteUpdate,
     UserSuggestion,
+    VerifierOut,
 )
 
 router = APIRouter(prefix="/sites", tags=["sites"])
@@ -104,6 +105,15 @@ def update_site(
     db.commit()
     public_origins.invalidate()
     return _out(access.site, access.role)
+
+
+@router.get("/{site_id}/challenge-verifiers")
+def list_challenge_verifiers(_: SiteAccess = Depends(site_access(Role.admin))) -> list[VerifierOut]:
+    """Challenge modes a site can switch to, with each one's settings schema (the UI renders from it)."""
+    return [
+        VerifierOut(key=v.key, label=v.label, config_schema=v.ConfigModel.model_json_schema())
+        for v in all_verifiers()
+    ]
 
 
 @router.post("/{site_id}/rotate-key")

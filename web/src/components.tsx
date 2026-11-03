@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useOnline } from "./online";
-import { api, avatarSrc, displayName, type Profile } from "./api";
+import { api, avatarSrc, displayName, type ConfigSchema, type JsonSchemaProp, type Profile } from "./api";
 
 /** Bottom toast: "offline" while disconnected, then a brief "back online" when it returns. */
 export function OfflineBanner() {
@@ -155,5 +155,55 @@ export function UserPicker({ siteId, value, onSelect }: {
         </ul>
       )}
     </div>
+  );
+}
+
+/** One input per primitive property of a JSON-schema config model (notification providers, challenge verifiers). */
+export function SchemaFields({ schema, values, onChange }: {
+  schema: ConfigSchema;
+  values: Record<string, unknown>;
+  onChange: (v: Record<string, unknown>) => void;
+}) {
+  const props = Object.entries(schema.properties ?? {});
+  if (props.length === 0) return null;
+  const set = (k: string, v: unknown) => onChange({ ...values, [k]: v });
+
+  return (
+    <>
+      {props.map(([key, p]: [string, JsonSchemaProp]) => {
+        const label = p.title ?? key;
+        const value = values[key] ?? p.default ?? "";
+        if (p.type === "boolean") {
+          return (
+            <label key={key} className="inline">
+              <input type="checkbox" checked={Boolean(value)} onChange={(e) => set(key, e.target.checked)} /> {label}
+            </label>
+          );
+        }
+        if (p.enum) {
+          return (
+            <label key={key}>{label}
+              <select value={String(value)} onChange={(e) => set(key, e.target.value)}>
+                {p.enum.map((o) => <option key={o}>{o}</option>)}
+              </select>
+            </label>
+          );
+        }
+        const numeric = p.type === "integer" || p.type === "number";
+        return (
+          <label key={key}>{label}
+            <input
+              type={numeric ? "number" : "text"}
+              min={p.minimum}
+              max={p.maximum}
+              value={String(value)}
+              required={schema.required?.includes(key)}
+              onChange={(e) => set(key, numeric && e.target.value !== "" ? Number(e.target.value) : e.target.value)}
+            />
+            {p.description && <small className="muted"> {p.description}</small>}
+          </label>
+        );
+      })}
+    </>
   );
 }

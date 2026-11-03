@@ -11,7 +11,7 @@ const SERIES = [
 type SeriesKey = (typeof SERIES)[number]["key"];
 
 // Duplicates are retries/double-clicks, not abuse, so they stay out of "blocked" (table only).
-const blocked = (d: DayStats) => d.honeypot + d.origin_denied + d.rate_limited + d.daily_limit;
+const blocked = (d: DayStats) => d.honeypot + d.origin_denied + d.rate_limited + d.daily_limit + d.challenge_failed;
 const value = (d: DayStats, k: SeriesKey) => (k === "blocked" ? blocked(d) : d[k]);
 
 const fmt = new Intl.NumberFormat();
@@ -161,7 +161,7 @@ function DataTable({ days }: { days: DayStats[] }) {
         <thead>
           <tr>
             <th>Day (UTC)</th><th>Accepted</th><th>Quarantined</th><th>Honeypot</th>
-            <th>Wrong origin</th><th>Rate limited</th><th>Daily cap</th><th>Duplicates</th>
+            <th>Wrong origin</th><th>Challenge</th><th>Rate limited</th><th>Daily cap</th><th>Duplicates</th>
           </tr>
         </thead>
         <tbody>
@@ -172,6 +172,7 @@ function DataTable({ days }: { days: DayStats[] }) {
               <td>{fmt.format(d.quarantined)}</td>
               <td>{fmt.format(d.honeypot)}</td>
               <td>{fmt.format(d.origin_denied)}</td>
+              <td>{fmt.format(d.challenge_failed)}</td>
               <td>{fmt.format(d.rate_limited)}</td>
               <td>{fmt.format(d.daily_limit)}</td>
               <td>{fmt.format(d.duplicate)}</td>

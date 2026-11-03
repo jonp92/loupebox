@@ -4,11 +4,11 @@ import {
   json,
   type Channel,
   type Delivery,
-  type JsonSchemaProp,
   type ProviderInfo,
   type Role,
   type Site,
 } from "../api";
+import { SchemaFields } from "../components";
 import { useConfirm } from "../confirm";
 
 const ROLES: Role[] = ["viewer", "editor", "admin"];
@@ -16,54 +16,6 @@ const EVENTS = [{ key: "feedback.created", label: "New feedback" }];
 const SPLIT = /[\s,;]+/;
 
 const when = (iso: string) => new Date(iso).toLocaleString();
-
-/** One input per primitive property of the provider's config schema. */
-function SchemaFields({ schema, values, onChange }: {
-  schema: ProviderInfo["config_schema"];
-  values: Record<string, unknown>;
-  onChange: (v: Record<string, unknown>) => void;
-}) {
-  const props = Object.entries(schema.properties ?? {});
-  if (props.length === 0) return null;
-  const set = (k: string, v: unknown) => onChange({ ...values, [k]: v });
-
-  return (
-    <>
-      {props.map(([key, p]: [string, JsonSchemaProp]) => {
-        const label = p.title ?? key;
-        const value = values[key] ?? p.default ?? "";
-        if (p.type === "boolean") {
-          return (
-            <label key={key} className="inline">
-              <input type="checkbox" checked={Boolean(value)} onChange={(e) => set(key, e.target.checked)} /> {label}
-            </label>
-          );
-        }
-        if (p.enum) {
-          return (
-            <label key={key}>{label}
-              <select value={String(value)} onChange={(e) => set(key, e.target.value)}>
-                {p.enum.map((o) => <option key={o}>{o}</option>)}
-              </select>
-            </label>
-          );
-        }
-        const numeric = p.type === "integer" || p.type === "number";
-        return (
-          <label key={key}>{label}
-            <input
-              type={numeric ? "number" : "text"}
-              value={String(value)}
-              required={schema.required?.includes(key)}
-              onChange={(e) => set(key, numeric && e.target.value !== "" ? Number(e.target.value) : e.target.value)}
-            />
-            {p.description && <small className="muted"> {p.description}</small>}
-          </label>
-        );
-      })}
-    </>
-  );
-}
 
 function ChannelForm({ siteId, providers, channel, onSaved, onCancel }: {
   siteId: string;

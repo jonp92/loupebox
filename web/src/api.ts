@@ -33,6 +33,8 @@ export interface Site {
   allowed_origins: string[];
   is_active: boolean;
   daily_limit: number;
+  challenge_mode: string; // "off" or a verifier key
+  challenge_config: Record<string, unknown>;
   my_role: Role | null;
 }
 export interface DashboardSite extends Site {
@@ -89,6 +91,7 @@ export interface DayStats {
   origin_denied: number;
   rate_limited: number;
   daily_limit: number;
+  challenge_failed: number;
 }
 
 export class ApiError extends Error {
@@ -177,12 +180,23 @@ export interface JsonSchemaProp {
   description?: string;
   enum?: string[];
   default?: unknown;
+  minimum?: number;
+  maximum?: number;
+}
+export interface ConfigSchema {
+  properties?: Record<string, JsonSchemaProp>;
+  required?: string[];
 }
 export interface ProviderInfo {
   key: string;
   label: string;
   configured: boolean;
-  config_schema: { properties?: Record<string, JsonSchemaProp>; required?: string[] };
+  config_schema: ConfigSchema;
+}
+export interface VerifierInfo {
+  key: string;
+  label: string;
+  config_schema: ConfigSchema;
 }
 export interface Channel {
   id: string;

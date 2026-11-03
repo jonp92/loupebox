@@ -53,6 +53,7 @@ also forward a matching `Origin` header (a proxy usually breaks the check).
 | `name` | no | ≤120 chars |
 | `email` | no | valid email address |
 | `page_url` | no | must start with `http://` or `https://`, ≤2048 chars. Send `location.href`. |
+| `challenge` | only if the site requires one | Proof for the site's bot-protection challenge. Opaque string, see [Challenges](#challenges-bot-protection). |
 | `metadata` | no | object, ≤20 keys, key ≤64 chars, values string (≤256, longer are cut), number, boolean or null. Good for app version, plan, user id, route. |
 | `website` | no | **Honeypot.** Include a visually hidden input named `website` and send its value unchanged (empty for humans). Bots fill it in and are silently dropped. |
 
@@ -64,6 +65,7 @@ Total body must be ≤16 KB.
 | Status | Meaning | What the UI should do |
 |---|---|---|
 | `201` `{"id": "<uuid>"}` | Accepted (also returned for honeypot drops and for exact duplicates sent within 10 min, so retries are safe) | Show a thank-you, clear the form |
+| `403` `{"detail":"Challenge required"}` or `"Challenge failed"` | The site has bot protection on and the proof was missing, wrong, expired (5 min) or already used | Fetch a fresh challenge, solve it and retry once. See [Challenges](#challenges-bot-protection). |
 | `403` `{"detail":"Forbidden"}` | Bad/unknown/disabled key, **or origin not allowed**. Deliberately the same message for all. | Generic "couldn't send" message. During setup, check the key and that this origin is in the allowed list. |
 | `404` | Wrong URL (missing `/v1/api`, or an old path like `/v1/feedback`) | Fix `GANYMEDE_URL`; see debugging below |
 | `413` | Body too large | Shouldn't happen; cap `message` at 5000 |
@@ -110,6 +112,87 @@ export async function submitFeedback(input: FeedbackInput): Promise<SubmitResult
 
 Do **not** send `credentials: "include"` and do not send cookies or an `Authorization` header;
 this endpoint is anonymous and uses CORS without credentials.
+
+## Challenges (bot protection)
+
+The site key is public, so a script can claim to be your site. An admin can turn on a **challenge** for a
+site (Site → Settings → Bot protection). Then every submission must carry proof that the sender did a
+little work. Sites with it off are unaffected, and `POST /feedback/challenge` then answers `{"mode":"off"}`,
+so a client can always call it first and only solve when the mode says so.
+
+Flow (`mode: "pow"`, proof of work):
+
+1. `POST {GANYMEDE_URL}/v1/api/feedback/challenge` with the same `X-API-Key` header as a normal submission
+   (no body). Response: `{"mode":"pow","algorithm":"sha256","token":"…","bits":16}`.
+2. Find a number `n` so that `sha256("<token>:<n>")` starts with at least `bits` zero **bits**.
+   Average cost is 2^bits hashes: 16 bits is about 0.15 s on a desktop browser; each extra bit doubles it.
+3. Send `challenge: "<token>:<n>"` in the normal submission body.
+
+A challenge is single-use and expires after 5 minutes, so fetch it when the user submits (or when the form
+opens), not at page load. If the admin raises the difficulty, older tokens are rejected: fetch a new one.
+Challenge requests have their own limits (30 per IP and 600 per key per minute), separate from submissions.
+
+```ts
+// Needs crypto.subtle, which browsers only expose on HTTPS or localhost.
+async function solve(token: string, bits: number): Promise<string> {
+  const enc = new TextEncoder();
+  for (let n = 0; ; n++) {
+    const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(`${token}:${n}`)));
+    let zeros = 0;
+    for (const byte of hash) { if (byte) { zeros += Math.clz32(byte) - 24; break; } zeros += 8; }
+    if (zeros >= bits) return `${token}:${n}`;
+  }
+}
+
+const headers = { "Content-Type": "application/json", "X-API-Key": GANYMEDE_KEY };
+const c = await (await fetch(`${GANYMEDE_URL}/v1/api/feedback/challenge`, { method: "POST", headers })).json();
+const challenge = c.mode === "pow" ? await solve(c.token, c.bits) : undefined;
+await fetch(`${GANYMEDE_URL}/v1/api/feedback`, { method: "POST", headers, body: JSON.stringify({ message, challenge }) });
+```
+
+Solving blocks nothing (it awaits), but on a big difficulty it is CPU work: show the sending state while it
+runs. To keep the page responsive at 18+ bits, run the loop in a Web Worker.
+
+**Plain `http://` pages** (a dev server on a LAN address, say) have no `crypto.subtle`. Use this pure-JS
+SHA-256 instead: the same loop, with `sha256(enc.encode(...))` replacing the `crypto.subtle.digest` call
+(synchronous, so no `await`). It is checked against the platform SHA-256 and runs at a comparable speed.
+
+```js
+// Pure-JS SHA-256 for pages where crypto.subtle is unavailable (plain http:// on anything but localhost).
+const primes = [];
+for (let n = 2; primes.length < 64; n++) if (primes.every((p) => n % p)) primes.push(n);
+const frac = (x) => Math.floor((x - Math.floor(x)) * 2 ** 32);
+const K = primes.map((p) => frac(Math.cbrt(p)));
+const H0 = primes.slice(0, 8).map((p) => frac(Math.sqrt(p)));
+const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+
+function sha256(msg) {
+  const len = msg.length;
+  const padded = new Uint8Array(((len + 9 + 63) >> 6) << 6);
+  padded.set(msg);
+  padded[len] = 0x80;
+  const view = new DataView(padded.buffer);
+  view.setUint32(padded.length - 4, len * 8);
+  const h = Uint32Array.from(H0), w = new Uint32Array(64);
+  for (let o = 0; o < padded.length; o += 64) {
+    for (let i = 0; i < 16; i++) w[i] = view.getUint32(o + i * 4);
+    for (let i = 16; i < 64; i++) {
+      const a = w[i - 15], b = w[i - 2];
+      w[i] = w[i - 16] + (rotr(a, 7) ^ rotr(a, 18) ^ (a >>> 3)) + w[i - 7] + (rotr(b, 17) ^ rotr(b, 19) ^ (b >>> 10));
+    }
+    let [a, b, c, d, e, f, g, hh] = h;
+    for (let i = 0; i < 64; i++) {
+      const t1 = hh + (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) + ((e & f) ^ (~e & g)) + K[i] + w[i];
+      const t2 = (rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) + ((a & b) ^ (a & c) ^ (b & c));
+      hh = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+    }
+    [a, b, c, d, e, f, g, hh].forEach((x, i) => (h[i] += x));
+  }
+  const out = new Uint8Array(32), ov = new DataView(out.buffer);
+  h.forEach((x, i) => ov.setUint32(i * 4, x));
+  return out;
+}
+```
 
 ## The form
 

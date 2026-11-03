@@ -180,3 +180,12 @@ def test_stats_report_challenge_failures(client, db):
     h = admin_headers(client, db, site)
     today = client.get(f"/sites/{site.id}/stats", params={"days": 1}, headers=h).json()["days"][-1]
     assert today["challenge_failed"] == 1
+
+
+def test_verifier_listing_is_admin_only_and_carries_the_schema(client, db):
+    site = make_site(db)
+    h = admin_headers(client, db, site)
+    (pow_,) = client.get(f"/sites/{site.id}/challenge-verifiers", headers=h).json()
+    assert pow_["key"] == "pow" and pow_["config_schema"]["properties"]["bits"]["maximum"] == 22
+    editor = admin_headers(client, db, site, Role.editor)
+    assert client.get(f"/sites/{site.id}/challenge-verifiers", headers=editor).status_code == 403

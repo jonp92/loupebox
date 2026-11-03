@@ -125,7 +125,7 @@ Fields: `message` (required), `rating` 1-5, `name`, `email`, `page_url`, `metada
 
 Each site's **Activity** tab (all roles) shows what the defenses are doing: stored vs quarantined
 vs blocked submissions per day, with a table view. Dropped submissions (honeypot, wrong origin,
-per-key rate limit, daily cap, duplicates) are counted per site per UTC day in `site_stats`;
+per-key rate limit, daily cap, failed challenges, duplicates) are counted per site per UTC day in `site_stats`;
 quarantined spam is counted from feedback. Attempts with an unknown key can't be attributed to
 a site and aren't counted.
 
@@ -159,5 +159,7 @@ sessions. Passwords use argon2. Admin CORS is limited to `ADMIN_ORIGINS`.
 * Rate limiting is in-process: with multiple workers/instances the limits multiply. Replace
   `app/core/rate_limit.py` with a Redis-backed implementation of the same `hit()` interface.
 * A public key can't stop a determined non-browser attacker (anyone can forge `Origin` from a script).
-  Rate limits, quotas, honeypot and quarantine are what contain that. For stronger protection add a
-  CAPTCHA (Turnstile/hCaptcha) check in `submit_feedback`.
+  Rate limits, quotas, honeypot and quarantine are what contain that. For stronger protection turn on a
+  per-site **challenge** (Site → Settings → Bot protection): a signed, single-use proof-of-work the form
+  has to solve, see `docs/CLIENT_INTEGRATION.md`. Challenges are pluggable: add a module under
+  `app/challenges/verifiers/` that registers a `ChallengeVerifier` (for example a Turnstile/hCaptcha check).

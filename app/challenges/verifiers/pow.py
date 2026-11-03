@@ -21,8 +21,14 @@ _MAX_NONCE = 24
 
 
 class PowConfig(BaseModel):
-    # Average work is 2**bits hashes: ~16 is well under a second in a browser, 22 is several seconds.
-    bits: int = Field(default=16, ge=8, le=22)
+    bits: int = Field(
+        default=16,
+        ge=8,
+        le=22,
+        title="Difficulty (bits)",
+        description="Average work is 2^bits hashes: 16 is about 0.15 s on a desktop browser, each +1 doubles it. "
+        "Phones can be several times slower, so go above 18 with care.",
+    )
 
 
 def _key() -> bytes:
