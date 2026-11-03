@@ -98,8 +98,12 @@ class Settings(BaseSettings):
     password_reset_minutes: int = 30  # how long an emailed link works
     password_reset_email_limit: int = 3  # requests per address per hour
     password_reset_ip_limit: int = 10  # requests per IP per hour
-    # Which email provider sends account mail (password reset). Empty: the first configured one.
+    # Which email provider sends account mail (password reset, replies). Empty: the first configured one.
     mail_provider: str = ""
+
+    # Replies to the person who sent feedback.
+    reply_max_per_item: int = 5  # sent replies per feedback item
+    reply_site_hourly_limit: int = 30  # sends per site per hour, so one account cannot spray mail
 
     # Login brute-force protection
     login_ip_limit: int = 20

@@ -211,6 +211,26 @@ delete is one audit event (ids and count, never the messages).
   `remove_tag` (`tag`); `PATCH .../feedback/{id}` takes any of `status`, `assignee_id` and `tags`. The CSV
   export has `tags` and `assignee` (email) columns.
 
+## Replying to the person who sent feedback
+
+When a feedback item has an email address, editors can answer it from the item's page. The reply is emailed
+through the mail provider (`MAIL_PROVIDER`, the same one that sends password resets) with the original quoted
+and **Reply-To set to the editor**, so the person's answer lands in that editor's own inbox.
+
+* Sent synchronously, not through the outbox, so reply text is not queued for days. The result is on the
+  reply: `sent` means the mail server accepted it (not that it was delivered); `failed` shows the server's
+  reason. A temporary failure (`retryable`) has a "Try again" button; a refused recipient does not.
+* Limits: `REPLY_MAX_PER_ITEM` (5) sent replies per item and `REPLY_SITE_HOURLY_LIMIT` (30) sends per site per
+  hour. Spam items and items without an address cannot be replied to. Viewers can read the thread; editors send.
+* The audit log records the reply id, outcome and length, never the text or the address. The address stays on
+  the feedback item and is shown masked in the UI.
+* Webhook channels can subscribe to `feedback.replied` (ids and length only, no reply text). Email channels
+  never get it.
+* **Scope:** Ganymede is an inbox for feedback on small tools, not a ticketing system: there are no SLAs,
+  ticket statuses or queues, and none are planned. To use a helpdesk, send feedback to it with a webhook.
+  Replies from the submitter are not read yet (outbound only); the `feedback_replies` table already has
+  `direction`, `source` and `in_reply_to` columns for that.
+
 ## Exporting feedback
 
 **Export CSV** on a site's feedback list downloads what the filters show

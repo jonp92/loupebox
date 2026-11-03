@@ -42,4 +42,15 @@ class FeedbackCreated(BaseModel):
         )
 
 
-EVENT_TYPES: dict[str, type[BaseModel]] = {"feedback.created": FeedbackCreated}
+class FeedbackReplied(BaseModel):
+    """A reply was emailed to the submitter. Ids and length only: the reply text is not kept in the outbox."""
+
+    type: Literal["feedback.replied"] = "feedback.replied"
+    feedback_id: str
+    reply_id: str
+    length: int
+
+
+EVENT_TYPES: dict[str, type[BaseModel]] = {"feedback.created": FeedbackCreated, "feedback.replied": FeedbackReplied}
+# Only for endpoints that feed other systems (webhooks); emailing the team about its own replies is noise.
+MACHINE_ONLY = {"feedback.replied"}

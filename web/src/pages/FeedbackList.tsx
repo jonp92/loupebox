@@ -294,6 +294,7 @@ export default function FeedbackList({ site }: { site: Site }) {
           <div className="tags">
             {assigneeChip(f)}
             {f.tags.map((t) => <span key={t} className="tag static">{t}</span>)}
+            {f.reply_count > 0 && <span className="muted" title={`Replied ${f.reply_count} time${f.reply_count === 1 ? "" : "s"}`}>↩ Replied</span>}
             {f.note_count > 0 && (
               <a className="note-count" href={`/sites/${site.id}/feedback/${f.id}`} onClick={(e) => { e.preventDefault(); open(f.id); }}
                 title={`${f.note_count} internal note${f.note_count === 1 ? "" : "s"}`}>💬 {f.note_count}</a>

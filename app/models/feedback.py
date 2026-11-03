@@ -74,9 +74,41 @@ class FeedbackNote(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class FeedbackReply(Base):
+    """One message in the conversation with the submitter. The recipient address stays on the feedback item.
+
+    `direction` and `source` are there for inbound email: today every row is an outbound reply written in
+    the UI. `message_id` is what the mail provider returned, kept to match bounces and replies to a thread.
+    """
+
+    __tablename__ = "feedback_replies"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    feedback_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("feedback.id", ondelete="CASCADE"), index=True)
+    author_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), default=None)
+    direction: Mapped[str] = mapped_column(String(8), default="outbound")  # outbound | inbound
+    source: Mapped[str] = mapped_column(String(8), default="ui")  # ui | email
+    body: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(8))  # sent | failed
+    error: Mapped[str | None] = mapped_column(String(300), default=None)
+    retryable: Mapped[bool] = mapped_column(default=False)  # a failed send worth trying again (temporary)
+    message_id: Mapped[str | None] = mapped_column(String(128), default=None)
+    in_reply_to: Mapped[str | None] = mapped_column(String(128), default=None)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 # Counted in the same query as the item, so lists can show "3 notes" without opening each one.
 Feedback.note_count = column_property(
     select(func.count(FeedbackNote.id)).where(FeedbackNote.feedback_id == Feedback.id).correlate_except(FeedbackNote).scalar_subquery(),
+    deferred=False,
+)
+
+
+Feedback.reply_count = column_property(
+    select(func.count(FeedbackReply.id))
+    .where(FeedbackReply.feedback_id == Feedback.id, FeedbackReply.status == "sent")
+    .correlate_except(FeedbackReply)
+    .scalar_subquery(),
     deferred=False,
 )
 

@@ -70,6 +70,7 @@ export interface Feedback {
   assignee_name: string | null;
   tags: string[];
   note_count: number;
+  reply_count: number;
 }
 export interface Assignee {
   user_id: string;
@@ -82,6 +83,22 @@ export interface Note {
   author_name: string | null;
   body: string;
   created_at: string;
+}
+export interface Reply {
+  id: string;
+  author_id: string | null;
+  author_name: string | null;
+  direction: "outbound" | "inbound";
+  source: "ui" | "email";
+  body: string;
+  status: "sent" | "failed";
+  error: string | null;
+  retryable: boolean;
+  created_at: string;
+}
+export interface ReplyThread {
+  available: boolean;
+  items: Reply[];
 }
 export interface Member extends Profile {
   user_id: string;
