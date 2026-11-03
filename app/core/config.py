@@ -73,6 +73,9 @@ class Settings(BaseSettings):
     # Public origin of the admin UI, used for links in emails. Links are omitted when empty.
     public_url: str = ""
 
+    # Most items one bulk action (status change or delete) may touch.
+    bulk_max_ids: int = 100
+
     # CSV export stops at this many rows per download.
     export_max_rows: int = 100_000
 

@@ -183,10 +183,20 @@ emails and webhooks. The snippet with your key filled in is under **Site → Set
 option, theming and the upgrade policy are in [docs/WIDGET.md](docs/WIDGET.md). A runnable page is in
 `examples/widget.html`.
 
+## Filtering and bulk actions
+
+The feedback list filters by status, search text, issue type, rating, whether an email was given, and a
+date range (`GET /v1/api/sites/{id}/feedback?status=&q=&issue_type=&rating=&has_email=&created_from=&created_to=`;
+dates are inclusive UTC days, `YYYY-MM-DD`). Tick items (or "Select all on this page") to change their status or
+delete them in one go: `POST /v1/api/sites/{id}/feedback/bulk` with `{"ids": [...], "action": "set_status",
+"status": "archived"}` or `{"ids": [...], "action": "delete"}`. Editors may change status, only admins may delete,
+as for a single item. Ids from other sites are skipped, at most `BULK_MAX_IDS` (100) per request, and a bulk
+delete is one audit event (ids and count, never the messages).
+
 ## Exporting feedback
 
-**Export CSV** on a site's feedback list downloads what the search and status filter show
-(`GET /v1/api/sites/{id}/feedback/export.csv?status=&q=`, any role that can view the site). Columns:
+**Export CSV** on a site's feedback list downloads what the filters show
+(`GET /v1/api/sites/{id}/feedback/export.csv`, same query parameters as the list, any role that can view the site). Columns:
 id, created_at (UTC), status, issue_type, rating, name, email, message, page_url, meta. Text that a spreadsheet
 would run as a formula (starting with `=`, `+`, `-` or `@`) is prefixed with an apostrophe. Downloads
 stop at `EXPORT_MAX_ROWS` (100,000). Each export is recorded in the audit log (who, how many rows, never
