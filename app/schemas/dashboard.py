@@ -21,3 +21,5 @@ class Dashboard(BaseModel):
     sites_with_new: int
     sites: list[DashboardSite]
     recent_new: list[DashboardItem]
+    assigned_total: int
+    assigned: list[DashboardItem]

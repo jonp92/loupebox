@@ -52,6 +52,8 @@ export interface Dashboard {
   sites_with_new: number;
   sites: DashboardSite[];
   recent_new: DashboardItem[];
+  assigned_total: number;
+  assigned: DashboardItem[];
 }
 export interface Feedback {
   id: string;
@@ -63,6 +65,22 @@ export interface Feedback {
   metadata: Record<string, unknown>;
   status: Status;
   user_agent: string | null;
+  created_at: string;
+  assignee_id: string | null;
+  assignee_name: string | null;
+  tags: string[];
+  note_count: number;
+}
+export interface Assignee {
+  user_id: string;
+  email: string;
+  name: string;
+}
+export interface Note {
+  id: string;
+  author_id: string | null;
+  author_name: string | null;
+  body: string;
   created_at: string;
 }
 export interface Member extends Profile {

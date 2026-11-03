@@ -121,6 +121,6 @@ def test_export_is_audited_without_contents(client, db, viewer):
     client.get(url(site, "?q=secret"), headers=h)
     ev = db.scalars(select(AuditEvent).where(AuditEvent.action == "feedback.export")).one()
     assert ev.details == {"rows": 1, "status": None, "search": True, "issue_type": None,
-                          "rating": None, "has_email": None, "from": "", "to": ""}
+                          "rating": None, "has_email": None, "from": "", "to": "", "assignee": None, "tag": None}
     assert "secret" not in ev.summary and "secret" not in str(ev.details)
     assert ev.actor_email == "v@example.com"

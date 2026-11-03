@@ -29,6 +29,25 @@ export default function Dashboard() {
           <div className="stat"><strong>{data.sites_with_new}</strong><span className="muted">Sites with unread</span></div>
         </div>
       )}
+      {data && data.assigned_total > 0 && (
+        <>
+          <h2 className="section">Assigned to you <span className="count">{data.assigned_total}</span></h2>
+          <ul className="list unread">
+            {data.assigned.map((f) => (
+              <li key={f.id}>
+                <Link to={`/sites/${f.site_id}/feedback/${f.id}`} className="grow site-link">
+                  <span className="muted">{f.site_name} · {f.status} · {new Date(f.created_at).toLocaleString()}</span>
+                  {/* Rendered as text by React; never as HTML. */}
+                  <span className="excerpt">{f.message}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          {data.assigned_total > data.assigned.length && (
+            <p className="muted">Showing {data.assigned.length} of {data.assigned_total}. Open a site and use "Assigned to me" to see the rest.</p>
+          )}
+        </>
+      )}
       {data && data.new_total > 0 && (
         <>
           <h2 className="section">Latest unread</h2>

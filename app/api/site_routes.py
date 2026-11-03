@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import ValidationError
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, update
 from sqlalchemy.orm import Session
 
 from app.api.deps import SiteAccess, get_current_user, require_superadmin, site_access
@@ -12,7 +12,7 @@ from app.core.config import settings
 from app.core.origins import public_origins
 from app.core.security import new_public_key
 from app.db.session import get_db
-from app.models import Membership, Role, Site, User
+from app.models import Feedback, Membership, Role, Site, User
 from app.schemas.site import (
     MemberOut,
     MemberUpsert,
@@ -30,6 +30,11 @@ _SITE_FIELDS = ("name", "allowed_origins", "is_active", "daily_limit", "challeng
 
 def _profile(u: User) -> dict:
     return {"email": u.email, "first_name": u.first_name, "last_name": u.last_name, "avatar_url": u.avatar_url}
+
+
+def _unassign(db: Session, site: Site, user_id: uuid.UUID) -> None:
+    """Only editors and admins can hold assignments, so losing that access clears them."""
+    db.execute(update(Feedback).where(Feedback.site_id == site.id, Feedback.assignee_id == user_id).values(assignee_id=None))
 
 
 def _out(site: Site, role: Role | None) -> SiteOut:
@@ -224,6 +229,8 @@ def upsert_member(
             details={"email": user.email, "role": {"from": membership.role.value, "to": body.role.value}},
         )
         membership.role = body.role
+        if body.role == Role.viewer:
+            _unassign(db, access.site, user.id)
     db.commit()
     return MemberOut(user_id=user.id, role=body.role, **_profile(user))
 
@@ -247,5 +254,6 @@ def remove_member(
         db, access.user, "member.remove", f"Removed {email} from {access.site.name}",
         target_type="user", target_id=user_id, site=access.site, details={"email": email, "role": membership.role.value},
     )
+    _unassign(db, access.site, user_id)
     db.delete(membership)
     db.commit()

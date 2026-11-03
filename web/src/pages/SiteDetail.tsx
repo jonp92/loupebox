@@ -3,6 +3,7 @@ import { Link, NavLink, Navigate, Route, Routes, useParams } from "react-router-
 import { api, type Site } from "../api";
 import { ScrollTabs } from "../components";
 import Activity from "./Activity";
+import FeedbackDetail from "./FeedbackDetail";
 import FeedbackList from "./FeedbackList";
 import Members from "./Members";
 import Notifications from "./Notifications";
@@ -38,7 +39,7 @@ export default function SiteDetail() {
       </ScrollTabs>
       <Routes>
         <Route index element={<FeedbackList site={site} />} />
-        <Route path="feedback/:feedbackId" element={<FeedbackList site={site} />} />
+        <Route path="feedback/:feedbackId" element={<FeedbackDetail site={site} />} />
         <Route path="activity" element={<Activity site={site} />} />
         {isAdmin && <Route path="settings" element={<Settings site={site} onChange={setSite} />} />}
         {isAdmin && <Route path="members" element={<Members site={site} />} />}
