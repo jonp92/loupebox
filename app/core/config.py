@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Literal
 
 from pydantic import model_validator
@@ -6,12 +7,16 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 _INSECURE_SECRET = "dev-insecure-change-me"
 
 
+# The single source of the release version; the image build copies it next to app/.
+VERSION = (Path(__file__).resolve().parents[2] / "VERSION").read_text().strip()
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     app_name: str = "Loupebox"
-    app_version: str = "0.1.0"
-    app_description: str = "A simple, open-source, self-hosted link submission and voting platform."
+    app_version: str = VERSION
+    app_description: str = "A self-hosted feedback inbox: collect, triage and answer feedback from your sites."
 
     environment: str = "development"
     # Every route lives under this prefix, so a reverse proxy can send /v1/api/* to the API

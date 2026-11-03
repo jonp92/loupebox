@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
-import { displayName, type Me } from "./api";
+import { api, displayName, type Me } from "./api";
 import { Avatar, Logo, OfflineBanner } from "./components";
 import { useAuth } from "./auth";
 import Audit from "./pages/Audit";
@@ -63,6 +63,14 @@ function UserMenu({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
   );
 }
 
+function Footer() {
+  const [version, setVersion] = useState("");
+  useEffect(() => {
+    api<{ app_version: string }>("/version").then((v) => setVersion(v.app_version), () => {});
+  }, []);
+  return <footer className="appfooter muted">Loupebox{version && ` ${version}`}</footer>;
+}
+
 function Layout() {
   const { me, loading, signOut } = useAuth();
   if (loading) return <p className="center muted">Loading…</p>;
@@ -83,6 +91,7 @@ function Layout() {
         <UserMenu me={me} onSignOut={signOut} />
       </header>
       <main><Outlet /></main>
+      <Footer />
     </>
   );
 }
