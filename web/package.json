@@ -8,7 +8,7 @@
     "build": "tsc --noEmit && vite build && npm run build:widget",
     "preview": "vite preview",
     "build:widget": "tsc -p tsconfig.widget.json --noEmit false && vite build -c vite.widget.config.ts",
-    "test": "npm run build:widget && node --test widget/test/"
+    "test": "npm run build:widget && node --test \"widget/test/*.test.mjs\""
   },
   "dependencies": {
     "qrcode-generator": "^2.0.4",
