@@ -1,10 +1,12 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import ValidationError
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import SiteAccess, get_current_user, require_superadmin, site_access
+from app.challenges.registry import OFF, get_verifier
 from app.core.config import settings
 from app.core.origins import public_origins
 from app.core.security import new_public_key
@@ -66,13 +68,36 @@ def get_site(access: SiteAccess = Depends(site_access(Role.viewer))) -> SiteOut:
     return _out(access.site, access.role)
 
 
+def _apply_challenge(site: Site, mode: str | None, config: dict | None) -> None:
+    """Validate and store the challenge mode/config. Changing mode without a config resets to that
+    verifier's defaults; "off" clears the config."""
+    if mode is None and config is None:
+        return
+    mode = mode if mode is not None else site.challenge_mode
+    if mode == OFF:
+        site.challenge_mode, site.challenge_config = OFF, {}
+        return
+    verifier = get_verifier(mode)
+    if verifier is None:
+        raise HTTPException(422, f"Unknown challenge mode {mode!r}")
+    if config is None:
+        config = site.challenge_config if mode == site.challenge_mode else {}
+    try:
+        site.challenge_config = verifier.ConfigModel.model_validate(config).model_dump()
+    except ValidationError as e:
+        raise HTTPException(422, e.errors(include_url=False, include_context=False)[0]["msg"])
+    site.challenge_mode = mode
+
+
 @router.patch("/{site_id}")
 def update_site(
     body: SiteUpdate,
     access: SiteAccess = Depends(site_access(Role.admin)),
     db: Session = Depends(get_db),
 ) -> SiteOut:
-    for field, value in body.model_dump(exclude_unset=True).items():
+    changes = body.model_dump(exclude_unset=True)
+    _apply_challenge(access.site, changes.pop("challenge_mode", None), changes.pop("challenge_config", None))
+    for field, value in changes.items():
         if value is None:
             continue
         setattr(access.site, field, value)

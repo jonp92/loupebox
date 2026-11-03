@@ -27,6 +27,9 @@ class Site(Base):
     allowed_origins: Mapped[list[str]] = mapped_column(JSON, default=list)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     daily_limit: Mapped[int] = mapped_column(Integer)
+    # Public-ingest challenge: "off" or the key of a registered app.challenges verifier.
+    challenge_mode: Mapped[str] = mapped_column(String(24), default="off", server_default="off")
+    challenge_config: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     memberships: Mapped[list["Membership"]] = relationship(

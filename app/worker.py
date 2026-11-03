@@ -4,6 +4,7 @@ import logging
 import signal
 import time
 
+from app.challenges.replay import purge_expired
 from app.core.config import settings
 from app.db.session import get_sessionmaker
 from app.models.user import utcnow
@@ -37,6 +38,9 @@ def run() -> None:
                     removed = purge_finished(db, utcnow())
                     if removed:
                         log.info("purged %s finished outbox rows", removed)
+                    expired = purge_expired(db, utcnow())
+                    if expired:
+                        log.info("purged %s expired challenge markers", expired)
         except Exception:
             log.exception("worker pass failed")
             handled = 0

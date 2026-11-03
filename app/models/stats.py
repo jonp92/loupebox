@@ -17,6 +17,7 @@ class StatKind(str, enum.Enum):
     origin_denied = "origin_denied"  # valid key, but Origin missing or not allowed
     rate_limited = "rate_limited"  # per-key rate limit hit
     daily_limit = "daily_limit"  # site's daily quota reached
+    challenge_failed = "challenge_failed"  # proof missing, invalid, expired or reused
 
 
 class SiteStat(Base):

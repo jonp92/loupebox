@@ -23,6 +23,8 @@ class FeedbackIn(BaseModel):
     metadata: dict[str, str | int | float | bool | None] = Field(default_factory=dict)
     # Honeypot: hidden field real users never fill in.
     website: str | None = Field(default=None, max_length=500)
+    # Proof for the site's challenge, when it requires one. Opaque: the verifier interprets it.
+    challenge: str | None = Field(default=None, max_length=1024)
 
     @field_validator("message")
     @classmethod

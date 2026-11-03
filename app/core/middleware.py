@@ -6,13 +6,13 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from app.core.config import settings
 from app.core.origins import public_origins
 
-PUBLIC_PATH = f"{settings.api_prefix}/feedback"
+PUBLIC_PATHS = {f"{settings.api_prefix}/feedback", f"{settings.api_prefix}/feedback/challenge"}
 
 
 class DynamicCORSMiddleware(BaseHTTPMiddleware):
     """Two CORS policies:
 
-    * POST {api_prefix}/feedback (public ingest): any origin registered on an active site; no credentials.
+    * POST {api_prefix}/feedback and /feedback/challenge (public ingest): any origin registered on an active site; no credentials.
     * everything else (admin API): only `settings.admin_origins`; credentials allowed for the
       refresh cookie.
     """
@@ -22,7 +22,7 @@ class DynamicCORSMiddleware(BaseHTTPMiddleware):
         if not origin:
             return await call_next(request)
 
-        public = request.url.path == PUBLIC_PATH
+        public = request.url.path in PUBLIC_PATHS
         allowed = public_origins.contains(origin) if public else origin in settings.admin_origins
 
         if request.method == "OPTIONS" and "access-control-request-method" in request.headers:

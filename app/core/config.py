@@ -41,6 +41,11 @@ class Settings(BaseSettings):
     dedupe_window_minutes: int = 10
     spam_link_threshold: int = 3  # messages with more links than this are quarantined
 
+    # Public-ingest challenges (see app/challenges). Issuing is stateless, so these only bound abuse.
+    challenge_ttl_seconds: int = 300
+    challenge_ip_limit: int = 30  # challenge requests per IP per window
+    challenge_key_limit: int = 600  # challenge requests per API key per window
+
     # Profile avatar image size cap (bytes), stored in the DB and served from {api_prefix}/avatars/{id}.
     avatar_max_bytes: int = 65_536
 

@@ -12,6 +12,7 @@ class DayStats(BaseModel):
     origin_denied: int
     rate_limited: int
     daily_limit: int
+    challenge_failed: int
 
 
 class SiteStats(BaseModel):

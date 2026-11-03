@@ -23,7 +23,7 @@ def site_stats(
     start = datetime(first.year, first.month, first.day, tzinfo=UTC)
     buckets = {first + timedelta(days=i): DayStats(day=first + timedelta(days=i), accepted=0,
                quarantined=0, honeypot=0, duplicate=0, origin_denied=0, rate_limited=0,
-               daily_limit=0) for i in range(days)}
+               daily_limit=0, challenge_failed=0) for i in range(days)}
 
     day_col = func.date(Feedback.created_at)
     rows = db.execute(

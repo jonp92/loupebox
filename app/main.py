@@ -12,12 +12,14 @@ from app.api import (
     stats_routes,
     user_routes,
 )
+from app.challenges.registry import load_verifiers
 from app.core.config import settings
 from app.core.middleware import BodySizeLimitMiddleware, DynamicCORSMiddleware
 from app.notifications.registry import load_providers
 
 prefix = settings.api_prefix
 load_providers()  # the admin API lists providers and sends test messages
+load_verifiers()  # public ingest enforces each site's challenge mode
 
 # Interactive docs only outside production, so a deployed instance doesn't advertise its schema.
 _docs = settings.environment != "production"

@@ -1,3 +1,4 @@
+from app.models.challenge import UsedChallenge
 from app.models.feedback import Feedback, FeedbackStatus
 from app.models.notification import NotificationChannel, NotificationOutbox, OutboxStatus
 from app.models.site import ROLE_RANK, Membership, Role, Site
@@ -17,5 +18,6 @@ __all__ = [
     "Site",
     "SiteStat",
     "StatKind",
+    "UsedChallenge",
     "User",
 ]
