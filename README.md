@@ -304,3 +304,9 @@ per user; nothing changes for people who don't enable it.
   per-site **challenge** (Site → Settings → Bot protection): a signed, single-use proof-of-work the form
   has to solve, see `docs/CLIENT_INTEGRATION.md`. Challenges are pluggable: add a module under
   `app/challenges/verifiers/` that registers a `ChallengeVerifier` (for example a Turnstile/hCaptcha check).
+
+## License
+
+Ganymede is licensed under the [GNU AGPL-3.0](LICENSE). The embeddable widget (`web/widget/`) is
+licensed under [Apache-2.0](web/widget/LICENSE). See [CONTRIBUTING.md](CONTRIBUTING.md) for the
+sign-off (DCO) required on contributions.
