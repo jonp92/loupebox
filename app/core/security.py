@@ -51,6 +51,30 @@ def decode_access_token(token: str) -> uuid.UUID | None:
         return None
 
 
+def create_mfa_token(user_id: uuid.UUID) -> str:
+    """Proof that the password step passed. It is not an access token and opens nothing by itself."""
+    now = datetime.now(UTC)
+    payload = {
+        "sub": str(user_id),
+        "type": "mfa",
+        "iat": now,
+        "exp": now + timedelta(minutes=settings.mfa_token_minutes),
+    }
+    return jwt.encode(payload, settings.jwt_secret, algorithm=_ALGORITHM)
+
+
+def decode_mfa_token(token: str) -> uuid.UUID | None:
+    try:
+        payload = jwt.decode(
+            token, settings.jwt_secret, algorithms=[_ALGORITHM], options={"require": ["exp", "sub"]}
+        )
+        if payload.get("type") != "mfa":
+            return None
+        return uuid.UUID(payload["sub"])
+    except (jwt.PyJWTError, ValueError):
+        return None
+
+
 def new_refresh_token() -> str:
     return secrets.token_urlsafe(48)
 

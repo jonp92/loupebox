@@ -2,7 +2,7 @@ import uuid
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -11,7 +11,7 @@ from app.api.deps import require_superadmin
 from app.core.audit import audit, changed, snapshot
 from app.core.security import hash_password
 from app.db.session import get_db
-from app.models import RefreshToken, User
+from app.models import RecoveryCode, RefreshToken, User
 from app.schemas.auth import UserCreate, UserOut, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(require_superadmin)])
@@ -138,4 +138,25 @@ def delete_user_avatar(
     user = _get_user(db, user_id)
     audit(db, actor, "user.avatar_clear", f"Removed the avatar of {user.email}", target_type="user", target_id=user.id)
     clear_avatar(db, user)
+    return UserOut.model_validate(user)
+
+
+@router.delete("/{user_id}/totp")
+def reset_user_totp(
+    user_id: uuid.UUID, actor: User = Depends(require_superadmin), db: Session = Depends(get_db)
+) -> UserOut:
+    """Lockout recovery: turn off someone's TOTP and sign them out everywhere."""
+    user = _get_user(db, user_id)
+    if not user.totp_enabled:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "TOTP is not enabled for this user")
+    user.totp_secret = user.totp_enabled_at = user.totp_last_step = None
+    db.execute(delete(RecoveryCode).where(RecoveryCode.user_id == user.id))
+    db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None))
+        .values(revoked_at=datetime.now(UTC))
+    )
+    audit(db, actor, "user.totp_reset", f"Turned off two-factor authentication for {user.email}",
+          target_type="user", target_id=user.id)
+    db.commit()
     return UserOut.model_validate(user)

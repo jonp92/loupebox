@@ -65,6 +65,13 @@ class Settings(BaseSettings):
     # Audit log (admin actions). Events older than this are purged by the worker; 0 keeps them forever.
     audit_retention_days: int = 365
 
+    # TOTP secrets are encrypted at rest with this key (any string; it is hashed into a Fernet key).
+    # Falls back to JWT_SECRET, but then rotating JWT_SECRET locks TOTP users out: set it separately.
+    totp_encryption_key: str = ""
+    totp_issuer: str = "Ganymede"
+    mfa_token_minutes: int = 5  # how long the password step stays valid while the code is entered
+    mfa_hourly_limit: int = 20  # second-factor attempts per user per hour (the per-minute cap is login_account_limit)
+
     # Login brute-force protection
     login_ip_limit: int = 20
     login_account_limit: int = 5

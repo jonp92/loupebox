@@ -5,7 +5,9 @@ import type { Me } from "./api";
 interface AuthState {
   me: Me | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  /** Resolves to an MFA token when a code is still needed, otherwise null (signed in). */
+  signIn: (email: string, password: string) => Promise<string | null>;
+  completeMfa: (mfaToken: string, code: string) => Promise<void>;
   signOut: () => Promise<void>;
   setMe: (me: Me) => void;
 }
@@ -28,7 +30,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    await client.login(email, password);
+    const mfaToken = await client.login(email, password);
+    if (mfaToken === null) setMe(await client.api<Me>("/auth/me"));
+    return mfaToken;
+  }, []);
+
+  const completeMfa = useCallback(async (mfaToken: string, code: string) => {
+    await client.loginTotp(mfaToken, code);
     setMe(await client.api<Me>("/auth/me"));
   }, []);
 
@@ -37,5 +45,5 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMe(null);
   }, []);
 
-  return <Ctx.Provider value={{ me, loading, signIn, signOut, setMe }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ me, loading, signIn, completeMfa, signOut, setMe }}>{children}</Ctx.Provider>;
 }

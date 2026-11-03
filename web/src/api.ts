@@ -24,6 +24,8 @@ export interface Profile {
 export interface Me extends Profile {
   id: string;
   is_superadmin: boolean;
+  totp_enabled: boolean;
+  recovery_codes_left: number;
   memberships: { site_id: string; role: Role }[];
 }
 export interface Site {
@@ -71,6 +73,7 @@ export interface User extends Profile {
   id: string;
   is_superadmin: boolean;
   is_active: boolean;
+  totp_enabled: boolean;
 }
 
 /** Avatar URLs from the API are paths on the API origin. */
@@ -146,7 +149,8 @@ export function refresh(): Promise<boolean> {
   return refreshing;
 }
 
-export async function login(email: string, password: string) {
+/** Returns an MFA token when a second step is needed; otherwise the session is already open. */
+export async function login(email: string, password: string): Promise<string | null> {
   const res = await fetch(BASE + "/auth/login", {
     method: "POST",
     credentials: "include",
@@ -154,7 +158,28 @@ export async function login(email: string, password: string) {
     body: JSON.stringify({ email, password }),
   });
   if (!res.ok) throw new ApiError(res.status, await detail(res));
+  const body = await res.json();
+  if (body.mfa_required) return body.mfa_token as string;
+  accessToken = body.access_token;
+  return null;
+}
+
+export async function loginTotp(mfa_token: string, code: string) {
+  const res = await fetch(BASE + "/auth/login/totp", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mfa_token, code }),
+  });
+  if (!res.ok) throw new ApiError(res.status, await detail(res));
   accessToken = (await res.json()).access_token;
+}
+
+/** Enabling or disabling TOTP signs out other sessions; this one gets a fresh token. */
+export async function totpChange<T extends { access_token: string }>(path: string, body: unknown): Promise<T> {
+  const r = await api<T>(path, json("POST", body));
+  accessToken = r.access_token;
+  return r;
 }
 
 export async function changePassword(current_password: string, new_password: string) {

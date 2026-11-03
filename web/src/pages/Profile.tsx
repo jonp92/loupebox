@@ -3,6 +3,7 @@ import { api, changePassword, displayName, type Me } from "../api";
 import { useAuth } from "../auth";
 import { AVATAR_SIZE, toAvatarBlob } from "../avatar";
 import { Avatar } from "../components";
+import TwoFactor from "../TwoFactor";
 
 export default function Profile() {
   const { me, setMe } = useAuth();
@@ -89,6 +90,8 @@ export default function Profile() {
         {pwMsg && <p className={pwMsg.ok ? "success" : "error"} role="status">{pwMsg.text}</p>}
         <button className="primary" disabled={busy}>Change password</button>
       </form>
+
+      <TwoFactor />
     </>
   );
 }

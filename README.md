@@ -59,7 +59,8 @@ Per-site email alerts for new feedback, sent through Brevo. Admins configure cha
 Superadmins see every administrative change under **Audit** in the top bar: who did what, when, and
 on which site. Recorded: user create/update/promote/demote/enable/disable/password reset/avatar,
 site create/update/key rotation/delete, member add/role change/remove, notification channel
-create/update/delete, feedback deletion, and people changing their own password.
+create/update/delete, feedback deletion, and people changing their own password or two-factor settings
+(including sign-ins with a recovery code).
 
 * Each event is written in the same transaction as the change, so a change that fails leaves no
   event, and an event never exists for a change that did not happen. Actor email, site name and a
@@ -167,6 +168,26 @@ The UI crops and resizes uploads to 256x256 before sending.
 Login returns a 15 min access token (kept in memory by the SPA) and sets a rotating, httpOnly
 refresh cookie (path `/auth`). Replaying a rotated refresh token revokes all of the user's
 sessions. Passwords use argon2. Admin CORS is limited to `ADMIN_ORIGINS`.
+
+### Two-factor authentication (TOTP)
+
+Any user can turn on an authenticator-app code (RFC 6238) under **Profile**. It is optional and
+per user; nothing changes for people who don't enable it.
+
+* Setup shows a QR code and the text key, and only takes effect once a code is confirmed. It then
+  shows 10 one-time recovery codes (once; only their hashes are stored).
+* Sign-in becomes two steps: `POST /v1/api/auth/login` returns `{"mfa_required": true, "mfa_token"}`
+  instead of tokens, and `POST /v1/api/auth/login/totp` with that token (valid 5 minutes, useless
+  as an access token) and a code opens the session. A code works once, and attempts are rate limited
+  per user, separately for sign-in and for managing the setting (`LOGIN_ACCOUNT_LIMIT` per minute,
+  `MFA_HOURLY_LIMIT` per hour).
+* Turning it off or replacing the recovery codes needs the password and a current code. Enabling or
+  disabling signs out the other sessions.
+* Secrets are encrypted in the database with `TOTP_ENCRYPTION_KEY` (falls back to `JWT_SECRET`;
+  set it separately so rotating `JWT_SECRET` doesn't lock people out).
+* Lockout recovery: a superadmin can use **Reset 2FA** on the Users page (`DELETE /v1/api/users/{id}/totp`),
+  or run `python -m scripts.reset_totp user@example.com` on the server. Both sign the user out
+  everywhere and are the only way back in without a code or recovery code.
 
 ## Production notes
 

@@ -15,6 +15,42 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
+class MfaRequired(BaseModel):
+    """Login answer when the password was right but a second factor is still needed."""
+
+    mfa_required: bool = True
+    mfa_token: str
+
+
+class MfaLogin(BaseModel):
+    mfa_token: str = Field(max_length=2048)
+    code: str = Field(min_length=1, max_length=32)  # authenticator code or recovery code
+
+
+class TotpSetup(BaseModel):
+    secret: str
+    uri: str
+
+
+class TotpConfirm(BaseModel):
+    code: str = Field(min_length=1, max_length=32)
+
+
+class TotpProof(BaseModel):
+    """Re-authentication for turning TOTP off or replacing the recovery codes."""
+
+    password: str = Field(max_length=256)
+    code: str = Field(min_length=1, max_length=32)
+
+
+class RecoveryCodes(BaseModel):
+    recovery_codes: list[str]
+
+
+class TotpEnabled(TokenResponse, RecoveryCodes):
+    pass
+
+
 class MembershipOut(BaseModel):
     site_id: uuid.UUID
     role: Role
@@ -27,6 +63,8 @@ class MeResponse(BaseModel):
     last_name: str
     avatar_url: str | None
     is_superadmin: bool
+    totp_enabled: bool
+    recovery_codes_left: int
     memberships: list[MembershipOut]
 
 
@@ -53,6 +91,7 @@ class UserOut(BaseModel):
     avatar_url: str | None
     is_superadmin: bool
     is_active: bool
+    totp_enabled: bool
 
 
 class UserUpdate(BaseModel):

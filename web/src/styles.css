@@ -275,3 +275,11 @@ dialog.confirm .row-actions { justify-content: flex-end; }
 .audit-details dl div { display: flex; gap: .6rem; flex-wrap: wrap; }
 .audit-details dt { color: var(--muted); min-width: 7rem; }
 .audit-details dd { margin: 0; overflow-wrap: anywhere; }
+
+/* Two-factor authentication */
+.qr { display: block; width: 200px; height: 200px; margin: .75rem 0; border-radius: 8px; border: 1px solid var(--border); }
+.totp-setup, .totp-proof { max-width: 340px; }
+.recovery { margin: .75rem 0; }
+.codes { list-style: none; padding: .75rem; margin: .5rem 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: .35rem .75rem; background: var(--surface-2); border-radius: 8px; }
+.login-links { margin: 1rem 0 0; font-size: .9rem; }
+button.link { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font: inherit; text-decoration: underline; }

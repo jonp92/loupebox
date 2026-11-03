@@ -89,6 +89,18 @@ export default function Users() {
     load();
   }
 
+  async function resetTotp(u: User) {
+    const ok = await confirm({
+      title: `Turn off two-factor for ${displayName(u)}?`,
+      message: "Use this when they are locked out. They will be signed out everywhere and can set it up again.",
+      confirmLabel: "Turn off",
+      danger: true,
+    });
+    if (!ok) return;
+    await api(`/users/${u.id}/totp`, { method: "DELETE" }).catch((e) => setError(e.message));
+    load();
+  }
+
   return (
     <>
       <div className="page-head"><h1>Users</h1><span className="count">{users.length}</span></div>
@@ -119,14 +131,16 @@ export default function Users() {
               <span className="grow stack">
                 <strong>{displayName(u)}</strong>
                 {displayName(u) !== u.email && <span className="muted">{u.email}</span>}
-                {(u.is_superadmin || !u.is_active) && (
+                {(u.is_superadmin || !u.is_active || u.totp_enabled) && (
                   <span className="origins">
                     {u.is_superadmin && <span className="badge">superadmin</span>}
+                    {u.totp_enabled && <span className="badge read">2FA</span>}
                     {!u.is_active && <span className="badge warn">disabled</span>}
                   </span>
                 )}
               </span>
               <button onClick={() => setEditing(u.id)}>Edit</button>
+              {u.totp_enabled && u.id !== me.id && <button onClick={() => resetTotp(u)}>Reset 2FA</button>}
               {u.id !== me.id && (
                 <button onClick={() => toggleSuperadmin(u)}>{u.is_superadmin ? "Remove superadmin" : "Make superadmin"}</button>
               )}
