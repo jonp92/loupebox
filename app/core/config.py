@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -59,6 +61,15 @@ class Settings(BaseSettings):
     brevo_api_key: str = ""
     notify_sender_email: str = ""
     notify_sender_name: str = "Ganymede"
+    # Plain SMTP (email), operator-owned like Brevo. Sender is NOTIFY_SENDER_EMAIL / NOTIFY_SENDER_NAME.
+    smtp_host: str = ""
+    smtp_port: int = 587  # 587 with starttls, 465 with ssl, 25 or 1025 for a local relay with none
+    smtp_username: str = ""
+    smtp_password: str = ""
+    # starttls: upgrade, and refuse to send if the server won't. ssl: TLS from the first byte.
+    # none: no encryption at all; credentials are never sent that way (see providers/smtp.py).
+    smtp_security: Literal["starttls", "ssl", "none"] = "starttls"
+    smtp_timeout: int = 15
     # Public origin of the admin UI, used for links in emails. Links are omitted when empty.
     public_url: str = ""
 

@@ -18,7 +18,7 @@ from app.db.base import Base
 from app.db.session import get_engine, get_sessionmaker
 from app.main import app
 from app.models import Membership, Role, Site, User
-from app.notifications.providers import brevo, webhook
+from app.notifications.providers import brevo, smtp, webhook
 
 SITE_ORIGIN = "https://shop.example.com"
 
@@ -27,15 +27,27 @@ def _no_network(request: httpx.Request) -> httpx.Response:
     raise AssertionError(f"a test tried to reach the network: {request.method} {request.url}")
 
 
+_real_smtp_connect = smtp._connect
+
+
+def _loopback_only_smtp():
+    """Real SMTP only ever reaches a local fake server; anything else is a test bug."""
+    if settings.smtp_host not in ("localhost", "127.0.0.1"):
+        raise AssertionError(f"a test tried to open an SMTP connection to {settings.smtp_host!r}")
+    return _real_smtp_connect()
+
+
 @pytest.fixture(autouse=True)
 def _isolated_from_dotenv(monkeypatch):
     """Settings also read the developer's real .env (Brevo key, PUBLIC_URL, ...). Tests must never see it,
     and no test may send real mail or webhooks: providers get a transport that fails loudly unless a test
     installs its own."""
-    for name, value in (("brevo_api_key", ""), ("notify_sender_email", ""), ("public_url", ""), ("mail_provider", "")):
+    for name, value in (("brevo_api_key", ""), ("notify_sender_email", ""), ("public_url", ""), ("mail_provider", ""),
+                        ("smtp_host", ""), ("smtp_username", ""), ("smtp_password", "")):
         monkeypatch.setattr(settings, name, value)
     monkeypatch.setattr(brevo, "_transport", lambda: httpx.MockTransport(_no_network))
     monkeypatch.setattr(webhook, "_transport", lambda: httpx.MockTransport(_no_network))
+    monkeypatch.setattr(smtp, "_connect", _loopback_only_smtp)
 
 
 @pytest.fixture(autouse=True)
