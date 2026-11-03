@@ -1,0 +1,29 @@
+#!/bin/sh
+# First-run setup: writes .env from .env.example with freshly generated secrets.
+# Usage: ./scripts/setup.sh   (refuses to overwrite an existing .env)
+set -eu
+cd "$(dirname "$0")/.."
+
+[ -e .env ] && { echo ".env already exists; delete it first to start over." >&2; exit 1; }
+command -v openssl >/dev/null || { echo "openssl is required to generate secrets." >&2; exit 1; }
+
+secret() { openssl rand -base64 48 | tr -d '\n=' | tr '+/' '-_'; }  # URL-safe
+dbpass=$(openssl rand -hex 24)
+
+awk -v jwt="$(secret)" -v totp="$(secret)" -v hook="$(secret)" -v db="$dbpass" '
+  /^JWT_SECRET=$/             { print "JWT_SECRET=" jwt; next }
+  /^TOTP_ENCRYPTION_KEY=$/    { print "TOTP_ENCRYPTION_KEY=" totp; next }
+  /^WEBHOOK_ENCRYPTION_KEY=$/ { print "WEBHOOK_ENCRYPTION_KEY=" hook; next }
+  /^POSTGRES_PASSWORD=$/      { print "POSTGRES_PASSWORD=" db; next }
+  { gsub(/CHANGE_ME/, db); print }
+' .env.example > .env
+chmod 600 .env
+
+cat <<MSG
+Wrote .env with generated secrets (keep it safe; changing the encryption keys later locks out 2FA and webhooks).
+
+Next:
+  docker compose up -d --build
+  docker compose run --rm api python -m scripts.create_superadmin you@example.com
+  open http://localhost:8080
+MSG

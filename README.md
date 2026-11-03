@@ -6,10 +6,13 @@ site key; staff review it in the UI under per-site roles.
 ## Run with Docker
 
 ```bash
-cp .env.example .env     # set JWT_SECRET and POSTGRES_PASSWORD (see comments inside)
+./scripts/setup.sh       # writes .env with generated secrets (needs openssl)
 docker compose up -d --build
 docker compose run --rm api python -m scripts.create_superadmin you@example.com
 ```
+
+Then open http://localhost:8080 and sign in. Prerequisites: Docker with the compose plugin. To
+set the secrets by hand instead, `cp .env.example .env` and fill in the blanks (see the comments inside).
 
 * Web UI: http://localhost:8080 · API: http://localhost:8000/v1/api (interactive docs at `/v1/api/docs` only when
   `ENVIRONMENT` is not `production`; compose defaults to production, set `ENVIRONMENT=development` locally)
@@ -26,10 +29,9 @@ docker compose run --rm api python -m scripts.create_superadmin you@example.com
 ## Run locally (without Docker for the app)
 
 ```bash
-docker compose up -d db                # Postgres only (needs POSTGRES_PASSWORD in .env)
+./scripts/setup.sh && docker compose up -d db   # .env with secrets, then Postgres only
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements-dev.txt
-cp .env.example .env                   # set JWT_SECRET and DATABASE_URL
 alembic upgrade head
 python -m scripts.create_superadmin you@example.com
 uvicorn app.main:app --reload          # http://127.0.0.1:8000/docs
