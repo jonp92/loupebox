@@ -4,7 +4,7 @@ import { api, download, json, type Feedback, type Site, type Status } from "../a
 import { useAuth } from "../auth";
 import { useConfirm } from "../confirm";
 import {
-  FeedbackBadges, TAG_PATTERN, below, label, personName, recentAssignees, slug, useAssigneePicker, useContextMenu, type MenuItem,
+  FeedbackBadges, TAG_PATTERN, ago, below, label, personName, recentAssignees, slug, useAssigneePicker, useContextMenu, type MenuItem,
 } from "../triage";
 
 const PAGE = 25;
@@ -36,6 +36,8 @@ export default function FeedbackList({ site }: { site: Site }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [error, setError] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false); // small screens only; wide ones always show the filters
+  const [tagging, setTagging] = useState(false);
   const canEdit = site.my_role === "editor" || site.my_role === "admin";
   const canDelete = site.my_role === "admin";
   // Only editors and admins hold assignments, and a superadmin who is not a member cannot.
@@ -129,10 +131,29 @@ export default function FeedbackList({ site }: { site: Site }) {
     const t = slug(bulkTag);
     if (!TAG_PATTERN.test(t)) return setError("Tags are 1-32 letters, digits, '-' or '_'");
     setBulkTag("");
+    setTagging(false);
     bulk({ action: "add_tag", tag: t });
   }
   const resetTo = (set: (v: string) => void) => (e: { target: { value: string } }) => { set(e.target.value); setOffset(0); };
   const filtered = Boolean(status || q || issueType || rating || hasEmail || from || to || assignee || tag);
+  /** The active filters other than the search box and the quick tabs, as removable chips for when the panel is closed. */
+  const chips: { text: string; clear: () => void }[] = [
+    status && { text: `Status: ${status}`, clear: () => setStatus("") },
+    issueType && { text: `Type: ${label(issueType)}`, clear: () => setIssueType("") },
+    rating && { text: `Rating: ${rating}★`, clear: () => setRating("") },
+    hasEmail && { text: hasEmail === "true" ? "Has email" : "No email", clear: () => setHasEmail("") },
+    assignee && assignee !== "none" && assignee !== me?.id && { text: `Assignee: ${assigneeLabel}`, clear: () => setAssignee("") },
+    tag && { text: `Tag: ${tag}`, clear: () => setTag("") },
+    from && { text: `From ${from}`, clear: () => setFrom("") },
+    to && { text: `To ${to}`, clear: () => setTo("") },
+  ].filter((c): c is { text: string; clear: () => void } => Boolean(c));
+  const removeChip = (c: { clear: () => void }) => { c.clear(); setOffset(0); };
+  const moreMenu: MenuItem[] = [{ label: exporting ? "Exporting…" : "Export CSV", onSelect: exportCsv }];
+  const statusMenu: MenuItem[] = STATUSES.map((s) => ({ label: `Mark ${s}`, onSelect: () => bulk({ action: "set_status", status: s }) }));
+  const tagMenu: MenuItem[] = [
+    { label: "Add tag…", onSelect: () => setTagging(true) },
+    ...(siteTags.length ? [{ label: "Remove tag" }, ...siteTags.map((t) => ({ label: t.tag, onSelect: () => bulk({ action: "remove_tag", tag: t.tag }) }))] : []),
+  ];
   function clearFilters() {
     setStatus(""); setQ(""); setIssueType(""); setRating(""); setHasEmail(""); setFrom(""); setTo(""); setAssignee(""); setTag(""); setOffset(0);
   }
@@ -196,25 +217,34 @@ export default function FeedbackList({ site }: { site: Site }) {
       </div>
       <div className="toolbar">
         <input
+          className="search"
           placeholder="Search message, name, email"
+          aria-label="Search feedback"
           value={q}
           onChange={(e) => { setQ(e.target.value); setOffset(0); }}
         />
-        <select value={status} onChange={(e) => { setStatus(e.target.value); setOffset(0); }}>
+        <button className="filters-toggle" aria-expanded={filtersOpen} aria-controls="filters-panel" onClick={() => setFiltersOpen(!filtersOpen)}>
+          Filters{chips.length > 0 && ` (${chips.length})`}
+        </button>
+        <button className="menu-btn" aria-label="More actions" aria-haspopup="menu" disabled={total === 0}
+          onClick={(e) => ctx.openAt(e.currentTarget, moreMenu)}>⋯</button>
+      </div>
+      {chips.length > 0 && !filtersOpen && (
+        <div className="active-chips">
+          {chips.map((c) => <span key={c.text} className="chip">{c.text}<button aria-label={`Remove filter ${c.text}`} onClick={() => removeChip(c)}>×</button></span>)}
+        </div>
+      )}
+      <div id="filters-panel" className="toolbar filters" data-open={filtersOpen || undefined}>
+        <select value={status} onChange={resetTo(setStatus)} aria-label="Status">
           <option value="">All (excl. spam)</option>
           {STATUSES.map((s) => <option key={s}>{s}</option>)}
         </select>
         {issueTypes.length > 0 && (
-          <select value={issueType} onChange={(e) => { setIssueType(e.target.value); setOffset(0); }} aria-label="Type of feedback">
+          <select value={issueType} onChange={resetTo(setIssueType)} aria-label="Type of feedback">
             <option value="">All types</option>
             {issueTypes.map((t) => <option key={t.id} value={t.id}>{label(t.id)} ({t.count})</option>)}
           </select>
         )}
-        <button onClick={exportCsv} disabled={exporting || total === 0} title="Download what the filters show, as CSV">
-          {exporting ? "Exporting…" : "Export CSV"}
-        </button>
-      </div>
-      <div className="toolbar filters">
         <select value={rating} onChange={resetTo(setRating)} aria-label="Rating">
           <option value="">Any rating</option>
           {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{"★".repeat(n)}</option>)}
@@ -245,22 +275,6 @@ export default function FeedbackList({ site }: { site: Site }) {
             <input type="checkbox" checked={allSelected} onChange={() => setSelected(allSelected ? new Set() : new Set(items.map((f) => f.id)))} />
             {" "}{selected.size > 0 ? `${selected.size} selected` : "Select all on this page"}
           </label>
-          {selected.size > 0 && STATUSES.map((s) => <button key={s} onClick={() => bulk({ action: "set_status", status: s })}>Mark {s}</button>)}
-          {selected.size > 0 && (
-            <button onClick={(e) => picker.open(below(e.currentTarget), undefined, (p) => bulk({ action: "assign", assignee_id: p?.user_id ?? null }))}>Assign to…</button>
-          )}
-          {selected.size > 0 && (
-            <form className="inline" onSubmit={(e) => { e.preventDefault(); bulkAddTag(); }}>
-              <input value={bulkTag} onChange={(e) => setBulkTag(e.target.value)} placeholder="Tag selected…" maxLength={32} aria-label="Tag to add to selected" list="site-tags" />
-            </form>
-          )}
-          {selected.size > 0 && siteTags.length > 0 && (
-            <select value="" onChange={(e) => bulk({ action: "remove_tag", tag: e.target.value })} aria-label="Remove a tag from selected">
-              <option value="">Remove tag…</option>
-              {siteTags.map((t) => <option key={t.tag}>{t.tag}</option>)}
-            </select>
-          )}
-          {selected.size > 0 && canDelete && <button className="danger" onClick={() => bulk({ action: "delete" })}>Delete</button>}
         </div>
       )}
       <datalist id="site-tags">{siteTags.map((t) => <option key={t.tag} value={t.tag} />)}</datalist>
@@ -271,14 +285,14 @@ export default function FeedbackList({ site }: { site: Site }) {
           <header>
             {canEdit && <input type="checkbox" checked={selected.has(f.id)} onChange={() => toggle(f.id)} aria-label="Select this feedback" />}
             <FeedbackBadges f={f} />
-            <span className="grow-end">{assigneeChip(f)}</span>
-            <span className="muted">{new Date(f.created_at).toLocaleString()}</span>
+            <time className="muted grow-end" dateTime={f.created_at} title={new Date(f.created_at).toLocaleString()}>{ago(f.created_at)}</time>
             <button className="menu-btn" aria-label="Actions" aria-haspopup="menu" onClick={(e) => ctx.openAt(e.currentTarget, menuFor(f))}>⋯</button>
           </header>
           {/* Rendered as text by React; never as HTML. */}
           <p className="message"><a href={`/sites/${site.id}/feedback/${f.id}`} onClick={(e) => { e.preventDefault(); open(f.id); }}>{f.message}</a></p>
           {(f.name || f.email) && <p className="muted">{[f.name, f.email].filter(Boolean).join(" · ")}</p>}
           <div className="tags">
+            {assigneeChip(f)}
             {f.tags.map((t) => <span key={t} className="tag static">{t}</span>)}
             {f.note_count > 0 && (
               <a className="note-count" href={`/sites/${site.id}/feedback/${f.id}`} onClick={(e) => { e.preventDefault(); open(f.id); }}
@@ -287,6 +301,20 @@ export default function FeedbackList({ site }: { site: Site }) {
           </div>
         </article>
       ))}
+      {canEdit && selected.size > 0 && (
+        <div className="bulk-bar" role="toolbar" aria-label="Actions for the selected feedback">
+          <strong>{selected.size} selected</strong>
+          <button aria-haspopup="menu" onClick={(e) => ctx.openAt(e.currentTarget, statusMenu)}>Status ▾</button>
+          <button onClick={(e) => picker.open(below(e.currentTarget), undefined, (p) => bulk({ action: "assign", assignee_id: p?.user_id ?? null }))}>Assign…</button>
+          <button aria-haspopup="menu" onClick={(e) => ctx.openAt(e.currentTarget, tagMenu)}>Tags ▾</button>
+          {canDelete && <button className="danger" onClick={() => bulk({ action: "delete" })}>Delete</button>}
+          {tagging && (
+            <form className="inline" onSubmit={(e) => { e.preventDefault(); bulkAddTag(); }}>
+              <input value={bulkTag} onChange={(e) => setBulkTag(e.target.value)} placeholder="Tag selected…" maxLength={32} aria-label="Tag to add to selected" list="site-tags" autoFocus />
+            </form>
+          )}
+        </div>
+      )}
       {ctx.node}
       {picker.node}
       <div className="toolbar">

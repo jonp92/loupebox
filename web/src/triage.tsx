@@ -8,6 +8,16 @@ export const ISSUE_TYPE = /^[a-z0-9_-]{1,32}$/;
 export const label = (id: string) => id.replace(/[-_]/g, " ").replace(/^./, (c) => c.toUpperCase());
 export const safeHref = (url: string | null) => (url && /^https?:\/\//i.test(url) ? url : null);
 
+/** "5m", "3h", "2d" for the last month, then the date. The full time belongs in a title. */
+export function ago(iso: string) {
+  const mins = Math.max(0, (Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 1) return "now";
+  if (mins < 60) return `${Math.floor(mins)}m`;
+  if (mins < 1440) return `${Math.floor(mins / 60)}h`;
+  if (mins < 43200) return `${Math.floor(mins / 1440)}d`;
+  return new Date(iso).toLocaleDateString();
+}
+
 export const TAG_PATTERN = /^[a-z0-9][a-z0-9_-]{0,31}$/;
 /** Same normalisation as the server, so what is shown is what is saved. */
 export const slug = (v: string) => v.trim().toLowerCase().replace(/\s+/g, "-");
