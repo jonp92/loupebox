@@ -18,7 +18,7 @@ from app.core.config import settings
 from app.notifications.base import Message, NotificationProvider, SendResult
 from app.notifications.registry import register_provider
 
-log = logging.getLogger("ganymede.smtp")
+log = logging.getLogger("loupebox.smtp")
 
 ERROR_MAX = 200
 
@@ -75,7 +75,7 @@ def build(message: Message, address: str) -> EmailMessage:
     if reply := _reply_to(message.reply_to):
         out["Reply-To"] = reply
     if message.tags:
-        out["X-Ganymede-Tags"] = ",".join(message.tags)
+        out["X-Loupebox-Tags"] = ",".join(message.tags)
     out.set_content(message.text)
     if message.html:
         out.add_alternative(message.html, subtype="html")

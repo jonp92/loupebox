@@ -25,7 +25,7 @@ function SecretNotice({ name, secret, onClose }: { name: string; secret: string;
   return (
     <section className="card secret-notice" role="status">
       <h2>Signing secret for "{name}"</h2>
-      <p>Copy it now: it won't be shown again. Your endpoint uses it to check that requests really come from Ganymede. If you lose it, rotate it.</p>
+      <p>Copy it now: it won't be shown again. Your endpoint uses it to check that requests really come from Loupebox. If you lose it, rotate it.</p>
       <p><code className="secret">{secret}</code></p>
       <div className="row-actions">
         <button

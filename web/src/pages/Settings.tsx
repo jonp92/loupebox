@@ -64,7 +64,7 @@ export default function Settings({ site, onChange }: { site: Site; onChange: (s:
 
   // The widget is served by the web app itself, so its URL is this page's origin.
   const widgetSnippet = `<script type="module">
-  import { createWidget } from "${location.origin}/widget/v1/ganymede.js";
+  import { createWidget } from "${location.origin}/widget/v1/loupebox.js";
 
   createWidget({
     url: "${API_URL}${API_PREFIX}",

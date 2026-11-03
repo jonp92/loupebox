@@ -1,7 +1,7 @@
 # Webhooks
 
 A **Webhook** notification channel POSTs each event as signed JSON to a URL you control. Add one under
-a site's **Notifications** tab. When you create it, Ganymede shows the signing secret (`whsec_...`)
+a site's **Notifications** tab. When you create it, Loupebox shows the signing secret (`whsec_...`)
 **once**; copy it then. If you lose it, use **Rotate secret** (the old one stops working at once).
 
 Unlike email channels, webhooks are not rate limited or rolled into summaries: every event is sent.
@@ -25,7 +25,7 @@ webhook-signature: v1,K5oZ...       base64 HMAC-SHA256, see below
   "data": {
     "feedback_id": "...", "excerpt": "Love it", "rating": 5,
     "name": "Ada", "email": "ada@example.com", "page_url": "https://shop.example.com/p/1",
-    "url": "https://ganymede.example.com/sites/.../feedback/..."
+    "url": "https://loupebox.example.com/sites/.../feedback/..."
   }
 }
 ```

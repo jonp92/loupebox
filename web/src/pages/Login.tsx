@@ -64,7 +64,7 @@ export default function Login() {
       {mfaToken === null ? (
         <form className="login-card" onSubmit={submit}>
           <Logo size={56} className="big" />
-          <h1>Ganymede</h1>
+          <h1>Loupebox</h1>
           <p className="muted">Sign in to review feedback</p>
           <label>Email<input name="email" type="email" autoComplete="username" required autoFocus /></label>
           <label>Password<input name="password" type="password" autoComplete="current-password" required /></label>

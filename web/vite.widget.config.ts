@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 
 /**
- * The embeddable widget: one dependency-free ES module, served at /widget/v1/ganymede.js.
+ * The embeddable widget: one dependency-free ES module, served at /widget/v1/loupebox.js.
  * Built after the admin app (emptyOutDir is off so it doesn't wipe dist/).
  */
 export default defineConfig({
@@ -11,7 +11,7 @@ export default defineConfig({
     emptyOutDir: false,
     target: "es2020",
     minify: "esbuild",
-    lib: { entry: "widget/src/index.ts", formats: ["es"], fileName: () => "ganymede.js" },
+    lib: { entry: "widget/src/index.ts", formats: ["es"], fileName: () => "loupebox.js" },
     rollupOptions: { output: { inlineDynamicImports: true } },
   },
 });

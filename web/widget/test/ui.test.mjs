@@ -46,7 +46,7 @@ describe("floating widget", () => {
     const events = [];
     w.on("open", () => events.push("open"));
     w.on("close", () => events.push("close"));
-    assert.equal(w.element.tagName.toLowerCase(), "ganymede-widget");
+    assert.equal(w.element.tagName.toLowerCase(), "loupebox-widget");
     assert.ok(w.element.isConnected);
     assert.equal(launcher.getAttribute("aria-expanded"), "false");
     assert.equal(q(".panel").hidden, true);

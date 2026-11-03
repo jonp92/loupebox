@@ -3,7 +3,7 @@
     python -m scripts.generate_logos
 
 Needs `rsvg-convert` (macOS: brew install librsvg; Debian/Ubuntu: apt install librsvg2-bin).
-Edit web/public/ganymede-icon.svg or ganymede-icon-maskable.svg, run this, commit the PNGs.
+Edit web/public/loupebox-icon.svg or loupebox-icon-maskable.svg, run this, commit the PNGs.
 """
 
 import shutil
@@ -13,8 +13,8 @@ import tempfile
 from pathlib import Path
 
 PUBLIC = Path(__file__).resolve().parent.parent / "web" / "public"
-ICON = "ganymede-icon.svg"  # rounded tile, for "any" icons
-MASKABLE = "ganymede-icon-maskable.svg"  # full-bleed with a safe zone, for maskable icons
+ICON = "loupebox-icon.svg"  # rounded tile, for "any" icons
+MASKABLE = "loupebox-icon-maskable.svg"  # full-bleed with a safe zone, for maskable icons
 
 # (output file, source svg, size in px, square corners)
 TARGETS = [

@@ -1,13 +1,13 @@
-// Ganymede service worker: makes the app installable and the shell load offline.
+// Loupebox service worker: makes the app installable and the shell load offline.
 //
 // Deliberately narrow: it only ever touches an allow-list of same-origin GETs (the page shell,
 // hashed /assets/*, icons, manifest). API calls, /config.js (runtime config) and anything
 // authenticated pass straight through to the network and are never cached.
 const VERSION = "v1";
-const SHELL = `ganymede-shell-${VERSION}`;
-const ASSETS = `ganymede-assets-${VERSION}`;
+const SHELL = `loupebox-shell-${VERSION}`;
+const ASSETS = `loupebox-assets-${VERSION}`;
 const MAX_ASSETS = 60;
-const STATIC = ["/ganymede-icon.svg", "/icon-192.png", "/icon-512.png", "/manifest.webmanifest"];
+const STATIC = ["/loupebox-icon.svg", "/icon-192.png", "/icon-512.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(SHELL).then((c) => c.addAll(["/", ...STATIC])));

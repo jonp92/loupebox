@@ -74,10 +74,10 @@ export interface SubmitPayload {
   metadata: Record<string, MetadataValue>;
 }
 
-export class GanymedeConfigError extends Error {
+export class LoupeboxConfigError extends Error {
   constructor(message: string) {
-    super(`[ganymede] ${message}`);
-    this.name = "GanymedeConfigError";
+    super(`[loupebox] ${message}`);
+    this.name = "LoupeboxConfigError";
   }
 }
 
@@ -125,19 +125,19 @@ const SAFE_FONT = /^[\w\s,'"-]{1,200}$/;
 export const MAX_METADATA_KEYS = 20;
 
 function warn(message: string): void {
-  if (typeof console !== "undefined") console.warn(`[ganymede] ${message}`);
+  if (typeof console !== "undefined") console.warn(`[loupebox] ${message}`);
 }
 
 function oneOf<T extends string>(value: unknown, allowed: readonly T[], fallback: T, name: string): T {
   if (value === undefined) return fallback;
   if (allowed.includes(value as T)) return value as T;
-  throw new GanymedeConfigError(`"${name}" must be one of ${allowed.map((a) => `"${a}"`).join(", ")}`);
+  throw new LoupeboxConfigError(`"${name}" must be one of ${allowed.map((a) => `"${a}"`).join(", ")}`);
 }
 
 function fieldMode(value: unknown, fallback: FieldMode, name: string): FieldMode {
   if (value === undefined) return fallback;
   if (value === false || value === "optional" || value === "required") return value;
-  throw new GanymedeConfigError(`"fields.${name}" must be false, "optional" or "required"`);
+  throw new LoupeboxConfigError(`"fields.${name}" must be false, "optional" or "required"`);
 }
 
 /**
@@ -145,14 +145,14 @@ function fieldMode(value: unknown, fallback: FieldMode, name: string): FieldMode
  * is ignored with a console warning, so a page configured for a newer widget still works on an older one.
  */
 export function normalizeOptions(input: WidgetOptions): ResolvedOptions {
-  if (!input || typeof input !== "object") throw new GanymedeConfigError("createWidget needs an options object");
+  if (!input || typeof input !== "object") throw new LoupeboxConfigError("createWidget needs an options object");
   for (const name of Object.keys(input)) {
     if (!KNOWN.has(name)) warn(`ignoring unknown option "${name}" (this is widget v${VERSION}; is the page configured for a newer one?)`);
   }
 
-  if (typeof input.key !== "string" || !input.key) throw new GanymedeConfigError(`"key" is required (the site's public key)`);
+  if (typeof input.key !== "string" || !input.key) throw new LoupeboxConfigError(`"key" is required (the site's public key)`);
   if (typeof input.url !== "string" || !/^https?:\/\//i.test(input.url)) {
-    throw new GanymedeConfigError(`"url" must be the API base URL, e.g. https://feedback.example.com/v1/api`);
+    throw new LoupeboxConfigError(`"url" must be the API base URL, e.g. https://feedback.example.com/v1/api`);
   }
   const url = input.url.replace(/\/+$/, "");
   if (!/\/v1\/api$/.test(url)) {
@@ -160,20 +160,20 @@ export function normalizeOptions(input: WidgetOptions): ResolvedOptions {
   }
 
   const mode = oneOf(input.mode, ["floating", "inline"] as const, "floating", "mode");
-  if (mode === "inline" && !input.target) throw new GanymedeConfigError(`"target" is required when mode is "inline"`);
+  if (mode === "inline" && !input.target) throw new LoupeboxConfigError(`"target" is required when mode is "inline"`);
 
   let issueTypes: IssueType[] = [];
   if (input.issueTypes === undefined) issueTypes = defaultIssueTypes.map((t) => ({ ...t }));
   else if (input.issueTypes !== false) {
-    if (!Array.isArray(input.issueTypes)) throw new GanymedeConfigError(`"issueTypes" must be an array or false`);
+    if (!Array.isArray(input.issueTypes)) throw new LoupeboxConfigError(`"issueTypes" must be an array or false`);
     const seen = new Set<string>();
     for (const type of input.issueTypes) {
       if (!type || typeof type.id !== "string" || !ID.test(type.id)) {
-        throw new GanymedeConfigError(`issue type ids must be 1-32 characters of a-z, 0-9, "-" or "_" (got ${JSON.stringify(type?.id)})`);
+        throw new LoupeboxConfigError(`issue type ids must be 1-32 characters of a-z, 0-9, "-" or "_" (got ${JSON.stringify(type?.id)})`);
       }
-      if (seen.has(type.id)) throw new GanymedeConfigError(`duplicate issue type id "${type.id}"`);
+      if (seen.has(type.id)) throw new LoupeboxConfigError(`duplicate issue type id "${type.id}"`);
       if (typeof type.label !== "string" || !type.label.trim() || type.label.length > 40) {
-        throw new GanymedeConfigError(`issue type "${type.id}" needs a label of 1-40 characters`);
+        throw new LoupeboxConfigError(`issue type "${type.id}" needs a label of 1-40 characters`);
       }
       seen.add(type.id);
       let color = type.color;
@@ -185,20 +185,20 @@ export function normalizeOptions(input: WidgetOptions): ResolvedOptions {
     }
   }
   if (input.defaultIssueType !== undefined && !issueTypes.some((t) => t.id === input.defaultIssueType)) {
-    throw new GanymedeConfigError(`"defaultIssueType" ("${input.defaultIssueType}") is not one of the issue types`);
+    throw new LoupeboxConfigError(`"defaultIssueType" ("${input.defaultIssueType}") is not one of the issue types`);
   }
 
   const extraFields: ExtraField[] = [];
   const reserved = new Set(["issue_type", "widget_version"]);
   for (const field of input.extraFields ?? []) {
     if (!field || typeof field.id !== "string" || !ID.test(field.id)) {
-      throw new GanymedeConfigError(`extra field ids must be 1-32 characters of a-z, 0-9, "-" or "_" (got ${JSON.stringify(field?.id)})`);
+      throw new LoupeboxConfigError(`extra field ids must be 1-32 characters of a-z, 0-9, "-" or "_" (got ${JSON.stringify(field?.id)})`);
     }
-    if (reserved.has(field.id)) throw new GanymedeConfigError(`extra field id "${field.id}" is reserved`);
+    if (reserved.has(field.id)) throw new LoupeboxConfigError(`extra field id "${field.id}" is reserved`);
     reserved.add(field.id);
-    if (typeof field.label !== "string" || !field.label.trim()) throw new GanymedeConfigError(`extra field "${field.id}" needs a label`);
+    if (typeof field.label !== "string" || !field.label.trim()) throw new LoupeboxConfigError(`extra field "${field.id}" needs a label`);
     const type = oneOf(field.type, ["text", "textarea", "select", "checkbox"] as const, "text", `extraFields.${field.id}.type`);
-    if (type === "select" && !field.options?.length) throw new GanymedeConfigError(`select field "${field.id}" needs options`);
+    if (type === "select" && !field.options?.length) throw new LoupeboxConfigError(`select field "${field.id}" needs options`);
     extraFields.push({ ...field, type });
   }
 
@@ -221,7 +221,7 @@ export function normalizeOptions(input: WidgetOptions): ResolvedOptions {
   }
 
   const closeDelay = input.closeDelay ?? 2500;
-  if (typeof closeDelay !== "number" || closeDelay < 0) throw new GanymedeConfigError(`"closeDelay" must be a number of milliseconds`);
+  if (typeof closeDelay !== "number" || closeDelay < 0) throw new LoupeboxConfigError(`"closeDelay" must be a number of milliseconds`);
 
   return {
     url,

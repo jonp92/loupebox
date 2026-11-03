@@ -2,6 +2,7 @@
 # Dev (DB only): docker compose up -d db   (then run the API/UI on the host, see README)
 services:
   db:
+    # The database role and name stay "ganymede" (the project's former name) so existing volumes keep working.
     image: postgres:17
     environment:
       POSTGRES_USER: ganymede
@@ -24,7 +25,7 @@ services:
   # One-shot: applies migrations, then exits. The API waits for it to succeed.
   migrate:
     build: .
-    image: ganymede-api
+    image: loupebox-api
     # Retries cover the DB or the network still settling on first start. `$$` escapes compose interpolation.
     command:
       - sh
@@ -57,7 +58,7 @@ services:
       SMTP_USERNAME: ${SMTP_USERNAME:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       NOTIFY_SENDER_EMAIL: ${NOTIFY_SENDER_EMAIL:-}
-      NOTIFY_SENDER_NAME: ${NOTIFY_SENDER_NAME:-Ganymede}
+      NOTIFY_SENDER_NAME: ${NOTIFY_SENDER_NAME:-Loupebox}
       PUBLIC_URL: ${PUBLIC_URL:-}
       NOTIFY_HOURLY_CAP: ${NOTIFY_HOURLY_CAP:-5}
       NOTIFY_RETENTION_DAYS: ${NOTIFY_RETENTION_DAYS:-30}
@@ -69,7 +70,7 @@ services:
 
   api:
     build: .
-    image: ganymede-api
+    image: loupebox-api
     environment: *api-env
     # Localhost only: put a reverse proxy (Caddy) in front for anything public.
     ports: ["127.0.0.1:${API_PORT:-8000}:8000"]
@@ -81,7 +82,7 @@ services:
   # Drains the notification outbox (emails). Several replicas are safe on Postgres (SKIP LOCKED).
   worker:
     build: .
-    image: ganymede-api
+    image: loupebox-api
     command: ["python", "-m", "app.worker"]
     environment: *api-env
     # The image's HEALTHCHECK probes the API port, which the worker doesn't serve.
@@ -96,7 +97,7 @@ services:
 
   web:
     build: ./web
-    image: ganymede-web
+    image: loupebox-web
     environment:
       # URL the *browser* uses to reach the API.
       API_URL: ${API_URL:-http://localhost:8000}

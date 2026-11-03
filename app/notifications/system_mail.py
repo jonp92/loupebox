@@ -13,10 +13,10 @@ from app.notifications.base import Message, NotificationProvider, SendResult
 from app.notifications.layout import quote, render
 from app.notifications.registry import all_providers
 
-log = logging.getLogger("ganymede.system_mail")
+log = logging.getLogger("loupebox.system_mail")
 
 _P = 'class="text" style="margin:12px 0 0;color:#171923;font-size:15px;line-height:1.5"'
-_FOOTER = "You get this because of an action on your Ganymede account."
+_FOOTER = "You get this because of an action on your Loupebox account."
 
 
 def mail_provider() -> NotificationProvider | None:
@@ -54,7 +54,7 @@ def reset_link(token: str) -> str:
 def password_reset_message(token: str) -> tuple[str, str, str]:
     link = reset_link(token)
     minutes = settings.password_reset_minutes
-    lead = "Someone asked to reset the password for your Ganymede account."
+    lead = "Someone asked to reset the password for your Loupebox account."
     note = f"The link works once and expires in {minutes} minutes. If this wasn't you, ignore this email: your password stays as it is."
     text = f"{lead}\n\nChoose a new password: {link}\n\n{note}"
     body = f'<p {_P}>{escape(lead)}</p><p {_P}>{escape(note)}</p>'
@@ -62,11 +62,11 @@ def password_reset_message(token: str) -> tuple[str, str, str]:
         heading="Reset your password", preheader=lead, body=body, link=link,
         site="Account security", button_label="Choose a new password", footer=_FOOTER,
     )
-    return "Reset your Ganymede password", text, html
+    return "Reset your Loupebox password", text, html
 
 
 def password_changed_message() -> tuple[str, str, str]:
-    lead = "The password for your Ganymede account was just changed, and you were signed out everywhere."
+    lead = "The password for your Loupebox account was just changed, and you were signed out everywhere."
     note = "If you did this, there is nothing more to do. If not, ask a superadmin to reset your password and review your account."
     text = f"{lead}\n\n{note}"
     html = render(
@@ -74,7 +74,7 @@ def password_changed_message() -> tuple[str, str, str]:
         body=f'<p {_P}>{escape(lead)}</p><p {_P}>{escape(note)}</p>',
         link=None, site="Account security", footer=_FOOTER,
     )
-    return "Your Ganymede password was changed", text, html
+    return "Your Loupebox password was changed", text, html
 
 
 def _html_text(text: str) -> str:

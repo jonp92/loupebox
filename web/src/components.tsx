@@ -33,9 +33,9 @@ export function OfflineBanner() {
   );
 }
 
-/** Brand mark; decorative wherever the "Ganymede" name is next to it. */
+/** Brand mark; decorative wherever the "Loupebox" name is next to it. */
 export function Logo({ size = 28, className = "" }: { size?: number; className?: string }) {
-  return <img className={`logo ${className}`} src="/ganymede-icon.svg" width={size} height={size} alt="" />;
+  return <img className={`logo ${className}`} src="/loupebox-icon.svg" width={size} height={size} alt="" />;
 }
 
 export function Avatar({ user, size }: { user: Partial<Profile> & { email: string }; size?: "lg" | "xl" }) {

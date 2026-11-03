@@ -66,7 +66,7 @@ def _brand() -> str:
         if base
         else f'<span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:{ACCENT};margin-right:8px"></span>'
     )
-    return f'{mark}<span style="vertical-align:middle">Ganymede</span>'
+    return f'{mark}<span style="vertical-align:middle">Loupebox</span>'
 
 
 DEFAULT_FOOTER = "You get this because you are subscribed to notifications for this site."
@@ -79,7 +79,7 @@ def render(
     body: str,
     link: str | None,
     site: str,
-    button_label: str = "Open in Ganymede",
+    button_label: str = "Open in Loupebox",
     footer: str = DEFAULT_FOOTER,
 ) -> str:
     """`heading`, `preheader`, `site`, `button_label`, `footer` are plain text (escaped here); `body` is HTML."""

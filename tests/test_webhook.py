@@ -18,7 +18,7 @@ from tests.test_notification_api import admin, url  # noqa: F401  (fixtures)
 from tests.test_notifications import fake, make_channel, outbox, submit  # noqa: F401
 
 PUBLIC = "93.184.216.34"
-HOOK = "https://hooks.example.com/ganymede"
+HOOK = "https://hooks.example.com/loupebox"
 SECRET = "whsec_" + base64.b64encode(b"k" * 32).decode()
 
 

@@ -15,7 +15,7 @@ KEY = "xkeysib-secret"
 def _brevo_settings(monkeypatch):
     monkeypatch.setattr(settings, "brevo_api_key", KEY)
     monkeypatch.setattr(settings, "notify_sender_email", "feedback@example.com")
-    monkeypatch.setattr(settings, "notify_sender_name", "Ganymede")
+    monkeypatch.setattr(settings, "notify_sender_name", "Loupebox")
 
 
 def use_transport(monkeypatch, handler) -> list[httpx.Request]:
@@ -59,7 +59,7 @@ def test_request_shape_and_message_id(monkeypatch):
     assert str(request.url) == "https://api.brevo.com/v3/smtp/email"
     assert request.headers["api-key"] == KEY
     assert json.loads(request.content) == {
-        "sender": {"email": "feedback@example.com", "name": "Ganymede"},
+        "sender": {"email": "feedback@example.com", "name": "Loupebox"},
         "to": [{"email": "a@example.com"}],
         "subject": "Hi",
         "textContent": "body",

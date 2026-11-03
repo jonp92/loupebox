@@ -22,7 +22,7 @@ from app.notifications.messages import build_message, build_summary
 from app.notifications.recipients import resolve_recipients
 from app.notifications.registry import get_provider
 
-log = logging.getLogger("ganymede.notifications")
+log = logging.getLogger("loupebox.notifications")
 
 # Wait before attempt 2, 3, ...; after the last delay is used up the next failure is final.
 RETRY_DELAYS = [

@@ -22,7 +22,7 @@ from app.models.user import utcnow
 from app.notifications import system_mail
 from app.schemas.auth import FeaturesOut, PasswordResetConfirm, PasswordResetRequest
 
-log = logging.getLogger("ganymede.password_reset")
+log = logging.getLogger("loupebox.password_reset")
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

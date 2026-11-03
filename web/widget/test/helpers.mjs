@@ -1,6 +1,6 @@
 import { JSDOM } from "jsdom";
 
-export const BUNDLE = new URL("../../dist/widget/v1/ganymede.js", import.meta.url);
+export const BUNDLE = new URL("../../dist/widget/v1/loupebox.js", import.meta.url);
 
 /** A fresh page for each test. Only what the widget touches is exposed as globals. */
 export function setupDom(url = "https://app.example.com/pricing?x=1") {
