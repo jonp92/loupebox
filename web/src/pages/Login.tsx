@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useEffect, useState, type FormEvent } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
+import { api } from "../api";
 import { ThemeToggle } from "../App";
 import { useAuth } from "../auth";
 import { Logo } from "../components";
@@ -11,6 +12,12 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
   const [mfaToken, setMfaToken] = useState<string | null>(null);
   const [recovery, setRecovery] = useState(false);
+  const [canReset, setCanReset] = useState(false);
+
+  // Only offer "Forgot password?" when the server can actually send the email.
+  useEffect(() => {
+    api<{ password_reset: boolean }>("/auth/features").then((f) => setCanReset(f.password_reset), () => {});
+  }, []);
 
   if (me) return <Navigate to="/" replace />;
 
@@ -63,6 +70,7 @@ export default function Login() {
           <label>Password<input name="password" type="password" autoComplete="current-password" required /></label>
           {error && <p className="error" role="alert">{error}</p>}
           <button className="primary block" disabled={busy || loading}>{busy ? "Signing in…" : "Sign in"}</button>
+          {canReset && <p className="login-links"><Link to="/forgot-password">Forgot password?</Link></p>}
         </form>
       ) : (
         <form className="login-card" onSubmit={submitCode} key={recovery ? "recovery" : "code"}>

@@ -6,6 +6,7 @@ os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL", "sqlite://")
 os.environ["JWT_SECRET"] = "test-secret-test-secret-test-secret-123"
 os.environ["ADMIN_ORIGINS"] = '["http://admin.test"]'
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
@@ -17,8 +18,24 @@ from app.db.base import Base
 from app.db.session import get_engine, get_sessionmaker
 from app.main import app
 from app.models import Membership, Role, Site, User
+from app.notifications.providers import brevo, webhook
 
 SITE_ORIGIN = "https://shop.example.com"
+
+
+def _no_network(request: httpx.Request) -> httpx.Response:
+    raise AssertionError(f"a test tried to reach the network: {request.method} {request.url}")
+
+
+@pytest.fixture(autouse=True)
+def _isolated_from_dotenv(monkeypatch):
+    """Settings also read the developer's real .env (Brevo key, PUBLIC_URL, ...). Tests must never see it,
+    and no test may send real mail or webhooks: providers get a transport that fails loudly unless a test
+    installs its own."""
+    for name, value in (("brevo_api_key", ""), ("notify_sender_email", ""), ("public_url", ""), ("mail_provider", "")):
+        monkeypatch.setattr(settings, name, value)
+    monkeypatch.setattr(brevo, "_transport", lambda: httpx.MockTransport(_no_network))
+    monkeypatch.setattr(webhook, "_transport", lambda: httpx.MockTransport(_no_network))
 
 
 @pytest.fixture(autouse=True)

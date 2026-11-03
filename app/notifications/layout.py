@@ -69,12 +69,24 @@ def _brand() -> str:
     return f'{mark}<span style="vertical-align:middle">Ganymede</span>'
 
 
-def render(*, heading: str, preheader: str, body: str, link: str | None, site: str) -> str:
-    """`heading`, `preheader`, `site` are plain text (escaped here); `body` is HTML."""
+DEFAULT_FOOTER = "You get this because you are subscribed to notifications for this site."
+
+
+def render(
+    *,
+    heading: str,
+    preheader: str,
+    body: str,
+    link: str | None,
+    site: str,
+    button_label: str = "Open in Ganymede",
+    footer: str = DEFAULT_FOOTER,
+) -> str:
+    """`heading`, `preheader`, `site`, `button_label`, `footer` are plain text (escaped here); `body` is HTML."""
     button = (
         f'<p style="margin:24px 0 0"><a class="btn" href="{escape(link, quote=True)}" '
         f'style="display:inline-block;padding:10px 18px;background:{ACCENT};color:#ffffff;'
-        'text-decoration:none;font-weight:600;font-size:14px;border-radius:8px">Open in Ganymede</a></p>'
+        'text-decoration:none;font-weight:600;font-size:14px;border-radius:8px">' + escape(button_label) + "</a></p>"
         if link
         else ""
     )
@@ -102,7 +114,7 @@ def render(*, heading: str, preheader: str, body: str, link: str | None, site: s
       {button}
     </td></tr>
     <tr><td class="muted" style="padding:14px 4px 0;font-family:{FONT};color:#6a6f85;font-size:12px;line-height:1.5">
-      You get this because you are subscribed to notifications for this site.
+      {escape(footer)}
     </td></tr>
   </table>
 </td></tr>
