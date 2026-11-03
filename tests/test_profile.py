@@ -175,3 +175,12 @@ def test_superadmin_can_set_and_clear_another_users_avatar(client, db):
     assert client.put(url, content=PNG, headers={**plain, "Content-Type": "image/png"}).status_code == 403
     assert client.delete(url, headers=plain).status_code == 403
     assert client.delete(f"/users/{root.id.__class__(int=0)}/avatar", headers=admin).status_code == 404
+
+
+def test_admin_avatar_upload_allows_a_body_over_the_default_cap(client, db):
+    make_user(db, "root@example.com", superadmin=True)
+    other = make_user(db, "o@example.com")
+    big = PNG + b"\x00" * (settings.max_body_bytes + 1024)  # over the 16 KB default, under the avatar cap
+    assert len(big) <= settings.avatar_max_bytes
+    r = client.put(f"/users/{other.id}/avatar", content=big, headers={**login(client, "root@example.com"), "Content-Type": "image/png"})
+    assert r.status_code == 200

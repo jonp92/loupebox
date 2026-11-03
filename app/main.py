@@ -32,7 +32,7 @@ app = FastAPI(
 app.add_middleware(
     BodySizeLimitMiddleware,
     max_bytes=settings.max_body_bytes,
-    overrides={f"{prefix}/auth/me/avatar": settings.avatar_max_bytes + 1024},
+    overrides={"/avatar": settings.avatar_max_bytes + 1024},
 )
 app.add_middleware(DynamicCORSMiddleware)
 

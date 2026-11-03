@@ -62,14 +62,15 @@ class BodySizeLimitMiddleware:
     def __init__(self, app: ASGIApp, max_bytes: int, overrides: dict[str, int] | None = None) -> None:
         self.app = app
         self.max_bytes = max_bytes
-        self.overrides = overrides or {}  # exact path -> larger limit
+        self.overrides = overrides or {}  # path suffix -> larger limit
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
 
-        max_bytes = self.overrides.get(scope["path"], self.max_bytes)
+        path = scope["path"]
+        max_bytes = next((v for k, v in self.overrides.items() if path.endswith(k)), self.max_bytes)
         too_large = JSONResponse({"detail": "Request body too large"}, status_code=413)
         length = dict(scope["headers"]).get(b"content-length")
         if length is not None:
