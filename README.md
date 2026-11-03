@@ -18,6 +18,10 @@ set the secrets by hand instead, `cp .env.example .env` and fill in the blanks (
   `ENVIRONMENT` is not `production`; compose defaults to production, set `ENVIRONMENT=development` locally)
 * Host ports are bound to localhost only; use a reverse proxy for anything public. Override them
   with `API_PORT`, `WEB_PORT` and `DB_PORT` in `.env` (defaults 8000 / 8080 / 5432).
+* **Published images:** releases push `ghcr.io/jonp92/loupebox-api` and `loupebox-web` (amd64 and arm64). To run them
+  without cloning the repo, download only `docker-compose.yml` and put your `.env` next to it, then
+  `docker compose up -d`. Without `docker-compose.override.yml` nothing is built, and `LOUPEBOX_VERSION` in `.env`
+  pins a version (default `latest`). In a checkout the override file is loaded automatically and builds from source.
 * Services: `db` (Postgres), `migrate` (one-shot `alembic upgrade head`, the API waits for it),
   `api`, `worker` (sends notification emails), `web` (static build served by nginx, non-root).
 * The web image reads `API_URL` at container start, so one image works in any environment.

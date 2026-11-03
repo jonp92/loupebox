@@ -1,5 +1,6 @@
-# Full stack:   docker compose up -d --build
-# Dev (DB only): docker compose up -d db   (then run the API/UI on the host, see README)
+# Published images:  docker compose up -d            (pulls ghcr.io/jonp92/loupebox-*; pin with LOUPEBOX_VERSION in .env)
+# Build from source: docker compose up -d --build    (docker-compose.override.yml adds the build sections)
+# Dev (DB only):     docker compose up -d db         (then run the API/UI on the host, see README)
 services:
   db:
     # The database role and name stay "ganymede" (the project's former name) so existing volumes keep working.
@@ -24,8 +25,7 @@ services:
 
   # One-shot: applies migrations, then exits. The API waits for it to succeed.
   migrate:
-    build: .
-    image: loupebox-api
+    image: ghcr.io/jonp92/loupebox-api:${LOUPEBOX_VERSION:-latest}
     # Retries cover the DB or the network still settling on first start. `$$` escapes compose interpolation.
     command:
       - sh
@@ -69,8 +69,7 @@ services:
     restart: "no"
 
   api:
-    build: .
-    image: loupebox-api
+    image: ghcr.io/jonp92/loupebox-api:${LOUPEBOX_VERSION:-latest}
     environment: *api-env
     # Localhost only: put a reverse proxy (Caddy) in front for anything public.
     ports: ["127.0.0.1:${API_PORT:-8000}:8000"]
@@ -81,8 +80,7 @@ services:
 
   # Drains the notification outbox (emails). Several replicas are safe on Postgres (SKIP LOCKED).
   worker:
-    build: .
-    image: loupebox-api
+    image: ghcr.io/jonp92/loupebox-api:${LOUPEBOX_VERSION:-latest}
     command: ["python", "-m", "app.worker"]
     environment: *api-env
     # The image's HEALTHCHECK probes the API port, which the worker doesn't serve.
@@ -96,8 +94,7 @@ services:
     restart: unless-stopped
 
   web:
-    build: ./web
-    image: loupebox-web
+    image: ghcr.io/jonp92/loupebox-web:${LOUPEBOX_VERSION:-latest}
     environment:
       # URL the *browser* uses to reach the API.
       API_URL: ${API_URL:-http://localhost:8000}
