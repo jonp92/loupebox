@@ -360,3 +360,14 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 .bulk-bar form.inline input { width: 100%; }
 .fb time { font-size: .85rem; white-space: nowrap; }
 .notes li button.link { margin-left: .6rem; }
+
+.replies { margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--border); }
+.replies h2 { font-size: 1rem; margin: 0 0 .5rem; }
+.replies ul { list-style: none; margin: 0 0 .6rem; padding: 0; }
+.replies li { margin: .4rem 0; padding: .5rem .7rem; background: var(--surface-2); border-radius: 8px; border-left: 3px solid var(--accent); }
+.replies li.failed { border-left-color: var(--danger); }
+.replies li p { margin: .2rem 0; white-space: pre-wrap; word-break: break-word; }
+.replies textarea { width: 100%; min-height: 6rem; margin: .25rem 0; }
+.replies p.error:empty { display: none; }
+.reply-foot { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
+.replies-off { margin-top: .75rem; }

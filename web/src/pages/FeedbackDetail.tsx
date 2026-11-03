@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, json, type Feedback, type Site, type Status } from "../api";
 import { useAuth } from "../auth";
 import { useConfirm } from "../confirm";
+import { Replies } from "../replies";
 import { FeedbackBadges, Notes, Tags, below, safeHref, useAssigneePicker } from "../triage";
 
 const STATUSES: Status[] = ["new", "read", "archived", "spam"];
@@ -66,6 +67,7 @@ export default function FeedbackDetail({ site }: { site: Site }) {
               {canDelete && <button className="danger" onClick={remove}>Delete</button>}
             </div>
           )}
+          <Replies siteId={site.id} item={item} canEdit={canEdit} />
           {me && <Notes siteId={site.id} itemId={item.id} canEdit={canEdit} canDeleteAny={canDelete} meId={me.id} />}
         </article>
       )}

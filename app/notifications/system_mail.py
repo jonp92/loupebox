@@ -1,7 +1,8 @@
-"""Account mail (password reset): sent straight through a mail provider, not through the outbox.
+"""Mail sent straight through a mail provider, not through the outbox: password reset and replies.
 
-The outbox keeps its payloads for `NOTIFY_RETENTION_DAYS`, and a reset email carries a live token, so it
-never goes there. The cost is no retries: a failed send is logged and the user asks again.
+The outbox keeps its payloads for `NOTIFY_RETENTION_DAYS`, and a reset email carries a live token (a reply
+is a person's own words), so neither goes there. The cost is no automatic retries: the caller gets the
+result and decides (a reset asks again, a reply shows a Retry button).
 """
 
 import logging
@@ -9,7 +10,7 @@ from html import escape
 
 from app.core.config import settings
 from app.notifications.base import Message, NotificationProvider, SendResult
-from app.notifications.layout import render
+from app.notifications.layout import quote, render
 from app.notifications.registry import all_providers
 
 log = logging.getLogger("ganymede.system_mail")
@@ -31,11 +32,13 @@ def password_reset_available() -> bool:
     return bool(settings.public_url) and mail_provider() is not None
 
 
-def send_system_email(to: str, subject: str, text: str, html: str, tag: str) -> SendResult:
+def send_system_email(
+    to: str, subject: str, text: str, html: str, tag: str, reply_to: str | None = None
+) -> SendResult:
     provider = mail_provider()
     if provider is None:
         return SendResult.failed("no mail provider is configured")
-    message = Message(to=[to], subject=subject, text=text, html=html, tags=[tag])
+    message = Message(to=[to], subject=subject, text=text, html=html, tags=[tag], reply_to=reply_to)
     try:
         return provider.send(message, provider.ConfigModel())
     except Exception as exc:  # a provider bug must not break the request that triggered the mail
@@ -72,3 +75,21 @@ def password_changed_message() -> tuple[str, str, str]:
         link=None, site="Account security", footer=_FOOTER,
     )
     return "Your Ganymede password was changed", text, html
+
+
+def _html_text(text: str) -> str:
+    return escape(text).replace("\n", "<br>")
+
+
+def reply_message(site: str, body: str, original: str, replier: str) -> tuple[str, str, str]:
+    """A team member's answer to feedback, with the original quoted. All inputs are plain text."""
+    site = " ".join(site.split())
+    footer = f"You get this because you sent feedback on {site}. Reply to this email to answer {replier}."
+    text = f"{body}\n\n--\nYour feedback:\n{original}\n\n{footer}"
+    html = render(
+        heading=f"A reply from {site}", preheader=body[:120], link=None, site=site, footer=footer,
+        body=f'<p {_P}>{_html_text(body)}</p>'
+        f'<p class="muted" style="margin:20px 0 0;color:#6a6f85;font-size:13px">Your feedback:</p>'
+        + quote(_html_text(original)),
+    )
+    return f"Re: your feedback on {site}", text, html

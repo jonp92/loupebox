@@ -1,6 +1,6 @@
 from app.models.audit import AuditEvent
 from app.models.challenge import UsedChallenge
-from app.models.feedback import Feedback, FeedbackNote, FeedbackStatus, FeedbackTag, user_name
+from app.models.feedback import Feedback, FeedbackNote, FeedbackReply, FeedbackStatus, FeedbackTag, user_name
 from app.models.notification import NotificationChannel, NotificationOutbox, OutboxStatus
 from app.models.site import ROLE_RANK, Membership, Role, Site
 from app.models.stats import SiteStat, StatKind
@@ -11,6 +11,7 @@ __all__ = [
     "AuditEvent",
     "Feedback",
     "FeedbackNote",
+    "FeedbackReply",
     "FeedbackStatus",
     "FeedbackTag",
     "Membership",

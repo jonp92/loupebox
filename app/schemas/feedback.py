@@ -85,6 +85,7 @@ class FeedbackOut(BaseModel):
     assignee_name: str | None
     tags: list[str]
     note_count: int
+    reply_count: int
 
 
 class FeedbackPage(BaseModel):
@@ -182,6 +183,42 @@ class NoteOut(BaseModel):
     author_name: str | None = None
     body: str
     created_at: datetime
+
+
+class ReplyIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    body: str = Field(min_length=1, max_length=5000)
+
+    @field_validator("body")
+    @classmethod
+    def _body(cls, v: str) -> str:
+        v = clean_text(v)
+        if not v:
+            raise ValueError("reply must not be blank")
+        return v
+
+
+class ReplyOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    author_id: uuid.UUID | None
+    author_name: str | None = None
+    direction: str
+    source: str
+    body: str
+    status: str
+    error: str | None
+    retryable: bool
+    created_at: datetime
+
+
+class ReplyThread(BaseModel):
+    """`available` is false when no mail provider is configured, so the UI can say why it cannot send."""
+
+    available: bool
+    items: list[ReplyOut]
 
 
 class TagCount(BaseModel):

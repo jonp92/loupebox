@@ -12,7 +12,8 @@ import { SchemaFields } from "../components";
 import { useConfirm } from "../confirm";
 
 const ROLES: Role[] = ["viewer", "editor", "admin"];
-const EVENTS = [{ key: "feedback.created", label: "New feedback" }];
+// `machine` events only make sense for endpoints that feed other systems, not for email.
+const EVENTS = [{ key: "feedback.created", label: "New feedback", machine: false }, { key: "feedback.replied", label: "A reply was sent", machine: true }];
 const SPLIT = /[\s,;]+/;
 
 const when = (iso: string) => new Date(iso).toLocaleString();
@@ -97,7 +98,7 @@ function ChannelForm({ siteId, providers, channel, onSaved, onCancel }: {
       {info && <SchemaFields schema={info.config_schema} values={config} onChange={setConfig} />}
       <fieldset>
         <legend>Notify on</legend>
-        {EVENTS.map((ev) => (
+        {EVENTS.filter((ev) => !ev.machine || !recipients).map((ev) => (
           <label key={ev.key} className="inline">
             <input
               type="checkbox"

@@ -30,7 +30,7 @@ def listed(client, site, h, qs=""):
 def test_filters_rating_email_and_dates(client, db):
     site = make_site(db)
     h = as_role(client, db, site, Role.viewer)
-    at = lambda d: datetime(2026, 3, d, 12, tzinfo=UTC)  # noqa: E731
+    at = lambda d: datetime(2026, 3, d, 12, tzinfo=UTC)
     seed(db, site, message="a", rating=5, email="a@x.com", created_at=at(1))
     seed(db, site, message="b", rating=3, email=None, created_at=at(10))
     seed(db, site, message="c", rating=5, email="", created_at=at(20))
