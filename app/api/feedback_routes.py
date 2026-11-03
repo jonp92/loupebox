@@ -5,6 +5,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import SiteAccess, site_access
+from app.core.audit import audit
 from app.db.session import get_db
 from app.models import Feedback, FeedbackStatus, Role
 from app.schemas.feedback import FeedbackOut, FeedbackPage, FeedbackUpdate
@@ -79,5 +80,10 @@ def delete_feedback(
     access: SiteAccess = Depends(site_access(Role.admin)),
     db: Session = Depends(get_db),
 ) -> None:
-    db.delete(_get(db, access.site.id, feedback_id))
+    item = _get(db, access.site.id, feedback_id)
+    audit(  # the message itself is personal data, so only its id and status are kept
+        db, access.user, "feedback.delete", f"Deleted a feedback item from {access.site.name}",
+        target_type="feedback", target_id=item.id, site=access.site, details={"status": item.status.value},
+    )
+    db.delete(item)
     db.commit()

@@ -82,6 +82,20 @@ export function displayName(p: Pick<Profile, "email" | "first_name" | "last_name
   return `${p.first_name} ${p.last_name}`.trim() || p.email;
 }
 
+export interface AuditEvent {
+  id: string;
+  created_at: string;
+  actor_id: string | null;
+  actor_email: string;
+  action: string; // "<group>.<verb>"
+  target_type: string;
+  target_id: string;
+  site_id: string | null;
+  site_name: string | null;
+  summary: string;
+  details: Record<string, unknown>;
+}
+
 export interface DayStats {
   day: string; // YYYY-MM-DD (UTC)
   accepted: number;

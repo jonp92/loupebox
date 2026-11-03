@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import SiteAccess, get_current_user, site_access
+from app.core.audit import audit, changed, snapshot
 from app.core.rate_limit import enforce
 from app.db.session import get_db
 from app.models import Membership, NotificationChannel, NotificationOutbox, Role, User
@@ -23,6 +24,10 @@ from app.schemas.notification import (
 )
 
 router = APIRouter(tags=["notifications"])
+
+# Provider settings and recipient addresses can be sensitive: the log records that they changed, not the values.
+_CHANNEL_FIELDS = ("name", "enabled", "events", "min_role", "extra_recipients", "config")
+_CHANNEL_REDACTED = ("config", "extra_recipients")
 
 MAX_CHANNELS_PER_SITE = 10
 DELIVERIES_SHOWN = 50
@@ -110,6 +115,7 @@ def create_channel(
     if (count or 0) >= MAX_CHANNELS_PER_SITE:
         raise HTTPException(status.HTTP_409_CONFLICT, f"At most {MAX_CHANNELS_PER_SITE} channels per site")
     channel = NotificationChannel(
+        id=uuid.uuid4(),
         site_id=access.site.id,
         provider=provider.key,
         name=body.name,
@@ -120,6 +126,11 @@ def create_channel(
         extra_recipients=body.extra_recipients,
     )
     db.add(channel)
+    audit(
+        db, access.user, "channel.create", f'Added the {provider.label} channel "{channel.name}" to {access.site.name}',
+        target_type="channel", target_id=channel.id, site=access.site,
+        details={"provider": provider.key, "name": channel.name, "enabled": channel.enabled},
+    )
     db.commit()
     return ChannelOut.model_validate(channel)
 
@@ -141,8 +152,15 @@ def update_channel(
         changes["config"] = _validated_config(provider, changes["config"])
     if changes.get("enabled", channel.enabled):
         _require_configured(provider)
+    before = snapshot(channel, _CHANNEL_FIELDS)
     for field, value in changes.items():
         setattr(channel, field, value)
+    diff = changed(before, channel, redact=_CHANNEL_REDACTED)
+    if diff:
+        audit(
+            db, access.user, "channel.update", f'Updated the channel "{channel.name}" on {access.site.name}: {", ".join(diff)}',
+            target_type="channel", target_id=channel.id, site=access.site, details=diff,
+        )
     db.commit()
     return ChannelOut.model_validate(channel)
 
@@ -153,7 +171,12 @@ def delete_channel(
     access: SiteAccess = Depends(site_access(Role.admin)),
     db: Session = Depends(get_db),
 ) -> None:
-    db.delete(_channel(db, access, channel_id))
+    channel = _channel(db, access, channel_id)
+    audit(
+        db, access.user, "channel.delete", f'Deleted the channel "{channel.name}" from {access.site.name}',
+        target_type="channel", target_id=channel.id, site=access.site, details={"provider": channel.provider, "name": channel.name},
+    )
+    db.delete(channel)
     db.commit()
 
 

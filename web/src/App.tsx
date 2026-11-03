@@ -3,6 +3,7 @@ import { Link, NavLink, Navigate, Outlet, Route, Routes, useLocation } from "rea
 import { displayName, type Me } from "./api";
 import { Avatar, Logo, OfflineBanner } from "./components";
 import { useAuth } from "./auth";
+import Audit from "./pages/Audit";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import SiteDetail from "./pages/SiteDetail";
@@ -74,6 +75,7 @@ function Layout() {
           {/* Sites stays highlighted on /sites/:id too (NavLink matches the prefix) */}
           <NavLink to="/sites">Sites</NavLink>
           {me.is_superadmin && <NavLink to="/users">Users</NavLink>}
+          {me.is_superadmin && <NavLink to="/audit">Audit</NavLink>}
         </nav>
         <div className="spacer" />
         <ThemeToggle />
@@ -95,6 +97,7 @@ export default function App() {
           <Route path="sites" element={<Sites />} />
           <Route path="sites/:siteId/*" element={<SiteDetail />} />
           <Route path="users" element={<Users />} />
+          <Route path="audit" element={<Audit />} />
           <Route path="profile" element={<Profile />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

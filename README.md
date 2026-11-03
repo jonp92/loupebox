@@ -54,6 +54,23 @@ Per-site email alerts for new feedback, sent through Brevo. Admins configure cha
 * Sent and failed outbox rows are deleted after 30 days (`NOTIFY_RETENTION_DAYS`).
 * Design and decisions: [docs/NOTIFICATIONS_PLAN.md](docs/NOTIFICATIONS_PLAN.md).
 
+## Audit log
+
+Superadmins see every administrative change under **Audit** in the top bar: who did what, when, and
+on which site. Recorded: user create/update/promote/demote/enable/disable/password reset/avatar,
+site create/update/key rotation/delete, member add/role change/remove, notification channel
+create/update/delete, feedback deletion, and people changing their own password.
+
+* Each event is written in the same transaction as the change, so a change that fails leaves no
+  event, and an event never exists for a change that did not happen. Actor email, site name and a
+  plain-English summary are stored as they were at the time, so history stays readable after renames
+  and site deletions.
+* Never recorded: passwords, API keys, notification settings and recipient addresses (only that they
+  changed) and the text of feedback. Triage status changes and logins are not logged.
+* The worker deletes events older than `AUDIT_RETENTION_DAYS` (default 365; `0` keeps everything).
+* The log is append-only through the API, but a database admin can still edit the table: ship it
+  elsewhere if you need tamper evidence.
+
 ## Model
 
 * **Site**: a client website with a public key (`pk_...`) and an origin allow-list.

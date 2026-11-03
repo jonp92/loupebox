@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api.avatar_routes import clear_avatar, raw_body, store_avatar
 from app.api.deps import get_current_user
+from app.core.audit import audit
 from app.core.config import settings
 from app.core.rate_limit import client_ip, enforce
 from app.core.security import (
@@ -177,5 +178,9 @@ def change_password(
         update(RefreshToken)
         .where(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None))
         .values(revoked_at=datetime.now(UTC))
+    )
+    audit(  # self-service, but a password change is what an account takeover looks like
+        db, user, "auth.password_change", "Changed their own password",
+        target_type="user", target_id=user.id, details={"password": "changed"},
     )
     return _issue(db, user, response)

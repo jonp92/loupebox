@@ -262,3 +262,12 @@ dialog.confirm::backdrop { background: rgb(10 12 20 / 55%); }
 dialog.confirm h2 { margin: 0 0 .5rem; font-size: 1.05rem; }
 dialog.confirm p { margin: 0 0 1rem; }
 dialog.confirm .row-actions { justify-content: flex-end; }
+
+.audit li { align-items: flex-start; }
+.audit .badge { text-transform: none; white-space: nowrap; }
+.audit-details { margin-top: .25rem; font-size: .85rem; }
+.audit-details summary { cursor: pointer; color: var(--muted); }
+.audit-details dl { margin: .4rem 0 0; display: grid; gap: .25rem; }
+.audit-details dl div { display: flex; gap: .6rem; flex-wrap: wrap; }
+.audit-details dt { color: var(--muted); min-width: 7rem; }
+.audit-details dd { margin: 0; overflow-wrap: anywhere; }

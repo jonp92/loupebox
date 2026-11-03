@@ -62,6 +62,9 @@ class Settings(BaseSettings):
     # Public origin of the admin UI, used for links in emails. Links are omitted when empty.
     public_url: str = ""
 
+    # Audit log (admin actions). Events older than this are purged by the worker; 0 keeps them forever.
+    audit_retention_days: int = 365
+
     # Login brute-force protection
     login_ip_limit: int = 20
     login_account_limit: int = 5

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, FastAPI
 
 from app.api import (
+    audit_routes,
     auth_routes,
     avatar_routes,
     dashboard_routes,
@@ -43,6 +44,7 @@ for module in (
     default_routes,
     public_routes,
     auth_routes,
+    audit_routes,
     avatar_routes,
     user_routes,
     site_routes,

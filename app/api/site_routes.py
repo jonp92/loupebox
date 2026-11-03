@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import SiteAccess, get_current_user, require_superadmin, site_access
 from app.challenges.registry import OFF, all_verifiers, get_verifier
+from app.core.audit import audit, changed, snapshot
 from app.core.config import settings
 from app.core.origins import public_origins
 from app.core.security import new_public_key
@@ -23,6 +24,8 @@ from app.schemas.site import (
 )
 
 router = APIRouter(prefix="/sites", tags=["sites"])
+
+_SITE_FIELDS = ("name", "allowed_origins", "is_active", "daily_limit", "challenge_mode", "challenge_config")
 
 
 def _profile(u: User) -> dict:
@@ -50,15 +53,20 @@ def list_sites(user: User = Depends(get_current_user), db: Session = Depends(get
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_site(
-    body: SiteCreate, _: User = Depends(require_superadmin), db: Session = Depends(get_db)
+    body: SiteCreate, actor: User = Depends(require_superadmin), db: Session = Depends(get_db)
 ) -> SiteOut:
     site = Site(
+        id=uuid.uuid4(),
         name=body.name,
         public_key=new_public_key(),
         allowed_origins=body.allowed_origins,
         daily_limit=body.daily_limit or settings.default_site_daily_limit,
     )
     db.add(site)
+    audit(
+        db, actor, "site.create", f"Created site {site.name}", target_type="site", target_id=site.id, site=site,
+        details={"name": site.name, "allowed_origins": site.allowed_origins, "daily_limit": site.daily_limit},
+    )
     db.commit()
     public_origins.invalidate()
     return _out(site, Role.admin)
@@ -96,12 +104,19 @@ def update_site(
     access: SiteAccess = Depends(site_access(Role.admin)),
     db: Session = Depends(get_db),
 ) -> SiteOut:
+    before = snapshot(access.site, _SITE_FIELDS)
     changes = body.model_dump(exclude_unset=True)
     _apply_challenge(access.site, changes.pop("challenge_mode", None), changes.pop("challenge_config", None))
     for field, value in changes.items():
         if value is None:
             continue
         setattr(access.site, field, value)
+    diff = changed(before, access.site)
+    if diff:
+        audit(
+            db, access.user, "site.update", f"Updated settings of {access.site.name}: {', '.join(diff)}",
+            target_type="site", target_id=access.site.id, site=access.site, details=diff,
+        )
     db.commit()
     public_origins.invalidate()
     return _out(access.site, access.role)
@@ -122,17 +137,22 @@ def rotate_key(
 ) -> SiteOut:
     """Issue a new public key; the old one stops working immediately."""
     access.site.public_key = new_public_key()
+    audit(  # never the key itself
+        db, access.user, "site.rotate_key", f"Rotated the API key of {access.site.name}",
+        target_type="site", target_id=access.site.id, site=access.site,
+    )
     db.commit()
     return _out(access.site, access.role)
 
 
 @router.delete("/{site_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_site(
-    site_id: uuid.UUID, _: User = Depends(require_superadmin), db: Session = Depends(get_db)
+    site_id: uuid.UUID, actor: User = Depends(require_superadmin), db: Session = Depends(get_db)
 ) -> None:
     site = db.get(Site, site_id)
     if site is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Site not found")
+    audit(db, actor, "site.delete", f"Deleted site {site.name}", target_type="site", target_id=site.id, site=site)
     db.delete(site)
     db.commit()
     public_origins.invalidate()
@@ -192,7 +212,17 @@ def upsert_member(
     )
     if membership is None:
         db.add(Membership(user_id=user.id, site_id=access.site.id, role=body.role))
-    else:
+        audit(
+            db, access.user, "member.add", f"Added {user.email} to {access.site.name} as {body.role.value}",
+            target_type="user", target_id=user.id, site=access.site, details={"email": user.email, "role": body.role.value},
+        )
+    elif membership.role != body.role:
+        audit(
+            db, access.user, "member.role_change",
+            f"Changed {user.email} on {access.site.name} from {membership.role.value} to {body.role.value}",
+            target_type="user", target_id=user.id, site=access.site,
+            details={"email": user.email, "role": {"from": membership.role.value, "to": body.role.value}},
+        )
         membership.role = body.role
     db.commit()
     return MemberOut(user_id=user.id, role=body.role, **_profile(user))
@@ -211,5 +241,11 @@ def remove_member(
     )
     if membership is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Member not found")
+    removed = db.get(User, user_id)
+    email = removed.email if removed else str(user_id)
+    audit(
+        db, access.user, "member.remove", f"Removed {email} from {access.site.name}",
+        target_type="user", target_id=user_id, site=access.site, details={"email": email, "role": membership.role.value},
+    )
     db.delete(membership)
     db.commit()
