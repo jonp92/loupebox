@@ -68,7 +68,12 @@ function Footer() {
   useEffect(() => {
     api<{ app_version: string }>("/version").then((v) => setVersion(v.app_version), () => {});
   }, []);
-  return <footer className="appfooter muted">Loupebox{version && ` ${version}`}</footer>;
+  return (
+    <footer className="appfooter muted">
+      Loupebox{version && ` ${version}`} ·{" "}
+      <a href="https://github.com/jonp92/loupebox" target="_blank" rel="noopener noreferrer" aria-label="Source code on GitHub (opens in a new tab)">Source</a>
+    </footer>
+  );
 }
 
 function Layout() {
