@@ -4,6 +4,22 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 and versions follow [Semantic Versioning](https://semver.org). While the project is alpha (`0.x`), anything may
 change between releases; breaking changes are called out below.
 
+## [0.1.0-alpha.2] - 2026-11-03
+
+### Added
+- Each release publishes `docker-compose.yml`, `setup.sh` and `env.example` as downloads, and the README has a
+  copy-paste install that needs no clone.
+- The admin UI footer shows the version and links to the source.
+- Alpha status banner and a backup and upgrade guide in the README.
+
+### Fixed
+- The `.env` generated from `.env.example` pinned `ADMIN_ORIGINS` to the dev server, so the API refused the Docker
+  UI (HTTP 403 on the CORS preflight) and sign-in failed on a fresh install.
+- `web/package.json` now declares its license (`AGPL-3.0-only`).
+
+### Changed
+- `setup.sh` runs from the current folder, so it works from a checkout or a release download.
+
 ## [0.1.0-alpha.1] - 2026-11-03
 
 First public alpha.
@@ -29,4 +45,5 @@ First public alpha.
 - Not load tested; capacity numbers are estimates.
 - The database role and name stay `ganymede` (the project's former name) so existing volumes keep working.
 
+[0.1.0-alpha.2]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.2
 [0.1.0-alpha.1]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.1
