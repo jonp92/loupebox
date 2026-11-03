@@ -10,7 +10,7 @@ WORKDIR /srv
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-COPY alembic.ini .
+COPY VERSION alembic.ini ./
 COPY migrations migrations
 COPY scripts scripts
 COPY app app

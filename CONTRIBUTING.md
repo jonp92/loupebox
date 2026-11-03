@@ -27,3 +27,10 @@ commits you already made: `git rebase --signoff master` and force-push your bran
 
 See the README for setup. Before opening a PR run `pytest`, `ruff check .`, and
 `cd web && npm run build && npm test`. Run all three before opening a PR.
+
+## Releasing (maintainers)
+
+1. Set the new version in [VERSION](VERSION) (for example `0.1.0-alpha.2`) and move the `Unreleased` entries in
+   [CHANGELOG.md](CHANGELOG.md) under it with the date.
+2. Merge that through a PR, then tag the merge commit: `git tag v$(cat VERSION) && git push origin v$(cat VERSION)`.
+3. The release workflow checks the tag against `VERSION` and pushes the images to GHCR.
