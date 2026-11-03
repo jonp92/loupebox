@@ -9,9 +9,11 @@ SUMMARY_EXCERPTS = 5
 SUMMARY_EXCERPT_CHARS = 140
 
 
-def _site_link(site: Site) -> str | None:
+def _site_link(site: Site, feedback_id: str | None = None) -> str | None:
     base = settings.public_url.rstrip("/")
-    return f"{base}/sites/{site.id}" if base else None
+    if not base:
+        return None
+    return f"{base}/sites/{site.id}" + (f"/feedback/{feedback_id}" if feedback_id else "")
 
 
 def _one_line(text: str) -> str:
@@ -24,7 +26,7 @@ def _safe_href(url: str) -> str | None:
 
 def build_message(row: NotificationOutbox, site: Site, recipients: list[str]) -> Message:
     p = row.payload
-    link = _site_link(site)
+    link = _site_link(site, p.get("feedback_id"))
     facts = []
     if p.get("rating") is not None:
         facts.append(("Rating", str(p["rating"])))

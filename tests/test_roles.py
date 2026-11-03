@@ -29,6 +29,7 @@ def test_role_matrix(client, db):
     url = f"/sites/{site.id}/feedback/{fb.id}"
 
     assert client.get(f"/sites/{site.id}/feedback", headers=v).status_code == 200
+    assert client.get(url, headers=v).json()["id"] == str(fb.id)
     assert client.patch(url, json={"status": "read"}, headers=v).status_code == 403
     assert client.patch(url, json={"status": "read"}, headers=e).status_code == 200
     assert client.delete(url, headers=e).status_code == 403

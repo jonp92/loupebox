@@ -37,6 +37,7 @@ export default function SiteDetail() {
       </nav>
       <Routes>
         <Route index element={<FeedbackList site={site} />} />
+        <Route path="feedback/:feedbackId" element={<FeedbackList site={site} />} />
         <Route path="activity" element={<Activity site={site} />} />
         {isAdmin && <Route path="settings" element={<Settings site={site} onChange={setSite} />} />}
         {isAdmin && <Route path="members" element={<Members site={site} />} />}

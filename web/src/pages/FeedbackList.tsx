@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, json, type Feedback, type Site, type Status } from "../api";
 
 const PAGE = 25;
@@ -9,6 +10,8 @@ function safeHref(url: string | null): string | null {
 }
 
 export default function FeedbackList({ site }: { site: Site }) {
+  const { feedbackId } = useParams();
+  const navigate = useNavigate();
   const [items, setItems] = useState<Feedback[]>([]);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
@@ -19,6 +22,16 @@ export default function FeedbackList({ site }: { site: Site }) {
   const canDelete = site.my_role === "admin";
 
   const load = useCallback(() => {
+    if (feedbackId) {
+      api<Feedback>(`/sites/${site.id}/feedback/${feedbackId}`)
+        .then((f) => {
+          setItems([f]);
+          setTotal(1);
+          setError("");
+        })
+        .catch((e) => { setItems([]); setError(e.message); });
+      return;
+    }
     const params = new URLSearchParams({ limit: String(PAGE), offset: String(offset) });
     if (status) params.set("status", status);
     if (q) params.set("q", q);
@@ -29,7 +42,7 @@ export default function FeedbackList({ site }: { site: Site }) {
         setError("");
       })
       .catch((e) => setError(e.message));
-  }, [site.id, offset, status, q]);
+  }, [site.id, feedbackId, offset, status, q]);
   useEffect(load, [load]);
 
   async function setItemStatus(id: string, next: Status) {
@@ -39,12 +52,14 @@ export default function FeedbackList({ site }: { site: Site }) {
   async function remove(id: string) {
     if (!confirm("Delete this feedback permanently?")) return;
     await api(`/sites/${site.id}/feedback/${id}`, { method: "DELETE" }).catch((e) => setError(e.message));
-    load();
+    if (feedbackId) navigate(`/sites/${site.id}`);
+    else load();
   }
 
   return (
     <>
-      <div className="toolbar">
+      {feedbackId && <p><Link to={`/sites/${site.id}`} className="back">← All feedback</Link></p>}
+      {!feedbackId && <div className="toolbar">
         <input
           placeholder="Search message, name, email"
           value={q}
@@ -54,9 +69,9 @@ export default function FeedbackList({ site }: { site: Site }) {
           <option value="">All (excl. spam)</option>
           {STATUSES.map((s) => <option key={s}>{s}</option>)}
         </select>
-      </div>
+      </div>}
       {error && <p className="error">{error}</p>}
-      {items.length === 0 && <p className="empty-state">No feedback found.</p>}
+      {items.length === 0 && !error && <p className="empty-state">No feedback found.</p>}
       {items.map((f) => {
         const href = safeHref(f.page_url);
         return (
@@ -84,11 +99,11 @@ export default function FeedbackList({ site }: { site: Site }) {
           </article>
         );
       })}
-      <div className="toolbar">
+      {!feedbackId && <div className="toolbar">
         <button disabled={offset === 0} onClick={() => setOffset(offset - PAGE)}>Previous</button>
         <span className="muted">{total === 0 ? 0 : offset + 1}–{Math.min(offset + PAGE, total)} of {total}</span>
         <button disabled={offset + PAGE >= total} onClick={() => setOffset(offset + PAGE)}>Next</button>
-      </div>
+      </div>}
     </>
   );
 }

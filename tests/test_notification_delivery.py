@@ -114,8 +114,9 @@ def test_link_uses_public_url(db, monkeypatch):
     site = make_site(db)
     (row,) = queue(db, make_channel(db, site))
     m = build_message(row, site, ["r@x.com"])
-    assert f"https://admin.example.com/sites/{site.id}" in m.text
-    assert f'href="https://admin.example.com/sites/{site.id}"' in m.html
+    deep = f"https://admin.example.com/sites/{site.id}/feedback/{row.payload['feedback_id']}"
+    assert deep in m.text
+    assert f'href="{deep}"' in m.html
 
 
 def test_summary_lists_first_excerpts_and_the_remainder(db):

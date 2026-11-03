@@ -51,6 +51,15 @@ def list_feedback(
     return FeedbackPage(items=[FeedbackOut.model_validate(r) for r in rows], total=total)
 
 
+@router.get("/{feedback_id}")
+def get_feedback(
+    feedback_id: uuid.UUID,
+    access: SiteAccess = Depends(site_access(Role.viewer)),
+    db: Session = Depends(get_db),
+) -> FeedbackOut:
+    return FeedbackOut.model_validate(_get(db, access.site.id, feedback_id))
+
+
 @router.patch("/{feedback_id}")
 def update_feedback(
     feedback_id: uuid.UUID,
