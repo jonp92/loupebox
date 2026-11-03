@@ -5,9 +5,11 @@ import { useAuth } from "../auth";
 import { toAvatarBlob } from "../avatar";
 import { Avatar } from "../components";
 import { useConfirm } from "../confirm";
+import { useToast } from "../toast";
 
 export default function Users() {
   const confirm = useConfirm();
+  const toast = useToast();
   const { me, setMe } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [error, setError] = useState("");
@@ -22,57 +24,49 @@ export default function Users() {
     e.preventDefault();
     const form = e.currentTarget;
     const d = new FormData(form);
-    try {
-      await api("/users", json("POST", {
-        first_name: d.get("first_name"),
-        last_name: d.get("last_name"),
-        email: d.get("email"),
-        password: d.get("password"),
-        is_superadmin: d.get("is_superadmin") === "on",
-      }));
-      form.reset();
-      setError("");
-      load();
-    } catch (err) {
-      setError((err as Error).message);
-    }
+    const ok = await toast.attempt(api("/users", json("POST", {
+      first_name: d.get("first_name"),
+      last_name: d.get("last_name"),
+      email: d.get("email"),
+      password: d.get("password"),
+      is_superadmin: d.get("is_superadmin") === "on",
+    })), "User created");
+    if (!ok) return;
+    form.reset();
+    load();
   }
 
   async function saveEdit(e: FormEvent<HTMLFormElement>, u: User) {
     e.preventDefault();
     const d = new FormData(e.currentTarget);
-    try {
-      const updated = await api<User>(`/users/${u.id}`, json("PATCH", {
+    const ok = await toast.attempt(
+      api<User>(`/users/${u.id}`, json("PATCH", {
         first_name: d.get("first_name"),
         last_name: d.get("last_name"),
         email: d.get("email"),
-      }));
-      if (updated.id === me!.id) setMe({ ...me!, ...updated });
-      setEditing(null);
-      setError("");
-      load();
-    } catch (err) {
-      setError((err as Error).message);
-    }
+      })).then((updated) => { if (updated.id === me!.id) setMe({ ...me!, ...updated }); }),
+      "User saved",
+    );
+    if (!ok) return;
+    setEditing(null);
+    load();
   }
 
   async function saveAvatar(u: User, file: File | null) {
-    try {
-      const updated = file
-        ? await toAvatarBlob(file).then((image) =>
+    await toast.attempt(
+      (file
+        ? toAvatarBlob(file).then((image) =>
             api<User>(`/users/${u.id}/avatar`, { method: "PUT", body: image, headers: { "Content-Type": image.type } }))
-        : await api<User>(`/users/${u.id}/avatar`, { method: "DELETE" });
-      if (updated.id === me!.id) setMe({ ...me!, ...updated });
-      setError("");
-      load();
-    } catch (err) {
-      setError((err as Error).message);
-    }
+        : api<User>(`/users/${u.id}/avatar`, { method: "DELETE" })
+      ).then((updated) => { if (updated.id === me!.id) setMe({ ...me!, ...updated }); }),
+      file ? "Avatar updated" : "Avatar removed",
+    );
+    load();
     if (fileInput.current) fileInput.current.value = "";
   }
 
   async function toggle(u: User) {
-    await api(`/users/${u.id}`, json("PATCH", { is_active: !u.is_active })).catch((e) => setError(e.message));
+    await toast.attempt(api(`/users/${u.id}`, json("PATCH", { is_active: !u.is_active })), u.is_active ? "User deactivated" : "User activated");
     load();
   }
 
@@ -85,7 +79,7 @@ export default function Users() {
         : { title: `Remove superadmin from ${name}?`, confirmLabel: "Remove", danger: true },
     );
     if (!ok) return;
-    await api(`/users/${u.id}`, json("PATCH", { is_superadmin: next })).catch((e) => setError(e.message));
+    await toast.attempt(api(`/users/${u.id}`, json("PATCH", { is_superadmin: next })), next ? "Superadmin granted" : "Superadmin removed");
     load();
   }
 
@@ -97,7 +91,7 @@ export default function Users() {
       danger: true,
     });
     if (!ok) return;
-    await api(`/users/${u.id}/totp`, { method: "DELETE" }).catch((e) => setError(e.message));
+    await toast.attempt(api(`/users/${u.id}/totp`, { method: "DELETE" }), "Two-factor turned off");
     load();
   }
 

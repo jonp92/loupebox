@@ -2,27 +2,19 @@ import { useEffect, useState, type FormEvent } from "react";
 import { API_PREFIX, API_URL, api, json, type Site, type VerifierInfo } from "../api";
 import { SchemaFields } from "../components";
 import { useConfirm } from "../confirm";
+import { useToast } from "../toast";
 
 export default function Settings({ site, onChange }: { site: Site; onChange: (s: Site) => void }) {
   const confirm = useConfirm();
-  const [msg, setMsg] = useState("");
+  const toast = useToast();
   const [verifiers, setVerifiers] = useState<VerifierInfo[]>([]);
   const [mode, setMode] = useState(site.challenge_mode);
   const [config, setConfig] = useState<Record<string, unknown>>(site.challenge_config);
-  const [copied, setCopied] = useState(false);
-  const [chalMsg, setChalMsg] = useState<{ ok: boolean; text: string } | null>(null);
   useEffect(() => {
     api<VerifierInfo[]>(`/sites/${site.id}/challenge-verifiers`).then(setVerifiers).catch(() => {});
   }, [site.id]);
 
-  async function run(p: Promise<Site>, ok: string) {
-    try {
-      onChange(await p);
-      setMsg(ok);
-    } catch (e) {
-      setMsg((e as Error).message);
-    }
-  }
+  const run = (p: Promise<Site>, ok: string) => toast.attempt(p.then(onChange), ok);
 
   function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -34,29 +26,27 @@ export default function Settings({ site, onChange }: { site: Site; onChange: (s:
         daily_limit: Number(d.get("daily_limit")),
         is_active: d.get("is_active") === "on",
       })),
-      "Saved",
+      "Settings saved",
     );
   }
 
   async function saveChallenge(e: FormEvent) {
     e.preventDefault();
-    try {
-      const updated = await api<Site>(`/sites/${site.id}`, json("PATCH", {
+    await toast.attempt(
+      api<Site>(`/sites/${site.id}`, json("PATCH", {
         challenge_mode: mode,
         ...(mode !== "off" && { challenge_config: config }),
-      }));
-      onChange(updated);
-      setMode(updated.challenge_mode);
-      setConfig(updated.challenge_config);
-      setChalMsg({ ok: true, text: "Saved" });
-    } catch (err) {
-      setChalMsg({ ok: false, text: (err as Error).message });
-    }
+      })).then((updated) => {
+        onChange(updated);
+        setMode(updated.challenge_mode);
+        setConfig(updated.challenge_config);
+      }),
+      "Bot protection saved",
+    );
   }
 
   function pickMode(next: string) {
     setMode(next);
-    setChalMsg(null);
     // Each verifier has its own settings; start from this site's saved ones only for the active mode.
     setConfig(next === site.challenge_mode ? site.challenge_config : {});
   }
@@ -117,9 +107,7 @@ await fetch(API + "/feedback", {
         </p>
         <pre>{widgetSnippet}</pre>
         <div className="row-actions">
-          <button onClick={() => navigator.clipboard.writeText(widgetSnippet).then(() => setCopied(true), () => setCopied(false))}>
-            {copied ? "Copied" : "Copy snippet"}
-          </button>
+          <button onClick={() => toast.attempt(navigator.clipboard.writeText(widgetSnippet), "Snippet copied")}>Copy snippet</button>
         </div>
         {site.allowed_origins.length === 0 && (
           <p className="error" role="alert">
@@ -154,7 +142,6 @@ await fetch(API + "/feedback", {
         </label>
         {verifier && <SchemaFields key={verifier.key} schema={verifier.config_schema} values={config} onChange={setConfig} />}
         <button className="primary">Save</button>
-        {chalMsg && <p className={chalMsg.ok ? "success" : "error"} role="status">{chalMsg.text}</p>}
         {site.challenge_mode === "pow" && <pre>{chalSnippet}</pre>}
       </form>
       <form className="card" onSubmit={save} key={site.public_key + site.name}>
@@ -166,7 +153,6 @@ await fetch(API + "/feedback", {
         <label>Daily submission limit<input name="daily_limit" type="number" min={1} defaultValue={site.daily_limit} /></label>
         <label className="inline"><input name="is_active" type="checkbox" defaultChecked={site.is_active} /> Accepting feedback</label>
         <button className="primary">Save changes</button>
-        {msg && <p className="muted">{msg}</p>}
       </form>
     </>
   );

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, json, type Feedback, type Site, type Status } from "../api";
 import { useAuth } from "../auth";
 import { useConfirm } from "../confirm";
+import { useToast } from "../toast";
 import { Replies } from "../replies";
 import { FeedbackBadges, Notes, Tags, below, safeHref, useAssigneePicker } from "../triage";
 
@@ -13,6 +14,7 @@ export default function FeedbackDetail({ site }: { site: Site }) {
   const { feedbackId } = useParams();
   const { me } = useAuth();
   const confirm = useConfirm();
+  const toast = useToast();
   const navigate = useNavigate();
   const picker = useAssigneePicker(site.id);
   const [item, setItem] = useState<Feedback | null>(null);
@@ -27,12 +29,12 @@ export default function FeedbackDetail({ site }: { site: Site }) {
   useEffect(load, [load]);
 
   async function patch(body: Partial<{ status: Status; assignee_id: string | null; tags: string[] }>) {
-    await api(path, json("PATCH", body)).catch((e) => setError(e.message));
+    await toast.attempt(api(path, json("PATCH", body)));
     load();
   }
   async function remove() {
     if (!(await confirm({ title: "Delete this feedback?", message: "This cannot be undone.", confirmLabel: "Delete", danger: true }))) return;
-    await api(path, { method: "DELETE" }).then(() => navigate(`/sites/${site.id}`), (e) => setError(e.message));
+    if (await toast.attempt(api(path, { method: "DELETE" }), "Feedback deleted")) navigate(`/sites/${site.id}`);
   }
 
   const href = item && safeHref(item.page_url);

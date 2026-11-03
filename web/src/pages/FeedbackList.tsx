@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api, download, json, type Feedback, type Site, type Status } from "../api";
 import { useAuth } from "../auth";
 import { useConfirm } from "../confirm";
+import { useToast } from "../toast";
 import {
   FeedbackBadges, TAG_PATTERN, ago, below, label, personName, recentAssignees, slug, useAssigneePicker, useContextMenu, type MenuItem,
 } from "../triage";
@@ -12,6 +13,7 @@ const STATUSES: Status[] = ["new", "read", "archived", "spam"];
 
 export default function FeedbackList({ site }: { site: Site }) {
   const confirm = useConfirm();
+  const toast = useToast();
   const { me } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState<Feedback[]>([]);
@@ -83,7 +85,7 @@ export default function FeedbackList({ site }: { site: Site }) {
   useEffect(loadTags, [loadTags]);
   /** Change one item (status, assignee or tags) and reload. */
   async function patchItem(id: string, body: Partial<{ status: Status; assignee_id: string | null; tags: string[] }>) {
-    await api(`/sites/${site.id}/feedback/${id}`, json("PATCH", body)).catch((e) => setError(e.message));
+    await toast.attempt(api(`/sites/${site.id}/feedback/${id}`, json("PATCH", body)));
     load();
     if (body.tags) loadTags();
   }
@@ -91,14 +93,8 @@ export default function FeedbackList({ site }: { site: Site }) {
   async function exportCsv() {
     const params = filterParams();
     setExporting(true);
-    try {
-      await download(`/sites/${site.id}/feedback/export.csv?${params}`, "feedback.csv");
-      setError("");
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setExporting(false);
-    }
+    await toast.attempt(download(`/sites/${site.id}/feedback/export.csv?${params}`, "feedback.csv"), "Export downloaded");
+    setExporting(false);
   }
   function toggle(id: string) {
     setSelected((cur) => {
@@ -118,18 +114,16 @@ export default function FeedbackList({ site }: { site: Site }) {
       title: `Delete ${selected.size} feedback item${selected.size === 1 ? "" : "s"}?`,
       message: "This cannot be undone.", confirmLabel: "Delete", danger: true,
     }))) return;
-    try {
-      await api(`/sites/${site.id}/feedback/bulk`, json("POST", { ids: [...selected], ...body }));
-      setError("");
-    } catch (e) {
-      setError((e as Error).message);
-    }
+    await toast.attempt(
+      api<{ affected: number; skipped: number }>(`/sites/${site.id}/feedback/bulk`, json("POST", { ids: [...selected], ...body }))
+        .then((r) => toast.success(`${r.affected} item${r.affected === 1 ? "" : "s"} updated${r.skipped ? `, ${r.skipped} skipped` : ""}`)),
+    );
     load();
     loadTags();
   }
   function bulkAddTag() {
     const t = slug(bulkTag);
-    if (!TAG_PATTERN.test(t)) return setError("Tags are 1-32 letters, digits, '-' or '_'");
+    if (!TAG_PATTERN.test(t)) return toast.error("Tags are 1-32 letters, digits, '-' or '_'");
     setBulkTag("");
     setTagging(false);
     bulk({ action: "add_tag", tag: t });
@@ -160,7 +154,7 @@ export default function FeedbackList({ site }: { site: Site }) {
 
   async function remove(id: string) {
     if (!(await confirm({ title: "Delete this feedback?", message: "This cannot be undone.", confirmLabel: "Delete", danger: true }))) return;
-    await api(`/sites/${site.id}/feedback/${id}`, { method: "DELETE" }).catch((e) => setError(e.message));
+    await toast.attempt(api(`/sites/${site.id}/feedback/${id}`, { method: "DELETE" }), "Feedback deleted");
     load();
   }
 

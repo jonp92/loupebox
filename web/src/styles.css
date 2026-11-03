@@ -205,6 +205,18 @@ code.key { display: inline-block; margin-right: .75rem; background: var(--surfac
 @keyframes net-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
 @media (prefers-reduced-motion: reduce) { .net-toast { animation: none; } }
 
+/* toasts: bottom of the screen, stacked above the offline pill; the sticky top bar stays reachable */
+.toasts { position: fixed; z-index: 50; bottom: calc(4rem + env(safe-area-inset-bottom)); right: .75rem; left: .75rem; display: flex; flex-direction: column; align-items: flex-end; gap: .5rem; pointer-events: none; }
+.toast { pointer-events: auto; display: flex; align-items: center; gap: .75rem; width: min(26rem, 100%); padding: .6rem .5rem .6rem .9rem; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); box-shadow: var(--shadow); font-size: .9rem; animation: toast-in .18s ease-out; }
+.toast.success { border-left: 4px solid var(--ok); }
+.toast.error { border-left: 4px solid var(--danger); }
+.toast.info { border-left: 4px solid var(--accent); }
+.toast-msg { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.toast-close { flex: none; min-width: 2.25rem; min-height: 2.25rem; padding: 0; border: 0; background: none; color: var(--muted); font-size: 1.3rem; line-height: 1; cursor: pointer; }
+.toast-close:hover { color: var(--text); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+
 /* activity: stat tiles + chart */
 .range { margin: 0; display: flex; align-items: center; gap: .6rem; }
 .range select { width: auto; margin: 0; }
