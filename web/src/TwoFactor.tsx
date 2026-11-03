@@ -2,9 +2,9 @@ import { useMemo, useState, type FormEvent } from "react";
 import qrcode from "qrcode-generator";
 import { api, json, totpChange, type Me } from "./api";
 import { useAuth } from "./auth";
+import { useToast } from "./toast";
 
 interface Setup { secret: string; uri: string }
-type Msg = { ok: boolean; text: string } | null;
 
 /** Drawn as SVG rects, so the strict CSP (no data: images, no inline styles) isn't a problem. */
 function QrCode({ text }: { text: string }) {
@@ -47,17 +47,16 @@ export default function TwoFactor() {
   const [setup, setSetup] = useState<Setup | null>(null);
   const [codes, setCodes] = useState<string[] | null>(null);
   const [mode, setMode] = useState<"disable" | "regenerate" | null>(null);
-  const [msg, setMsg] = useState<Msg>(null);
+  const toast = useToast();
   const [busy, setBusy] = useState(false);
   if (!me) return null;
 
   async function run(action: () => Promise<void>) {
     setBusy(true);
-    setMsg(null);
     try {
       await action();
     } catch (err) {
-      setMsg({ ok: false, text: (err as Error).message });
+      toast.error((err as Error).message);
     } finally {
       setBusy(false);
     }
@@ -87,7 +86,7 @@ export default function TwoFactor() {
       if (mode === "disable") {
         await totpChange("/auth/me/totp/disable", body);
         setCodes(null);
-        setMsg({ ok: true, text: "Two-factor authentication is off. Other devices have been signed out." });
+        toast.success("Two-factor authentication is off. Other devices have been signed out.");
       } else {
         setCodes((await api<{ recovery_codes: string[] }>("/auth/me/totp/recovery-codes", json("POST", body))).recovery_codes);
       }
@@ -137,13 +136,12 @@ export default function TwoFactor() {
             </form>
           ) : (
             <div className="avatar-row">
-              <button disabled={busy} onClick={() => { setMode("regenerate"); setMsg(null); }}>New recovery codes</button>
-              <button className="danger" disabled={busy} onClick={() => { setMode("disable"); setMsg(null); setCodes(null); }}>Turn off</button>
+              <button disabled={busy} onClick={() => setMode("regenerate")}>New recovery codes</button>
+              <button className="danger" disabled={busy} onClick={() => { setMode("disable"); setCodes(null); }}>Turn off</button>
             </div>
           )}
         </>
       )}
-      {msg && <p className={msg.ok ? "success" : "error"} role="status">{msg.text}</p>}
     </section>
   );
 }

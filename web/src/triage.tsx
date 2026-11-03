@@ -2,6 +2,7 @@ import {
   useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode,
 } from "react";
 import { api, json, type Assignee, type Feedback, type Note } from "./api";
+import { useToast } from "./toast";
 
 /** The widget's badge ids are plain slugs; anything else in metadata is not shown as a badge. */
 export const ISSUE_TYPE = /^[a-z0-9_-]{1,32}$/;
@@ -259,26 +260,24 @@ export function Notes({ siteId, itemId, canEdit, canDeleteAny, meId }: {
   const base = `/sites/${siteId}/feedback/${itemId}/notes`;
   const [notes, setNotes] = useState<Note[] | null>(null);
   const [body, setBody] = useState("");
+  const toast = useToast();
   const [error, setError] = useState("");
   useEffect(() => { api<Note[]>(base).then(setNotes, (e) => setError(e.message)); }, [base]);
   async function add(e: FormEvent) {
     e.preventDefault();
-    try {
-      const note = await api<Note>(base, json("POST", { body }));
-      setNotes((cur) => [...(cur ?? []), note]);
-      setBody("");
-      setError("");
-    } catch (err) {
-      setError((err as Error).message);
-    }
+    await toast.attempt(
+      api<Note>(base, json("POST", { body })).then((note) => {
+        setNotes((cur) => [...(cur ?? []), note]);
+        setBody("");
+      }),
+      "Note added",
+    );
   }
   async function remove(id: string) {
-    try {
-      await api(`${base}/${id}`, { method: "DELETE" });
-      setNotes((cur) => (cur ?? []).filter((n) => n.id !== id));
-    } catch (err) {
-      setError((err as Error).message);
-    }
+    await toast.attempt(
+      api(`${base}/${id}`, { method: "DELETE" }).then(() => setNotes((cur) => (cur ?? []).filter((n) => n.id !== id))),
+      "Note deleted",
+    );
   }
   return (
     <div className="notes">

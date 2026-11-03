@@ -10,6 +10,7 @@ import {
 } from "../api";
 import { SchemaFields } from "../components";
 import { useConfirm } from "../confirm";
+import { useToast } from "../toast";
 
 const ROLES: Role[] = ["viewer", "editor", "admin"];
 // `machine` events only make sense for endpoints that feed other systems, not for email.
@@ -133,12 +134,12 @@ function ChannelForm({ siteId, providers, channel, onSaved, onCancel }: {
 
 export default function Notifications({ site }: { site: Site }) {
   const confirm = useConfirm();
+  const toast = useToast();
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [editing, setEditing] = useState<string | "new" | null>(null);
   const [testing, setTesting] = useState<string | null>(null);
-  const [testMsg, setTestMsg] = useState<Record<string, { ok: boolean; text: string }>>({});
   const [error, setError] = useState("");
   const [revealed, setRevealed] = useState<{ name: string; secret: string } | null>(null);
 
@@ -170,9 +171,9 @@ export default function Notifications({ site }: { site: Site }) {
         `/sites/${site.id}/notifications/${c.id}/test`, { method: "POST" },
       );
       const text = r.status === "sent" ? (r.to ? `Test sent to ${r.to}` : "Test delivered") : `Test ${r.status}: ${r.error ?? "unknown error"}`;
-      setTestMsg((m) => ({ ...m, [c.id]: { ok: r.status === "sent", text } }));
+      (r.status === "sent" ? toast.success : toast.error)(text);
     } catch (e) {
-      setTestMsg((m) => ({ ...m, [c.id]: { ok: false, text: (e as Error).message } }));
+      toast.error((e as Error).message);
     } finally {
       setTesting(null);
     }
@@ -186,21 +187,20 @@ export default function Notifications({ site }: { site: Site }) {
       danger: true,
     });
     if (!ok) return;
-    try {
-      const r = await api<{ secret: string }>(`/sites/${site.id}/notifications/${c.id}/rotate-secret`, { method: "POST" });
-      setRevealed({ name: c.name, secret: r.secret });
-    } catch (e) {
-      setError((e as Error).message);
-    }
+    await toast.attempt(
+      api<{ secret: string }>(`/sites/${site.id}/notifications/${c.id}/rotate-secret`, { method: "POST" })
+        .then((r) => setRevealed({ name: c.name, secret: r.secret })),
+    );
   }
 
   async function remove(c: Channel) {
     if (!(await confirm({ title: `Delete the channel "${c.name}"?`, message: "Past deliveries stay in the log.", confirmLabel: "Delete", danger: true }))) return;
-    await api(`/sites/${site.id}/notifications/${c.id}`, { method: "DELETE" }).catch((e) => setError(e.message));
+    await toast.attempt(api(`/sites/${site.id}/notifications/${c.id}`, { method: "DELETE" }), "Channel deleted");
     load();
   }
 
   const saved = (created?: { name: string; secret: string }) => {
+    toast.success("Channel saved");
     setEditing(null);
     if (created) setRevealed(created);
     load();
@@ -235,9 +235,6 @@ export default function Notifications({ site }: { site: Site }) {
                     {info(c.provider)?.uses_recipients !== false && <span className="badge">{c.min_role}+</span>}
                     {c.extra_recipients.length > 0 && <span className="badge">+{c.extra_recipients.length} extra</span>}
                   </span>
-                  {testMsg[c.id] && (
-                    <span className={testMsg[c.id].ok ? "success" : "error"} role="status">{testMsg[c.id].text}</span>
-                  )}
                 </span>
                 <button onClick={() => test(c)} disabled={testing === c.id || !configured(c.provider)}>
                   {testing === c.id ? "Sending…" : info(c.provider)?.uses_recipients === false ? "Send test" : "Send test to me"}

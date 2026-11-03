@@ -2,9 +2,11 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { api, json, type Dashboard } from "../api";
 import { useAuth } from "../auth";
+import { useToast } from "../toast";
 
 export default function Sites() {
   const { me } = useAuth();
+  const toast = useToast();
   const [data, setData] = useState<Dashboard | null>(null);
   const [error, setError] = useState("");
 
@@ -17,14 +19,9 @@ export default function Sites() {
     const form = e.currentTarget;
     const data = new FormData(form);
     const origins = String(data.get("origins")).split(/[\s,]+/).filter(Boolean);
-    try {
-      await api("/sites", json("POST", { name: data.get("name"), allowed_origins: origins }));
-      form.reset();
-      setError("");
-      load();
-    } catch (err) {
-      setError((err as Error).message);
-    }
+    if (!(await toast.attempt(api("/sites", json("POST", { name: data.get("name"), allowed_origins: origins })), "Site created"))) return;
+    form.reset();
+    load();
   }
 
   return (

@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { api, json, type Feedback, type Reply, type ReplyThread } from "./api";
+import { useToast } from "./toast";
 
 const MAX = 5000;
 
@@ -9,6 +10,7 @@ export const maskEmail = (email: string) => email.replace(/^(.).*(@.*)$/, "$1•
 /** The conversation with the person who sent the item, and a form to answer them by email. */
 export function Replies({ siteId, item, canEdit }: { siteId: string; item: Pick<Feedback, "id" | "email">; canEdit: boolean }) {
   const base = `/sites/${siteId}/feedback/${item.id}/replies`;
+  const toast = useToast();
   const [thread, setThread] = useState<ReplyThread | null>(null);
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
@@ -19,11 +21,13 @@ export function Replies({ siteId, item, canEdit }: { siteId: string; item: Pick<
 
   async function run(request: () => Promise<Reply>, done: (r: Reply) => void) {
     setSending(true);
-    setError("");
     try {
-      done(await request());
+      const r = await request();
+      done(r);
+      if (r.status === "sent") toast.success("Reply sent");
+      else toast.error(`Reply not sent${r.error ? `: ${r.error}` : ""}`);
     } catch (err) {
-      setError((err as Error).message);
+      toast.error((err as Error).message);
     } finally {
       setSending(false);
     }

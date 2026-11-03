@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, json, type Dashboard as DashboardData } from "../api";
+import { useToast } from "../toast";
 
 export default function Dashboard() {
+  const toast = useToast();
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState("");
 
@@ -11,7 +13,7 @@ export default function Dashboard() {
 
 
   async function markRead(siteId: string, id: string) {
-    await api(`/sites/${siteId}/feedback/${id}`, json("PATCH", { status: "read" })).catch((e) => setError(e.message));
+    await toast.attempt(api(`/sites/${siteId}/feedback/${id}`, json("PATCH", { status: "read" })));
     load();
   }
 

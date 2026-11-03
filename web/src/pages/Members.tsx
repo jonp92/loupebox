@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { api, displayName, json, type Member, type Role, type Site } from "../api";
 import { Avatar, UserPicker } from "../components";
 import { useConfirm } from "../confirm";
+import { useToast } from "../toast";
 
 const ROLES: Role[] = ["viewer", "editor", "admin"];
 const ROLE_HELP: Record<Role, string> = {
@@ -12,6 +13,7 @@ const ROLE_HELP: Record<Role, string> = {
 
 export default function Members({ site }: { site: Site }) {
   const confirm = useConfirm();
+  const toast = useToast();
   const [members, setMembers] = useState<Member[]>([]);
   const [error, setError] = useState("");
   const [email, setEmail] = useState("");
@@ -24,15 +26,9 @@ export default function Members({ site }: { site: Site }) {
   useEffect(() => void load(), [load]);
 
   async function upsert(memberEmail: string, memberRole: string) {
-    try {
-      await api(`/sites/${site.id}/members`, json("PUT", { email: memberEmail, role: memberRole }));
-      setError("");
-      load();
-      return true;
-    } catch (e) {
-      setError((e as Error).message);
-      return false;
-    }
+    const ok = await toast.attempt(api(`/sites/${site.id}/members`, json("PUT", { email: memberEmail, role: memberRole })), "Member saved");
+    load();
+    return ok;
   }
 
   async function add(e: FormEvent) {
@@ -42,7 +38,7 @@ export default function Members({ site }: { site: Site }) {
 
   async function remove(m: Member) {
     if (!(await confirm({ title: `Remove ${displayName(m)}?`, message: `They will lose access to ${site.name}.`, confirmLabel: "Remove", danger: true }))) return;
-    await api(`/sites/${site.id}/members/${m.user_id}`, { method: "DELETE" }).catch((e) => setError(e.message));
+    await toast.attempt(api(`/sites/${site.id}/members/${m.user_id}`, { method: "DELETE" }), "Member removed");
     load();
   }
 
