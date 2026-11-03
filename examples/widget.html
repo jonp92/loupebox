@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ganymede widget example</title>
+<style>body{font:16px system-ui;max-width:42rem;margin:3rem auto;padding:0 1rem}</style>
+
+<h1>My site</h1>
+<p>The feedback button is in the corner. This page's origin must be in the site's allowed origins.</p>
+<p><button id="help">Open feedback from my own button</button></p>
+
+<script type="module">
+  // Replace the host, URL and key with your own (Site → Settings → Feedback widget shows them).
+  import { createWidget } from "http://localhost:8080/widget/v1/ganymede.js";
+
+  const widget = createWidget({
+    url: "http://localhost:8000/v1/api",
+    key: "pk_REPLACE_ME",
+    issueTypes: [
+      { id: "bug", label: "Bug" },
+      { id: "idea", label: "Idea" },
+      { id: "billing", label: "Billing", icon: "💳" },
+    ],
+    fields: { rating: true, name: "optional", email: "optional" },
+    metadata: () => ({ route: location.pathname }),
+  });
+
+  document.getElementById("help").addEventListener("click", () => widget.open());
+  widget.on("submit", ({ id }) => console.log("feedback sent", id));
+</script>

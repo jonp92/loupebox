@@ -165,11 +165,29 @@ emails (`PATCH /v1/api/users/{id}`). Users manage their own avatar and password:
 
 The UI crops and resizes uploads to 256x256 before sending.
 
+## Feedback widget
+
+An embeddable, customizable feedback widget ships with the web app as an ES module, no build step needed on
+the site that uses it:
+
+```html
+<script type="module">
+  import { createWidget } from "https://your-ganymede/widget/v1/ganymede.js";
+  createWidget({ url: "https://your-ganymede/v1/api", key: "pk_..." });
+</script>
+```
+
+Visitors can tag feedback with issue-type badges (bug, idea, question, praise, or your own), which arrive as
+`metadata.issue_type`, show as a badge and a filter in the admin UI, and appear in the CSV export, notification
+emails and webhooks. The snippet with your key filled in is under **Site → Settings → Feedback widget**; every
+option, theming and the upgrade policy are in [docs/WIDGET.md](docs/WIDGET.md). A runnable page is in
+`examples/widget.html`.
+
 ## Exporting feedback
 
 **Export CSV** on a site's feedback list downloads what the search and status filter show
 (`GET /v1/api/sites/{id}/feedback/export.csv?status=&q=`, any role that can view the site). Columns:
-id, created_at (UTC), status, rating, name, email, message, page_url, meta. Text that a spreadsheet
+id, created_at (UTC), status, issue_type, rating, name, email, message, page_url, meta. Text that a spreadsheet
 would run as a formula (starting with `=`, `+`, `-` or `@`) is prefixed with an apostrophe. Downloads
 stop at `EXPORT_MAX_ROWS` (100,000). Each export is recorded in the audit log (who, how many rows, never
 the contents).

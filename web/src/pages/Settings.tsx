@@ -9,6 +9,7 @@ export default function Settings({ site, onChange }: { site: Site; onChange: (s:
   const [verifiers, setVerifiers] = useState<VerifierInfo[]>([]);
   const [mode, setMode] = useState(site.challenge_mode);
   const [config, setConfig] = useState<Record<string, unknown>>(site.challenge_config);
+  const [copied, setCopied] = useState(false);
   const [chalMsg, setChalMsg] = useState<{ ok: boolean; text: string } | null>(null);
   useEffect(() => {
     api<VerifierInfo[]>(`/sites/${site.id}/challenge-verifiers`).then(setVerifiers).catch(() => {});
@@ -71,6 +72,16 @@ export default function Settings({ site, onChange }: { site: Site; onChange: (s:
   body: JSON.stringify({ message, rating, email, page_url: location.href }),
 });`;
 
+  // The widget is served by the web app itself, so its URL is this page's origin.
+  const widgetSnippet = `<script type="module">
+  import { createWidget } from "${location.origin}/widget/v1/ganymede.js";
+
+  createWidget({
+    url: "${API_URL}${API_PREFIX}",
+    key: "${site.public_key}",
+  });
+</script>`;
+
   const verifier = verifiers.find((v) => v.key === mode);
   const chalSnippet = `// Fetch a challenge, solve it, and send the proof with the submission.
 // crypto.subtle needs HTTPS (or localhost); see docs/CLIENT_INTEGRATION.md for a fallback.
@@ -97,6 +108,28 @@ await fetch(API + "/feedback", {
 
   return (
     <>
+      <section className="card">
+        <h2>Feedback widget</h2>
+        <p>
+          Paste this into any page to add a feedback button. Visitors can tag what kind of feedback it is (bug, idea,
+          question, praise), and you can change the badges, fields, colors and wording. Options and theming:{" "}
+          <code>docs/WIDGET.md</code>.
+        </p>
+        <pre>{widgetSnippet}</pre>
+        <div className="row-actions">
+          <button onClick={() => navigator.clipboard.writeText(widgetSnippet).then(() => setCopied(true), () => setCopied(false))}>
+            {copied ? "Copied" : "Copy snippet"}
+          </button>
+        </div>
+        {site.allowed_origins.length === 0 && (
+          <p className="error" role="alert">
+            No allowed origins yet, so every submission from a page will be refused. Add the page's origin below.
+          </p>
+        )}
+        <p className="muted hint">
+          The page must be on one of the site's allowed origins (scheme, host and port, e.g. <code>https://www.example.com</code>).
+        </p>
+      </section>
       <section className="card">
         <h2>API key</h2>
         <p>This key is public by design: it identifies the site. Abuse is limited by allowed origins, rate limits and quotas.</p>

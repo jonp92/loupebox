@@ -1,5 +1,9 @@
 # Add a Ganymede feedback form to an app
 
+> **Easiest path: use the widget.** Ganymede serves a ready-made, customizable feedback widget as an ES
+> module (floating button or inline form, issue-type badges, bot-protection challenge built in). Two lines
+> of JavaScript, no build step. See [WIDGET.md](WIDGET.md). Read on if you are building your own form.
+
 You are helping add a feedback form to an existing app. The form submits to **Ganymede**, a
 separate feedback API server that already exists and is running. You do **not** build or change the
 server. You build the form (UI + a small submit function) inside this app.
@@ -122,7 +126,7 @@ so a client can always call it first and only solve when the mode says so.
 
 Flow (`mode: "pow"`, proof of work):
 
-1. `POST {GANYMEDE_URL}/v1/api/feedback/challenge` with the same `X-API-Key` header as a normal submission
+1. `POST {GANYMEDE_URL}/feedback/challenge` with the same `X-API-Key` header as a normal submission
    (no body). Response: `{"mode":"pow","algorithm":"sha256","token":"…","bits":16}`.
 2. Find a number `n` so that `sha256("<token>:<n>")` starts with at least `bits` zero **bits**.
    Average cost is 2^bits hashes: 16 bits is about 0.15 s on a desktop browser; each extra bit doubles it.
@@ -145,9 +149,9 @@ async function solve(token: string, bits: number): Promise<string> {
 }
 
 const headers = { "Content-Type": "application/json", "X-API-Key": GANYMEDE_KEY };
-const c = await (await fetch(`${GANYMEDE_URL}/v1/api/feedback/challenge`, { method: "POST", headers })).json();
+const c = await (await fetch(`${GANYMEDE_URL}/feedback/challenge`, { method: "POST", headers })).json();
 const challenge = c.mode === "pow" ? await solve(c.token, c.bits) : undefined;
-await fetch(`${GANYMEDE_URL}/v1/api/feedback`, { method: "POST", headers, body: JSON.stringify({ message, challenge }) });
+await fetch(`${GANYMEDE_URL}/feedback`, { method: "POST", headers, body: JSON.stringify({ message, challenge }) });
 ```
 
 Solving blocks nothing (it awaits), but on a big difficulty it is CPU work: show the sending state while it

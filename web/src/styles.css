@@ -285,3 +285,10 @@ dialog.confirm .row-actions { justify-content: flex-end; }
 button.link { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font: inherit; text-decoration: underline; }
 
 .secret-notice code.secret { display: block; padding: .6rem .75rem; background: var(--surface-2); border-radius: 8px; overflow-wrap: anywhere; user-select: all; }
+
+/* Issue-type badge from the feedback widget */
+.badge.kind { text-transform: none; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+.badge.kind[data-kind="bug"] { background: var(--danger-soft); color: var(--danger); border-color: transparent; }
+.badge.kind[data-kind="idea"] { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+.badge.kind[data-kind="question"] { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+.badge.kind[data-kind="praise"] { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
