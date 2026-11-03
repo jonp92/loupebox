@@ -20,14 +20,14 @@ describe("module", () => {
   it("loads without a DOM and exposes a stable public surface", () => {
     assert.deepEqual(
       Object.keys(g).sort(),
-      ["GanymedeConfigError", "VERSION", "capabilities", "createClient", "createWidget", "defaultIssueTypes", "defaultStrings", "solveProofOfWork"].sort(),
+      ["LoupeboxConfigError", "VERSION", "capabilities", "createClient", "createWidget", "defaultIssueTypes", "defaultStrings", "solveProofOfWork"].sort(),
     );
     assert.match(g.VERSION, /^\d+\.\d+\.\d+$/);
     for (const feature of ["issue-types", "challenge-pow", "headless-client", "events"]) assert.ok(g.capabilities.includes(feature), feature);
   });
 
   it("createWidget on a server says so instead of crashing obscurely", () => {
-    assert.throws(() => g.createWidget({ url: URL_, key: KEY }), (e) => e instanceof g.GanymedeConfigError && /browser/.test(e.message));
+    assert.throws(() => g.createWidget({ url: URL_, key: KEY }), (e) => e instanceof g.LoupeboxConfigError && /browser/.test(e.message));
   });
 
   it("never uses APIs that would run page-supplied strings as code or markup", () => {
@@ -188,7 +188,7 @@ describe("options", () => {
   it("rejects what can't work, with messages that say what to fix", async () => {
     const { setupDom } = await import("./helpers.mjs");
     setupDom();
-    const bad = (options, pattern) => assert.throws(() => g.createWidget(options), (e) => e instanceof g.GanymedeConfigError && pattern.test(e.message));
+    const bad = (options, pattern) => assert.throws(() => g.createWidget(options), (e) => e instanceof g.LoupeboxConfigError && pattern.test(e.message));
     bad({ url: URL_ }, /"key" is required/);
     bad({ key: KEY, url: "feedback.example.com" }, /"url" must be/);
     bad({ url: URL_, key: KEY, mode: "modal" }, /"mode" must be one of/);

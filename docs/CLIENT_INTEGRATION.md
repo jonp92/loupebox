@@ -1,10 +1,10 @@
-# Add a Ganymede feedback form to an app
+# Add a Loupebox feedback form to an app
 
-> **Easiest path: use the widget.** Ganymede serves a ready-made, customizable feedback widget as an ES
+> **Easiest path: use the widget.** Loupebox serves a ready-made, customizable feedback widget as an ES
 > module (floating button or inline form, issue-type badges, bot-protection challenge built in). Two lines
 > of JavaScript, no build step. See [WIDGET.md](WIDGET.md). Read on if you are building your own form.
 
-You are helping add a feedback form to an existing app. The form submits to **Ganymede**, a
+You are helping add a feedback form to an existing app. The form submits to **Loupebox**, a
 separate feedback API server that already exists and is running. You do **not** build or change the
 server. You build the form (UI + a small submit function) inside this app.
 
@@ -12,36 +12,36 @@ server. You build the form (UI + a small submit function) inside this app.
 
 | Needed | Example | Notes |
 |---|---|---|
-| `GANYMEDE_URL` | `https://feedback.pressler.tech/v1/api` | Base URL of the API **including the `/v1/api` prefix**, no trailing slash |
-| `GANYMEDE_KEY` | `pk_...` | The site's **public** key. Safe to ship in client JS. |
-| This app's origin(s) | `https://app.example.com`, `http://localhost:3000` | Each must be on the site's **allowed origins** list in the Ganymede admin UI (Site → Settings). Ask the user to confirm, including local dev origins. |
+| `LOUPEBOX_URL` | `https://feedback.pressler.tech/v1/api` | Base URL of the API **including the `/v1/api` prefix**, no trailing slash |
+| `LOUPEBOX_KEY` | `pk_...` | The site's **public** key. Safe to ship in client JS. |
+| This app's origin(s) | `https://app.example.com`, `http://localhost:3000` | Each must be on the site's **allowed origins** list in the Loupebox admin UI (Site → Settings). Ask the user to confirm, including local dev origins. |
 
 ### URL format
 
-Every Ganymede route lives under the `/v1/api` prefix, and `GANYMEDE_URL` includes it:
+Every Loupebox route lives under the `/v1/api` prefix, and `LOUPEBOX_URL` includes it:
 
 ```
-GANYMEDE_URL = https://feedback.pressler.tech/v1/api        (origin + /v1/api, no trailing slash)
-Endpoint     = {GANYMEDE_URL}/feedback
+LOUPEBOX_URL = https://feedback.pressler.tech/v1/api        (origin + /v1/api, no trailing slash)
+Endpoint     = {LOUPEBOX_URL}/feedback
              = https://feedback.pressler.tech/v1/api/feedback
 ```
 
-Store `GANYMEDE_URL` as **one** config value with the prefix included, so the code only ever appends
+Store `LOUPEBOX_URL` as **one** config value with the prefix included, so the code only ever appends
 `/feedback`. Older paths such as `/v1/feedback` and `/api/v1/feedback` **do not exist** and return
 `404`; if you see them in notes or old snippets, they are out of date.
 
-If the user doesn't have a key yet: a Ganymede **superadmin** creates a site in the admin UI
+If the user doesn't have a key yet: a Loupebox **superadmin** creates a site in the admin UI
 (Sites → New site) and lists this app's origins. The key is shown on the site's Settings tab.
 
-Put the URL and key in this app's normal config/env mechanism (e.g. `VITE_GANYMEDE_URL`,
-`NEXT_PUBLIC_GANYMEDE_KEY`). Never hard-code the production key into shared example code.
+Put the URL and key in this app's normal config/env mechanism (e.g. `VITE_LOUPEBOX_URL`,
+`NEXT_PUBLIC_LOUPEBOX_KEY`). Never hard-code the production key into shared example code.
 
 ## The API contract
 
 ```
-POST {GANYMEDE_URL}/feedback
+POST {LOUPEBOX_URL}/feedback
 Content-Type: application/json
-X-API-Key: {GANYMEDE_KEY}
+X-API-Key: {LOUPEBOX_KEY}
 ```
 
 Send from the **browser**. The browser adds the `Origin` header automatically, and the server
@@ -71,7 +71,7 @@ Total body must be ≤16 KB.
 | `201` `{"id": "<uuid>"}` | Accepted (also returned for honeypot drops and for exact duplicates sent within 10 min, so retries are safe) | Show a thank-you, clear the form |
 | `403` `{"detail":"Challenge required"}` or `"Challenge failed"` | The site has bot protection on and the proof was missing, wrong, expired (5 min) or already used | Fetch a fresh challenge, solve it and retry once. See [Challenges](#challenges-bot-protection). |
 | `403` `{"detail":"Forbidden"}` | Bad/unknown/disabled key, **or origin not allowed**. Deliberately the same message for all. | Generic "couldn't send" message. During setup, check the key and that this origin is in the allowed list. |
-| `404` | Wrong URL (missing `/v1/api`, or an old path like `/v1/feedback`) | Fix `GANYMEDE_URL`; see debugging below |
+| `404` | Wrong URL (missing `/v1/api`, or an old path like `/v1/feedback`) | Fix `LOUPEBOX_URL`; see debugging below |
 | `413` | Body too large | Shouldn't happen; cap `message` at 5000 |
 | `422` | Validation failed; `detail` is a list of `{loc, msg}` | Show the field error if you can map `loc`; otherwise generic |
 | `429` | Rate limited or daily cap reached; `Retry-After` header (seconds) on rate limits | "Too many submissions, try again later." Don't auto-retry in a loop. |
@@ -99,9 +99,9 @@ export type SubmitResult =
 export async function submitFeedback(input: FeedbackInput): Promise<SubmitResult> {
   let res: Response;
   try {
-    res = await fetch(`${GANYMEDE_URL}/feedback`, {
+    res = await fetch(`${LOUPEBOX_URL}/feedback`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "X-API-Key": GANYMEDE_KEY },
+      headers: { "Content-Type": "application/json", "X-API-Key": LOUPEBOX_KEY },
       body: JSON.stringify({ ...input, page_url: location.href }),
     });
   } catch {
@@ -126,7 +126,7 @@ so a client can always call it first and only solve when the mode says so.
 
 Flow (`mode: "pow"`, proof of work):
 
-1. `POST {GANYMEDE_URL}/feedback/challenge` with the same `X-API-Key` header as a normal submission
+1. `POST {LOUPEBOX_URL}/feedback/challenge` with the same `X-API-Key` header as a normal submission
    (no body). Response: `{"mode":"pow","algorithm":"sha256","token":"…","bits":16}`.
 2. Find a number `n` so that `sha256("<token>:<n>")` starts with at least `bits` zero **bits**.
    Average cost is 2^bits hashes: 16 bits is about 0.15 s on a desktop browser; each extra bit doubles it.
@@ -148,10 +148,10 @@ async function solve(token: string, bits: number): Promise<string> {
   }
 }
 
-const headers = { "Content-Type": "application/json", "X-API-Key": GANYMEDE_KEY };
-const c = await (await fetch(`${GANYMEDE_URL}/feedback/challenge`, { method: "POST", headers })).json();
+const headers = { "Content-Type": "application/json", "X-API-Key": LOUPEBOX_KEY };
+const c = await (await fetch(`${LOUPEBOX_URL}/feedback/challenge`, { method: "POST", headers })).json();
 const challenge = c.mode === "pow" ? await solve(c.token, c.bits) : undefined;
-await fetch(`${GANYMEDE_URL}/feedback`, { method: "POST", headers, body: JSON.stringify({ message, challenge }) });
+await fetch(`${LOUPEBOX_URL}/feedback`, { method: "POST", headers, body: JSON.stringify({ message, challenge }) });
 ```
 
 Solving blocks nothing (it awaits), but on a big difficulty it is CPU work: show the sending state while it
@@ -228,11 +228,11 @@ Plain-HTML variant, for non-framework pages:
 
 ## Verify it works
 
-1. Confirm the URL is right: `curl "$GANYMEDE_URL/health"` must return `{"status":"ok"}`. If it
-   returns HTML, `404`, or another JSON shape, `GANYMEDE_URL` is wrong or the server is down.
+1. Confirm the URL is right: `curl "$LOUPEBOX_URL/health"` must return `{"status":"ok"}`. If it
+   returns HTML, `404`, or another JSON shape, `LOUPEBOX_URL` is wrong or the server is down.
 2. Confirm this app's exact origin (scheme + host + port, e.g. `http://localhost:3000`) is in the
-   Ganymede site's allowed origins. **No wildcards, no paths, no trailing slash.**
-3. Submit from the running app. Expect `201`. The message should appear in the Ganymede admin UI
+   Loupebox site's allowed origins. **No wildcards, no paths, no trailing slash.**
+3. Submit from the running app. Expect `201`. The message should appear in the Loupebox admin UI
    under the site's Feedback tab.
 4. Check failure paths: wrong key → `403`; empty message → client-side block (and `422` if bypassed);
    submit the same text twice quickly → one entry, both succeed.
@@ -240,10 +240,10 @@ Plain-HTML variant, for non-framework pages:
    missing Origin; by default it does not, so include one):
 
 ```bash
-GANYMEDE_URL=https://feedback.pressler.tech/v1/api   # includes the prefix
-curl -i -X POST "$GANYMEDE_URL/feedback" \
+LOUPEBOX_URL=https://feedback.pressler.tech/v1/api   # includes the prefix
+curl -i -X POST "$LOUPEBOX_URL/feedback" \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: $GANYMEDE_KEY" \
+  -H "X-API-Key: $LOUPEBOX_KEY" \
   -H "Origin: http://localhost:3000" \
   -d '{"message":"curl test"}'
 ```
@@ -253,7 +253,7 @@ curl -i -X POST "$GANYMEDE_URL/feedback" \
 | Symptom | Likely cause |
 |---|---|
 | Browser console CORS error, no response | This app's origin isn't on the site's allowed list (preflight returns 403), or the URL is wrong |
-| `404`, or an HTML page where JSON was expected | `GANYMEDE_URL` is missing the `/v1/api` prefix, has a stale path (`/v1/feedback`, `/api/v1/feedback`), or has a trailing slash/typo. Check `{GANYMEDE_URL}/health` first. A plain-text `Not found` instead of JSON means the request never reached the API (server-side proxy/deploy problem, not this app). |
+| `404`, or an HTML page where JSON was expected | `LOUPEBOX_URL` is missing the `/v1/api` prefix, has a stale path (`/v1/feedback`, `/api/v1/feedback`), or has a trailing slash/typo. Check `{LOUPEBOX_URL}/health` first. A plain-text `Not found` instead of JSON means the request never reached the API (server-side proxy/deploy problem, not this app). |
 | `403 Forbidden` but no CORS error | Wrong/rotated key, site disabled, or origin mismatch (e.g. `http` vs `https`, `www.` vs bare, different port) |
 | `422` | A field broke a rule above, or an unknown top-level field was sent |
 | `429` immediately in dev | Many test submissions from one IP within a minute; wait for `Retry-After` |
@@ -264,5 +264,5 @@ curl -i -X POST "$GANYMEDE_URL/feedback" \
 - Don't add a server-side proxy "to hide the key". The key is public by design; origin checks and
   rate limits protect it. A proxy usually breaks the origin check.
 - Don't retry automatically on `403`, `422` or `429`.
-- Don't invent extra endpoints or fields. This integration only uses `POST {GANYMEDE_URL}/feedback`.
+- Don't invent extra endpoints or fields. This integration only uses `POST {LOUPEBOX_URL}/feedback`.
 - Don't commit a real production key into code that is shared publicly beyond this app's config.

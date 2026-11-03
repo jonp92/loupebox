@@ -2,7 +2,7 @@ import { createClient, type SubmitResult } from "./client";
 import { format } from "./i18n";
 import { icon } from "./icons";
 import {
-  GanymedeConfigError,
+  LoupeboxConfigError,
   normalizeOptions,
   type ExtraField,
   type MetadataValue,
@@ -33,7 +33,7 @@ export interface WidgetController {
   /** True if this version of the script supports a feature (see `capabilities`). */
   supports(feature: string): boolean;
   readonly isOpen: boolean;
-  /** The `<ganymede-widget>` element that holds everything. */
+  /** The `<loupebox-widget>` element that holds everything. */
   readonly element: HTMLElement;
 }
 
@@ -65,7 +65,7 @@ let counter = 0;
 
 export function createWidget(input: WidgetOptions): WidgetController {
   if (typeof document === "undefined") {
-    throw new GanymedeConfigError("createWidget needs a browser (there is no document here)");
+    throw new LoupeboxConfigError("createWidget needs a browser (there is no document here)");
   }
   let raw: WidgetOptions = { ...input };
   let opts: ResolvedOptions = normalizeOptions(raw);
@@ -78,12 +78,12 @@ export function createWidget(input: WidgetOptions): WidgetController {
       try {
         fn(detail);
       } catch (err) {
-        console.error("[ganymede] listener threw", err); // a broken listener must not break the widget
+        console.error("[loupebox] listener threw", err); // a broken listener must not break the widget
       }
     }
   };
 
-  const host = document.createElement("ganymede-widget");
+  const host = document.createElement("loupebox-widget");
   const shadow = host.attachShadow({ mode: "open" });
   let isOpen = false;
   let busy = false;
@@ -272,7 +272,7 @@ export function createWidget(input: WidgetOptions): WidgetController {
       const host = typeof opts.metadata === "function" ? opts.metadata() : opts.metadata;
       Object.assign(metadata, host ?? {});
     } catch (err) {
-      console.error("[ganymede] the metadata function threw; sending without it", err);
+      console.error("[loupebox] the metadata function threw; sending without it", err);
     }
     for (const field of opts.extraFields) {
       const el = shadow.querySelector<HTMLInputElement>(`[data-extra="${field.id}"]`);
@@ -333,7 +333,7 @@ export function createWidget(input: WidgetOptions): WidgetController {
         if (changed === false) return;
         payload = changed;
       } catch (err) {
-        console.error("[ganymede] beforeSubmit threw; nothing was sent", err);
+        console.error("[loupebox] beforeSubmit threw; nothing was sent", err);
         return;
       }
     }
@@ -498,7 +498,7 @@ export function createWidget(input: WidgetOptions): WidgetController {
     if (destroyed) return;
     if (opts.mode === "inline") {
       const target = typeof opts.target === "string" ? document.querySelector(opts.target) : opts.target;
-      if (!target) throw new GanymedeConfigError(`inline "target" was not found: ${String(opts.target)}`);
+      if (!target) throw new LoupeboxConfigError(`inline "target" was not found: ${String(opts.target)}`);
       target.append(host);
     } else {
       document.body.append(host);

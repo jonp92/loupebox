@@ -1,4 +1,4 @@
-# Ganymede: form feedback server
+# Loupebox: form feedback server
 
 FastAPI + Postgres API with a React admin UI (`web/`). Static sites post feedback with a public
 site key; staff review it in the UI under per-site roles.
@@ -175,8 +175,8 @@ the site that uses it:
 
 ```html
 <script type="module">
-  import { createWidget } from "https://your-ganymede/widget/v1/ganymede.js";
-  createWidget({ url: "https://your-ganymede/v1/api", key: "pk_..." });
+  import { createWidget } from "https://your-loupebox/widget/v1/loupebox.js";
+  createWidget({ url: "https://your-loupebox/v1/api", key: "pk_..." });
 </script>
 ```
 
@@ -228,7 +228,7 @@ and **Reply-To set to the editor**, so the person's answer lands in that editor'
   the feedback item and is shown masked in the UI.
 * Webhook channels can subscribe to `feedback.replied` (ids and length only, no reply text). Email channels
   never get it.
-* **Scope:** Ganymede is an inbox for feedback on small tools, not a ticketing system: there are no SLAs,
+* **Scope:** Loupebox is an inbox for feedback on small tools, not a ticketing system: there are no SLAs,
   ticket statuses or queues, and none are planned. To use a helpdesk, send feedback to it with a webhook.
   Replies from the submitter are not read yet (outbound only); the `feedback_replies` table already has
   `direction`, `source` and `in_reply_to` columns for that.
@@ -309,6 +309,6 @@ per user; nothing changes for people who don't enable it.
 
 ## License
 
-Copyright 2026 Jonathan L. Pressler. Ganymede is licensed under the [GNU AGPL-3.0](LICENSE). The embeddable widget (`web/widget/`) is
+Copyright 2026 Jonathan L. Pressler. Loupebox is licensed under the [GNU AGPL-3.0](LICENSE). The embeddable widget (`web/widget/`) is
 licensed under [Apache-2.0](web/widget/LICENSE). See [CONTRIBUTING.md](CONTRIBUTING.md) for the
 sign-off (DCO) required on contributions.

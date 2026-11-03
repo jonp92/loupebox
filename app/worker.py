@@ -12,7 +12,7 @@ from app.models.user import utcnow
 from app.notifications.dispatcher import process_due, purge_finished
 from app.notifications.registry import load_providers
 
-log = logging.getLogger("ganymede.worker")
+log = logging.getLogger("loupebox.worker")
 
 _stop = False
 PURGE_EVERY = 3600  # seconds between retention sweeps

@@ -140,7 +140,7 @@ export function useContextMenu() {
 // ---- assignees: found by searching, never listed in full (a site can have many members)
 
 const RECENT_MAX = 5;
-const recentKey = (siteId: string) => `ganymede.recent-assignees.${siteId}`;
+const recentKey = (siteId: string) => `loupebox.recent-assignees.${siteId}`;
 
 /** The people you assigned to most recently on this site. Kept in this browser only; it is a convenience. */
 export function recentAssignees(siteId: string): Assignee[] {

@@ -33,7 +33,7 @@ class PowConfig(BaseModel):
 
 def _key() -> bytes:
     # Derived so the token MAC never shares a key with JWTs or IP hashes.
-    return hashlib.sha256(b"ganymede-challenge-v1" + settings.jwt_secret.encode()).digest()
+    return hashlib.sha256(b"loupebox-challenge-v1" + settings.jwt_secret.encode()).digest()
 
 
 def _sign(body: str) -> str:

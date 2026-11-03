@@ -12,7 +12,7 @@ on the server. The snippet for your site, with its key filled in, is on **Site â
 
 ```html
 <script type="module">
-  import { createWidget } from "https://feedback.example.com/widget/v1/ganymede.js";
+  import { createWidget } from "https://feedback.example.com/widget/v1/loupebox.js";
 
   createWidget({
     url: "https://feedback.example.com/v1/api",   // the API base URL, including /v1/api
@@ -22,7 +22,7 @@ on the server. The snippet for your site, with its key filled in, is on **Site â
 ```
 
 The page's origin (scheme + host + port) must be in the site's **allowed origins**. In a bundler project the
-same module works as an import (`import { createWidget } from "https://.../ganymede.js"`) or, for no network
+same module works as an import (`import { createWidget } from "https://.../loupebox.js"`) or, for no network
 dependency, download the file and import it locally.
 
 ## Options
@@ -110,15 +110,15 @@ widget.close();
 widget.destroy();                                                         // removes it from the page
 ```
 
-`widget.isOpen`, `widget.element` (the `<ganymede-widget>` element) and `widget.supports("issue-types")` are also available.
+`widget.isOpen`, `widget.element` (the `<loupebox-widget>` element) and `widget.supports("issue-types")` are also available.
 
 ## Look and feel
 
 The widget lives in a shadow root, so your CSS can't break it and it can't leak into your page. Colors are CSS
-custom properties on the `ganymede-widget` element, so you can theme it from your own stylesheet:
+custom properties on the `loupebox-widget` element, so you can theme it from your own stylesheet:
 
 ```css
-ganymede-widget {
+loupebox-widget {
   --gm-accent: #0a7d5a;     --gm-accent-text: #fff;
   --gm-bg: #fff;            --gm-text: #111;       --gm-muted: #667;   --gm-border: #dde;
   --gm-radius: 8px;         --gm-font: "Inter", sans-serif;           --gm-z: 5000;
@@ -135,7 +135,7 @@ screen-reader labels and `prefers-reduced-motion` are built in; on narrow screen
 Don't want the built-in form? Use the same client without any UI:
 
 ```js
-import { createClient } from "https://feedback.example.com/widget/v1/ganymede.js";
+import { createClient } from "https://feedback.example.com/widget/v1/loupebox.js";
 
 const client = createClient({ url, key });
 const result = await client.submit({ message: "Hi", issueType: "idea", email: "a@b.co", metadata: { route: "/x" } });
@@ -155,7 +155,7 @@ kind this version doesn't understand is reported ("needs a newer widget") rather
 
 ## Versioning and upgrades
 
-* `/widget/v1/ganymede.js` is **the latest 1.x**. Within v1, releases only add optional options, events, exports
+* `/widget/v1/loupebox.js` is **the latest 1.x**. Within v1, releases only add optional options, events, exports
   and capabilities, so you pick up fixes and features without changing anything. Breaking changes ship as
   `/widget/v2/` and v1 keeps working until you move.
 * Options a page sets that this version doesn't know are **ignored with a console warning**, and a wrong value for
@@ -168,7 +168,7 @@ kind this version doesn't understand is reported ("needs a newer widget") rather
 ## Build and test (contributors)
 
 Source is TypeScript in `web/widget/src` (one small module per concern). `npm run build` in `web/` builds the
-admin app and the widget (`dist/widget/v1/ganymede.js`, about 11 kB gzipped, plus type declarations in
+admin app and the widget (`dist/widget/v1/loupebox.js`, about 11 kB gzipped, plus type declarations in
 `dist/widget/v1/types/`). `npm test` rebuilds the widget and runs its tests against the built file, using
 Node's test runner and jsdom. The web Docker image serves it with the CORS headers browsers need for module
 scripts. When adding a feature: add an optional option (give it a default in `options.ts`), add a `capabilities`

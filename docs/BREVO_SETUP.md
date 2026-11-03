@@ -1,6 +1,6 @@
 # Brevo setup
 
-Ganymede sends notification emails through Brevo's HTTP API (`POST /v3/smtp/email`). It does not use
+Loupebox sends notification emails through Brevo's HTTP API (`POST /v3/smtp/email`). It does not use
 SMTP, so SMTP credentials will not work here. To send through a plain SMTP server instead, see
 [SMTP_SETUP.md](SMTP_SETUP.md).
 
@@ -29,7 +29,7 @@ In the `.env` used by docker compose (see `deploy/production.env.example`):
 ```
 BREVO_API_KEY=xkeysib-...
 NOTIFY_SENDER_EMAIL=feedback@example.com     # the verified sender
-NOTIFY_SENDER_NAME=Ganymede
+NOTIFY_SENDER_NAME=Loupebox
 PUBLIC_URL=https://feedback.example.com      # for links in emails
 ```
 

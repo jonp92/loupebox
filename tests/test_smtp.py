@@ -35,7 +35,7 @@ def serve(monkeypatch, cert):
         started.append(server)
         for name, value in {
             "smtp_host": "localhost", "smtp_port": server.port, "notify_sender_email": SENDER,
-            "notify_sender_name": "Ganymede", "smtp_security": {"plain": "none"}.get(mode, "ssl" if mode == "ssl" else "starttls"),
+            "notify_sender_name": "Loupebox", "smtp_security": {"plain": "none"}.get(mode, "ssl" if mode == "ssl" else "starttls"),
             "smtp_username": "", "smtp_password": "", "smtp_timeout": 3, **settings_override,
         }.items():
             monkeypatch.setattr(settings, name, value)
@@ -95,8 +95,8 @@ def test_message_shape(serve):
     first = parsed(server.messages[0])
     assert server.messages[0].rcpt == ["a@example.com"] and server.messages[0].mail_from == SENDER
     assert first["To"] == "a@example.com" and "b@example.com" not in server.messages[0].data.decode()
-    assert first["From"] == f"Ganymede <{SENDER}>" and first["Subject"] == "Hi"
-    assert first["Reply-To"] == "user@example.com" and first["X-Ganymede-Tags"] == "feedback.created"
+    assert first["From"] == f"Loupebox <{SENDER}>" and first["Subject"] == "Hi"
+    assert first["Reply-To"] == "user@example.com" and first["X-Loupebox-Tags"] == "feedback.created"
     assert first["Message-ID"].endswith("@example.com>") and first["Date"]
     assert first.get_body(("plain",)).get_content().strip() == "plain body"
     assert first.get_body(("html",)).get_content().strip() == "<p>html body</p>"

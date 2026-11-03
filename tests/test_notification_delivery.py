@@ -106,7 +106,7 @@ def test_html_escapes_user_text(db, monkeypatch):
     assert "<script>" in m.text  # plain text is not escaped
     assert m.subject == "New feedback on <b>Shop</b> Inc"  # one line, no header injection
     assert m.reply_to == "a@x.com" and m.to == ["r@x.com"]
-    assert "Rating: 4" in m.text and "Open in Ganymede" not in m.html
+    assert "Rating: 4" in m.text and "Open in Loupebox" not in m.html
 
 
 def test_link_uses_public_url(db, monkeypatch):

@@ -1,6 +1,6 @@
 # SMTP setup
 
-Besides Brevo, Ganymede can send email through any ordinary SMTP server: your own relay, a mail host's
+Besides Brevo, Loupebox can send email through any ordinary SMTP server: your own relay, a mail host's
 SMTP service, or a local test server. Pick it as the **SMTP (email)** provider when adding a channel. It
 works exactly like the Brevo provider: same recipients, same hourly cap and summary, same templates.
 
@@ -14,7 +14,7 @@ SMTP_SECURITY=starttls          # starttls (587), ssl (465) or none
 SMTP_USERNAME=feedback@example.com
 SMTP_PASSWORD=...
 NOTIFY_SENDER_EMAIL=feedback@example.com     # the From address; many servers require it to match the login
-NOTIFY_SENDER_NAME=Ganymede
+NOTIFY_SENDER_NAME=Loupebox
 ```
 
 | `SMTP_SECURITY` | Meaning |

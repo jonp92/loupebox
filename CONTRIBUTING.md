@@ -1,4 +1,4 @@
-# Contributing to Ganymede
+# Contributing to Loupebox
 
 Bug reports and pull requests are welcome. For anything larger than a small fix, open an issue first so
 we can agree on the approach.

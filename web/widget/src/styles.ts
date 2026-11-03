@@ -1,6 +1,6 @@
 /**
  * Styles live in the widget's shadow root, so the page can't break them and they can't leak out.
- * Colors are CSS custom properties: set `--gm-accent` etc. on `ganymede-widget` from the page, or use the
+ * Colors are CSS custom properties: set `--gm-accent` etc. on `loupebox-widget` from the page, or use the
  * `colors` option. Nothing here relies on inline `style` attributes, so strict page CSPs are fine.
  */
 export const css = `

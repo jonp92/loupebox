@@ -9,7 +9,7 @@ _INSECURE_SECRET = "dev-insecure-change-me"
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    app_name: str = "Ganymede"
+    app_name: str = "Loupebox"
     app_version: str = "0.1.0"
     app_description: str = "A simple, open-source, self-hosted link submission and voting platform."
 
@@ -60,7 +60,7 @@ class Settings(BaseSettings):
     # Brevo (email). Operator-owned, never stored in the database.
     brevo_api_key: str = ""
     notify_sender_email: str = ""
-    notify_sender_name: str = "Ganymede"
+    notify_sender_name: str = "Loupebox"
     # Plain SMTP (email), operator-owned like Brevo. Sender is NOTIFY_SENDER_EMAIL / NOTIFY_SENDER_NAME.
     smtp_host: str = ""
     smtp_port: int = 587  # 587 with starttls, 465 with ssl, 25 or 1025 for a local relay with none
@@ -90,7 +90,7 @@ class Settings(BaseSettings):
     # falls back to JWT_SECRET, but then rotating JWT_SECRET makes them unreadable: set them separately.
     totp_encryption_key: str = ""  # two-factor seeds
     webhook_encryption_key: str = ""  # webhook signing secrets
-    totp_issuer: str = "Ganymede"
+    totp_issuer: str = "Loupebox"
     mfa_token_minutes: int = 5  # how long the password step stays valid while the code is entered
     mfa_hourly_limit: int = 20  # second-factor attempts per user per hour (the per-minute cap is login_account_limit)
 
