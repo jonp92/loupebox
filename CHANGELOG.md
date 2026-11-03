@@ -4,7 +4,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 and versions follow [Semantic Versioning](https://semver.org). While the project is alpha (`0.x`), anything may
 change between releases; breaking changes are called out below.
 
-## [0.1.0-alpha.1] - Unreleased
+## [0.1.0-alpha.1] - 2026-11-03
 
 First public alpha.
 
