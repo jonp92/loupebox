@@ -1,0 +1,11 @@
+# Loaded automatically by `docker compose` in a checkout: builds the images from source instead of pulling
+# the published ones. Leave this file out (just docker-compose.yml + .env) to run released images.
+services:
+  migrate:
+    build: .
+  api:
+    build: .
+  worker:
+    build: .
+  web:
+    build: ./web
