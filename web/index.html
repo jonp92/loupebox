@@ -4,12 +4,8 @@
     <meta charset="UTF-8" />
     <!-- App-style: double-tap zoom is off via CSS (touch-action: manipulation). Pinch zoom stays available for accessibility, so no user-scalable=no / maximum-scale here. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <script>
-      try {
-        var t = localStorage.getItem("theme");
-        if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
-      } catch (e) {}
-    </script>
+    <!-- External (not inline) so the CSP can forbid inline scripts. Sets the theme before first paint. -->
+    <script src="/theme-init.js"></script>
     <script src="/config.js"></script>
     <link rel="icon" type="image/svg+xml" href="/ganymede-icon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

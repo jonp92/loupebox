@@ -2,7 +2,7 @@
 # Caddy runs on the host and reaches the containers on their localhost-only ports.
 feedback.pressler.tech {
 	encode zstd gzip
-	header Strict-Transport-Security "max-age=31536000"
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
 
 	reverse_proxy /v1/api/* 127.0.0.1:8000
 	reverse_proxy 127.0.0.1:8080
