@@ -54,6 +54,15 @@ def dashboard(
         .limit(limit)
     ).all() if site_ids else []
 
+    # Open items (not archived or spam) the caller has been assigned, on sites they can still see.
+    mine = [Feedback.site_id.in_(site_ids), Feedback.assignee_id == user.id,
+            Feedback.status.in_([FeedbackStatus.new, FeedbackStatus.read])]
+    assigned_total = (db.scalar(select(func.count()).select_from(Feedback).where(*mine)) or 0) if site_ids else 0
+    assigned = db.execute(
+        select(Feedback, Site.name).join(Site, Site.id == Feedback.site_id).where(*mine)
+        .order_by(Feedback.created_at.desc()).limit(limit)
+    ).all() if assigned_total else []
+
     sites = []
     for site, role in rows:
         out = SiteOut.model_validate(site)
@@ -65,4 +74,6 @@ def dashboard(
         sites_with_new=len(per_site),
         sites=sites,
         recent_new=[_item(f, name) for f, name in recent],
+        assigned_total=assigned_total,
+        assigned=[_item(f, name) for f, name in assigned],
     )

@@ -81,6 +81,10 @@ class FeedbackOut(BaseModel):
     status: FeedbackStatus
     user_agent: str | None
     created_at: datetime
+    assignee_id: uuid.UUID | None
+    assignee_name: str | None
+    tags: list[str]
+    note_count: int
 
 
 class FeedbackPage(BaseModel):
@@ -88,28 +92,109 @@ class FeedbackPage(BaseModel):
     total: int
 
 
+MAX_TAGS = 10
+TAG_PATTERN = r"^[a-z0-9][a-z0-9_-]{0,31}$"
+
+
+def clean_tag(value: str) -> str:
+    """Tags are lower-case slugs, so "Needs Review" and "needs-review" are the same tag."""
+    tag = re.sub(r"\s+", "-", value.strip().lower())
+    if not re.match(TAG_PATTERN, tag):
+        raise ValueError("tags are 1-32 letters, digits, '-' or '_'")
+    return tag
+
+
 class FeedbackUpdate(BaseModel):
-    status: FeedbackStatus
+    """Only the fields that are sent change; `assignee_id: null` unassigns."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: FeedbackStatus | None = None
+    assignee_id: uuid.UUID | None = None
+    tags: list[str] | None = Field(default=None, max_length=MAX_TAGS)
+
+    @field_validator("tags")
+    @classmethod
+    def _tags(cls, v: list[str] | None) -> list[str] | None:
+        return None if v is None else sorted({clean_tag(t) for t in v})
+
+    @model_validator(mode="after")
+    def _check(self) -> "FeedbackUpdate":
+        if not self.model_fields_set:
+            raise ValueError("nothing to update")
+        if self.status is None and "status" in self.model_fields_set:
+            raise ValueError("status must not be null")
+        if self.tags is None and "tags" in self.model_fields_set:
+            raise ValueError("tags must not be null")
+        return self
 
 
 class FeedbackBulk(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     ids: list[uuid.UUID] = Field(min_length=1)
-    action: Literal["set_status", "delete"]
+    action: Literal["set_status", "delete", "assign", "add_tag", "remove_tag"]
     status: FeedbackStatus | None = None
+    assignee_id: uuid.UUID | None = None  # for assign; null unassigns
+    tag: str | None = None
+
+    @field_validator("tag")
+    @classmethod
+    def _tag(cls, v: str | None) -> str | None:
+        return None if v is None else clean_tag(v)
 
     @model_validator(mode="after")
     def _check(self) -> "FeedbackBulk":
         if len(self.ids) > settings.bulk_max_ids:
             raise ValueError(f"at most {settings.bulk_max_ids} items per request")
-        if self.action == "set_status" and self.status is None:
-            raise ValueError("status is required for set_status")
-        if self.action == "delete" and self.status is not None:
-            raise ValueError("status is only for set_status")
+        # Each action takes only its own argument (assign without one unassigns).
+        arg = {"set_status": "status", "add_tag": "tag", "remove_tag": "tag", "assign": "assignee_id"}.get(self.action)
+        given = {f for f in ("status", "tag", "assignee_id") if getattr(self, f) is not None}
+        if given - {arg} or (arg in ("status", "tag") and arg not in given):
+            raise ValueError(f"{self.action} takes " + (arg if arg else "no extra field"))
         return self
 
 
 class BulkResult(BaseModel):
     affected: int
     skipped: int
+
+
+class NoteIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    body: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("body")
+    @classmethod
+    def _body(cls, v: str) -> str:
+        v = clean_text(v)
+        if not v:
+            raise ValueError("note must not be blank")
+        return v
+
+
+class NoteOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    author_id: uuid.UUID | None
+    author_name: str | None = None
+    body: str
+    created_at: datetime
+
+
+class TagCount(BaseModel):
+    tag: str
+    count: int
+
+
+class QuickCounts(BaseModel):
+    mine: int
+    unassigned: int
+
+
+class Assignee(BaseModel):
+    user_id: uuid.UUID
+    email: str
+    name: str

@@ -2,12 +2,12 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Index, SmallInteger, String, Text
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Index, SmallInteger, String, Text, func, select
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
 from app.db.base import Base
-from app.models.user import utcnow
+from app.models.user import User, utcnow
 
 
 class FeedbackStatus(str, enum.Enum):
@@ -39,3 +39,53 @@ class Feedback(Base):
     ip_hash: Mapped[str] = mapped_column(String(32))
     user_agent: Mapped[str | None] = mapped_column(String(256), default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    # Who is dealing with it: always a member of the site when set, cleared when they leave it.
+    assignee_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), index=True, default=None
+    )
+
+    tag_rows: Mapped[list["FeedbackTag"]] = relationship(
+        cascade="all, delete-orphan", lazy="selectin", order_by="FeedbackTag.tag"
+    )
+
+    @property
+    def tags(self) -> list[str]:
+        return [t.tag for t in self.tag_rows]
+
+
+class FeedbackTag(Base):
+    """A per-site free-text label; one row per (item, tag)."""
+
+    __tablename__ = "feedback_tags"
+
+    feedback_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("feedback.id", ondelete="CASCADE"), primary_key=True)
+    tag: Mapped[str] = mapped_column(String(32), primary_key=True, index=True)
+
+
+class FeedbackNote(Base):
+    """An internal note for the team. Never shown to the submitter."""
+
+    __tablename__ = "feedback_notes"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    feedback_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("feedback.id", ondelete="CASCADE"), index=True)
+    author_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), default=None)
+    body: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+# Counted in the same query as the item, so lists can show "3 notes" without opening each one.
+Feedback.note_count = column_property(
+    select(func.count(FeedbackNote.id)).where(FeedbackNote.feedback_id == Feedback.id).correlate_except(FeedbackNote).scalar_subquery(),
+    deferred=False,
+)
+
+
+def user_name():
+    """SQL for how a person is shown: their name, or their email when they have none."""
+    return func.coalesce(func.nullif(func.trim(User.first_name + " " + User.last_name), ""), User.email)
+
+
+Feedback.assignee_name = column_property(
+    select(user_name()).where(User.id == Feedback.assignee_id).correlate_except(User).scalar_subquery(), deferred=False
+)

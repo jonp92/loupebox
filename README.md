@@ -69,7 +69,8 @@ create/update/delete, feedback deletion, and people changing their own password 
   plain-English summary are stored as they were at the time, so history stays readable after renames
   and site deletions.
 * Never recorded: passwords, API keys, notification settings and recipient addresses (only that they
-  changed) and the text of feedback. Triage status changes and logins are not logged.
+  changed) and the text of feedback or notes. Triage status changes and logins are not logged; assignment, tag
+  and note-deletion changes are (ids and tag names only).
 * The worker deletes events older than `AUDIT_RETENTION_DAYS` (default 365; `0` keeps everything).
 * The log is append-only through the API, but a database admin can still edit the table: ship it
   elsewhere if you need tamper evidence.
@@ -77,7 +78,7 @@ create/update/delete, feedback deletion, and people changing their own password 
 ## Model
 
 * **Site**: a client website with a public key (`pk_...`) and an origin allow-list.
-* **Roles** (per site): `viewer` reads, `editor` triages (status), `admin` deletes feedback and
+* **Roles** (per site): `viewer` reads (feedback, tags, assignee, notes), `editor` triages (status, assignee, tags, notes), `admin` deletes feedback and
   manages settings, key and members. `superadmin` is global: creates sites/users, admin everywhere.
 * Non-members get 404 for sites they can't see.
 
@@ -192,6 +193,23 @@ delete them in one go: `POST /v1/api/sites/{id}/feedback/bulk` with `{"ids": [..
 "status": "archived"}` or `{"ids": [...], "action": "delete"}`. Editors may change status, only admins may delete,
 as for a single item. Ids from other sites are skipped, at most `BULK_MAX_IDS` (100) per request, and a bulk
 delete is one audit event (ids and count, never the messages).
+
+## Assignee, tags and notes
+
+* **Assignee**: any editor or admin of the site (viewers and non-members cannot hold one; losing editor access
+  clears the assignment). The list has "Assigned to me" / "Unassigned" tabs with counts, a per-person filter,
+  and the dashboard lists your open assigned items across sites. Double-click the assignee on a card,
+  right-click (or long-press, or the "⋯" button) for quick actions, or tick items and use "Assign to…".
+  People are found by searching (`GET .../feedback/assignees?q=`, at most 20 results, editors only), never
+  listed in full, so large sites work; the menu offers "Me" and your recent picks.
+* **Tags**: per-site free text, stored as lower-case slugs (`needs-review`), up to 10 per item. Filter with
+  `?tag=`; `GET .../feedback/tags` lists them with counts. `?assignee=<user id>|none` filters by assignee.
+* **Notes**: internal, never shown to the submitter or included in exports. Everyone on the site can read them,
+  editors add them, an author deletes their own and an admin any. The list shows a note count; the notes
+  themselves are on the item's page (`/sites/{id}/feedback/{feedback_id}`).
+* Bulk (`POST .../feedback/bulk`) also takes `assign` (`assignee_id`, omit to unassign), `add_tag` and
+  `remove_tag` (`tag`); `PATCH .../feedback/{id}` takes any of `status`, `assignee_id` and `tags`. The CSV
+  export has `tags` and `assignee` (email) columns.
 
 ## Exporting feedback
 

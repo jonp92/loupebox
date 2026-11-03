@@ -16,8 +16,31 @@ from app.api.deps import SiteAccess, site_access
 from app.core.audit import audit
 from app.core.config import settings
 from app.db.session import get_db, get_sessionmaker
-from app.models import ROLE_RANK, Feedback, FeedbackStatus, Role
-from app.schemas.feedback import BulkResult, FeedbackBulk, FeedbackOut, FeedbackPage, FeedbackUpdate
+from app.models import (
+    ROLE_RANK,
+    Feedback,
+    FeedbackNote,
+    FeedbackStatus,
+    FeedbackTag,
+    Membership,
+    Role,
+    User,
+    user_name,
+)
+from app.schemas.feedback import (
+    MAX_TAGS,
+    TAG_PATTERN,
+    Assignee,
+    BulkResult,
+    FeedbackBulk,
+    FeedbackOut,
+    FeedbackPage,
+    FeedbackUpdate,
+    NoteIn,
+    NoteOut,
+    QuickCounts,
+    TagCount,
+)
 
 router = APIRouter(prefix="/sites/{site_id}/feedback", tags=["feedback"])
 
@@ -45,6 +68,8 @@ class Filters(BaseModel):
     has_email: bool | None = None
     created_from: date | None = None  # inclusive, UTC days
     created_to: date | None = None
+    assignee: str | None = None  # a user id, or "none" for unassigned
+    tag: str | None = None
 
 
 def filters(
@@ -55,10 +80,13 @@ def filters(
     has_email: bool | None = None,
     created_from: date | None = None,
     created_to: date | None = None,
+    assignee: str | None = Query(default=None, pattern=r"^(none|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"),
+    tag: str | None = Query(default=None, pattern=TAG_PATTERN),
 ) -> Filters:
     return Filters(
         status=status_filter, q=q, issue_type=issue_type, rating=rating, has_email=has_email,
-        created_from=created_from, created_to=created_to,
+        created_from=created_from, created_to=created_to, assignee=assignee,
+        tag=tag,
     )
 
 
@@ -84,6 +112,12 @@ def _where(site_id: uuid.UUID, f: Filters) -> list:
         where.append(Feedback.created_at >= _day_start(f.created_from))
     if f.created_to:
         where.append(Feedback.created_at < _day_start(f.created_to + timedelta(days=1)))
+    if f.assignee == "none":
+        where.append(Feedback.assignee_id.is_(None))
+    elif f.assignee:
+        where.append(Feedback.assignee_id == uuid.UUID(f.assignee))
+    if f.tag:
+        where.append(Feedback.id.in_(select(FeedbackTag.feedback_id).where(FeedbackTag.tag == f.tag)))
     if f.q:
         where.append(
             or_(
@@ -93,6 +127,27 @@ def _where(site_id: uuid.UUID, f: Filters) -> list:
             )
         )
     return where
+
+
+def _assignable(site_id: uuid.UUID):
+    return (
+        select(User)
+        .join(Membership, Membership.user_id == User.id)
+        .where(
+            Membership.site_id == site_id,
+            Membership.role.in_([Role.editor, Role.admin]),
+            User.is_active.is_(True),
+        )
+    )
+
+
+def _check_assignee(db: Session, site_id: uuid.UUID, user_id: uuid.UUID | None) -> None:
+    if user_id is not None and db.scalar(_assignable(site_id).where(User.id == user_id)) is None:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Assignee must be an editor or admin of this site")
+
+
+def _set_tags(item: Feedback, tags: list[str]) -> None:
+    item.tag_rows = [FeedbackTag(tag=t) for t in tags]
 
 
 @router.get("")
@@ -111,7 +166,7 @@ def list_feedback(
     return FeedbackPage(items=[FeedbackOut.model_validate(r) for r in rows], total=total)
 
 
-CSV_COLUMNS = ("id", "created_at", "status", "issue_type", "rating", "name", "email", "message", "page_url", "meta")
+CSV_COLUMNS = ("id", "created_at", "status", "issue_type", "rating", "name", "email", "message", "page_url", "meta", "tags", "assignee")
 # A spreadsheet treats a cell starting with one of these as a formula. Submitter text is untrusted.
 _FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
 
@@ -145,6 +200,10 @@ def _csv_rows(site_id: uuid.UUID, where: list) -> Iterator[str]:
     writer.writerow(CSV_COLUMNS)
     yield flush()
     with get_sessionmaker()() as db:
+        emails = {
+            uid: email
+            for uid, email in db.execute(select(User.id, User.email).join(Membership).where(Membership.site_id == site_id))
+        }
         stmt = (
             select(Feedback)
             .where(*where)
@@ -167,6 +226,8 @@ def _csv_rows(site_id: uuid.UUID, where: list) -> Iterator[str]:
                     item.message,
                     item.page_url,
                     json.dumps(item.meta, ensure_ascii=False, separators=(",", ":")) if item.meta else "",
+                    " ".join(item.tags),
+                    emails.get(item.assignee_id),
                 )
             )
             if n % 500 == 0:
@@ -188,6 +249,46 @@ def issue_types(
     return [{"id": value, "count": count} for value, count in rows if re.match(_ISSUE_TYPE, value or "")]
 
 
+@router.get("/tags")
+def tags(access: SiteAccess = Depends(site_access(Role.viewer)), db: Session = Depends(get_db)) -> list[TagCount]:
+    """The site's tags with how many items carry each, for the list filter and the tag picker."""
+    rows = db.execute(
+        select(FeedbackTag.tag, func.count())
+        .join(Feedback, Feedback.id == FeedbackTag.feedback_id)
+        .where(Feedback.site_id == access.site.id)
+        .group_by(FeedbackTag.tag)
+        .order_by(func.count().desc(), FeedbackTag.tag)
+    )
+    return [TagCount(tag=tag, count=count) for tag, count in rows]
+
+
+@router.get("/counts")
+def counts(access: SiteAccess = Depends(site_access(Role.viewer)), db: Session = Depends(get_db)) -> QuickCounts:
+    """Sizes of the list's quick tabs: what is assigned to the caller and what is nobody's (spam excluded)."""
+    def count(*where) -> int:
+        return db.scalar(select(func.count()).select_from(Feedback).where(*_where(access.site.id, Filters()), *where)) or 0
+
+    return QuickCounts(mine=count(Feedback.assignee_id == access.user.id), unassigned=count(Feedback.assignee_id.is_(None)))
+
+
+@router.get("/assignees")
+def assignees(
+    q: str = Query(default="", max_length=100),
+    limit: int = Query(default=8, ge=1, le=20),
+    access: SiteAccess = Depends(site_access(Role.editor)),
+    db: Session = Depends(get_db),
+) -> list[Assignee]:
+    """The picker's search: editors and admins of the site whose name or email contains `q`. Never the whole
+    member list, which can be long."""
+    stmt = _assignable(access.site.id)
+    if q.strip():
+        stmt = stmt.where(
+            or_(*(c.icontains(q.strip(), autoescape=True) for c in (User.email, User.first_name, User.last_name)))
+        )
+    rows = db.execute(stmt.with_only_columns(User.id, User.email, user_name()).order_by(User.email).limit(limit))
+    return [Assignee(user_id=uid, email=email, name=name) for uid, email, name in rows]
+
+
 @router.get("/export.csv")
 def export_feedback(
     access: SiteAccess = Depends(site_access(Role.viewer)),
@@ -201,7 +302,8 @@ def export_feedback(
         db, access.user, "feedback.export", f"Exported feedback from {access.site.name} as CSV",
         target_type="site", target_id=access.site.id, site=access.site,
         details={"rows": min(total, settings.export_max_rows), "status": f.status.value if f.status else None, "search": bool(f.q), "issue_type": f.issue_type,
-                 "rating": f.rating, "has_email": f.has_email, "from": str(f.created_from or ""), "to": str(f.created_to or "")},
+                 "rating": f.rating, "has_email": f.has_email, "from": str(f.created_from or ""), "to": str(f.created_to or ""),
+                 "assignee": f.assignee, "tag": f.tag},
     )
     db.commit()
     slug = re.sub(r"[^a-z0-9]+", "-", access.site.name.lower()).strip("-")[:40] or "site"
@@ -236,11 +338,39 @@ def bulk_feedback(
         )
         for item in items:
             db.delete(item)
-    else:
+    elif body.action == "set_status":
         for item in items:
             item.status = body.status
+    elif body.action == "assign":
+        _check_assignee(db, access.site.id, body.assignee_id)
+        for item in items:
+            item.assignee_id = body.assignee_id
+        _audit_labels(db, access, "bulk_assign", f"Assigned {len(items)} feedback items on {access.site.name}",
+                      {"count": len(items), "assignee_id": _str(body.assignee_id), "ids": _ids(items)})
+    else:
+        add = body.action == "add_tag"
+        for item in items:
+            if add and body.tag not in item.tags and len(item.tags) >= MAX_TAGS:
+                raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"An item can have at most {MAX_TAGS} tags")
+            _set_tags(item, sorted({*item.tags, body.tag} if add else set(item.tags) - {body.tag}))
+        _audit_labels(db, access, body.action, f"{'Added' if add else 'Removed'} tag {body.tag} on {len(items)} feedback items in {access.site.name}",
+                      {"count": len(items), "tag": body.tag, "ids": _ids(items)})
     db.commit()
     return BulkResult(affected=len(items), skipped=len(ids) - len(items))
+
+
+def _str(value: uuid.UUID | None) -> str | None:
+    return None if value is None else str(value)
+
+
+def _ids(items: list[Feedback]) -> list[str]:
+    return sorted(str(i.id) for i in items)
+
+
+def _audit_labels(db: Session, access: SiteAccess, action: str, summary: str, details: dict) -> None:
+    """Assignment and tag changes: who and what, never the feedback text. (Status changes are not logged.)"""
+    audit(db, access.user, f"feedback.{action}", summary, target_type="site", target_id=access.site.id,
+          site=access.site, details=details)
 
 
 @router.get("/{feedback_id}")
@@ -260,9 +390,71 @@ def update_feedback(
     db: Session = Depends(get_db),
 ) -> FeedbackOut:
     item = _get(db, access.site.id, feedback_id)
-    item.status = body.status
+    sent = body.model_fields_set
+    if "status" in sent:
+        item.status = body.status
+    if "assignee_id" in sent:
+        _check_assignee(db, access.site.id, body.assignee_id)
+        if item.assignee_id != body.assignee_id:
+            item.assignee_id = body.assignee_id
+            _audit_labels(db, access, "assign", f"Assigned a feedback item on {access.site.name}",
+                          {"feedback_id": str(item.id), "assignee_id": _str(body.assignee_id)})
+    if "tags" in sent and body.tags != item.tags:
+        _audit_labels(db, access, "tags", f"Changed the tags of a feedback item on {access.site.name}",
+                      {"feedback_id": str(item.id), "from": item.tags, "to": body.tags})
+        _set_tags(item, body.tags)
     db.commit()
     return FeedbackOut.model_validate(item)
+
+
+@router.get("/{feedback_id}/notes")
+def list_notes(
+    feedback_id: uuid.UUID,
+    access: SiteAccess = Depends(site_access(Role.viewer)),
+    db: Session = Depends(get_db),
+) -> list[NoteOut]:
+    item = _get(db, access.site.id, feedback_id)
+    rows = db.execute(
+        select(FeedbackNote, user_name())
+        .outerjoin(User, User.id == FeedbackNote.author_id)
+        .where(FeedbackNote.feedback_id == item.id)
+        .order_by(FeedbackNote.created_at)
+    )
+    return [NoteOut.model_validate(n).model_copy(update={"author_name": name}) for n, name in rows]
+
+
+@router.post("/{feedback_id}/notes", status_code=status.HTTP_201_CREATED)
+def add_note(
+    feedback_id: uuid.UUID,
+    body: NoteIn,
+    access: SiteAccess = Depends(site_access(Role.editor)),
+    db: Session = Depends(get_db),
+) -> NoteOut:
+    item = _get(db, access.site.id, feedback_id)
+    note = FeedbackNote(feedback_id=item.id, author_id=access.user.id, body=body.body)
+    db.add(note)
+    db.commit()
+    return NoteOut.model_validate(note).model_copy(update={"author_name": db.scalar(select(user_name()).where(User.id == access.user.id))})
+
+
+@router.delete("/{feedback_id}/notes/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_note(
+    feedback_id: uuid.UUID,
+    note_id: uuid.UUID,
+    access: SiteAccess = Depends(site_access(Role.editor)),
+    db: Session = Depends(get_db),
+) -> None:
+    """An editor removes their own notes; an admin can remove any."""
+    item = _get(db, access.site.id, feedback_id)
+    note = db.scalar(select(FeedbackNote).where(FeedbackNote.id == note_id, FeedbackNote.feedback_id == item.id))
+    if note is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Note not found")
+    if note.author_id != access.user.id and ROLE_RANK[access.role] < ROLE_RANK[Role.admin]:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Only the author or an admin can delete a note")
+    audit(db, access.user, "feedback.note_delete", f"Deleted a note on a feedback item in {access.site.name}",
+          target_type="feedback", target_id=item.id, site=access.site, details={"note_id": str(note.id)})
+    db.delete(note)
+    db.commit()
 
 
 @router.delete("/{feedback_id}", status_code=status.HTTP_204_NO_CONTENT)
