@@ -1,11 +1,14 @@
 import uuid
+from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.db.session import get_db
 from app.models import User
+from app.schemas.common import sniff_image
 
 router = APIRouter(tags=["avatars"])
 
@@ -31,3 +34,29 @@ def get_avatar(user_id: uuid.UUID, db: Session = Depends(get_db)) -> Response:
             "Cross-Origin-Resource-Policy": "cross-origin",
         },
     )
+
+
+async def raw_body(request: Request) -> bytes:
+    return await request.body()
+
+
+def store_avatar(db: Session, user: User, raw: bytes, content_type: str | None) -> None:
+    """Validate a raw image upload and save it as the user's avatar."""
+    declared = (content_type or "").split(";")[0].strip().lower()
+    if declared not in ("image/png", "image/jpeg", "image/webp"):
+        raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "Avatar must be PNG, JPEG or WebP")
+    if len(raw) > settings.avatar_max_bytes:
+        raise HTTPException(413, f"Avatar must be at most {settings.avatar_max_bytes // 1024} KB")
+    if sniff_image(raw) != declared:
+        raise HTTPException(422, "Image contents do not match its content type")
+    user.avatar_data = raw
+    user.avatar_type = declared
+    user.avatar_updated_at = datetime.now(UTC)
+    db.commit()
+
+
+def clear_avatar(db: Session, user: User) -> None:
+    user.avatar_data = None
+    user.avatar_type = None
+    user.avatar_updated_at = None
+    db.commit()

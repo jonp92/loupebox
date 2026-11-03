@@ -155,3 +155,23 @@ def test_user_search_matches_names_and_returns_profile(client, db):
     h = login(client, "boss@example.com")
     found = client.get(f"/sites/{site.id}/user-search", params={"q": "hopp"}, headers=h).json()
     assert [(f["email"], f["first_name"]) for f in found] == [("x@example.com", "Grace")]
+
+
+def test_superadmin_can_set_and_clear_another_users_avatar(client, db):
+    root = make_user(db, "root@example.com", superadmin=True)
+    other = make_user(db, "o@example.com")
+    make_user(db, "plain@example.com")
+    admin, plain = login(client, "root@example.com"), login(client, "plain@example.com")
+    url = f"/users/{other.id}/avatar"
+
+    r = client.put(url, content=PNG, headers={**admin, "Content-Type": "image/png"})
+    assert r.status_code == 200 and r.json()["avatar_url"].startswith(f"{settings.api_prefix}/avatars/{other.id}?v=")
+    assert client.get(f"/avatars/{other.id}").content == PNG
+    assert client.put(url, content=b"nope", headers={**admin, "Content-Type": "image/png"}).status_code == 422
+
+    assert client.delete(url, headers=admin).json()["avatar_url"] is None
+    assert client.get(f"/avatars/{other.id}").status_code == 404
+
+    assert client.put(url, content=PNG, headers={**plain, "Content-Type": "image/png"}).status_code == 403
+    assert client.delete(url, headers=plain).status_code == 403
+    assert client.delete(f"/users/{root.id.__class__(int=0)}/avatar", headers=admin).status_code == 404

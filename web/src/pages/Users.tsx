@@ -1,7 +1,8 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Navigate } from "react-router-dom";
 import { api, displayName, json, type User } from "../api";
 import { useAuth } from "../auth";
+import { toAvatarBlob } from "../avatar";
 import { Avatar } from "../components";
 import { useConfirm } from "../confirm";
 
@@ -11,6 +12,7 @@ export default function Users() {
   const [users, setUsers] = useState<User[]>([]);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
   const load = () => api<User[]>("/users").then(setUsers).catch((e) => setError(e.message));
   useEffect(() => void load(), []);
 
@@ -54,6 +56,21 @@ export default function Users() {
     }
   }
 
+  async function saveAvatar(u: User, file: File | null) {
+    try {
+      const updated = file
+        ? await toAvatarBlob(file).then((image) =>
+            api<User>(`/users/${u.id}/avatar`, { method: "PUT", body: image, headers: { "Content-Type": image.type } }))
+        : await api<User>(`/users/${u.id}/avatar`, { method: "DELETE" });
+      if (updated.id === me!.id) setMe({ ...me!, ...updated });
+      setError("");
+      load();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+    if (fileInput.current) fileInput.current.value = "";
+  }
+
   async function toggle(u: User) {
     await api(`/users/${u.id}`, json("PATCH", { is_active: !u.is_active })).catch((e) => setError(e.message));
     load();
@@ -84,6 +101,12 @@ export default function Users() {
                 <label>First name<input name="first_name" defaultValue={u.first_name} required maxLength={100} autoFocus /></label>
                 <label>Last name<input name="last_name" defaultValue={u.last_name} required maxLength={100} /></label>
                 <label className="wide">Email<input name="email" type="email" defaultValue={u.email} required /></label>
+                <div className="wide avatar-row">
+                  <Avatar user={u} size="lg" />
+                  <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => saveAvatar(u, e.target.files?.[0] ?? null)} />
+                  <button type="button" onClick={() => fileInput.current?.click()}>Upload avatar</button>
+                  {u.avatar_url && <button type="button" className="danger" onClick={() => saveAvatar(u, null)}>Remove avatar</button>}
+                </div>
                 <div className="row-actions">
                   <button type="button" onClick={() => setEditing(null)}>Cancel</button>
                   <button className="primary">Save</button>

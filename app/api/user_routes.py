@@ -1,11 +1,12 @@
 import uuid
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.api.avatar_routes import clear_avatar, raw_body, store_avatar
 from app.api.deps import require_superadmin
 from app.core.security import hash_password
 from app.db.session import get_db
@@ -74,4 +75,30 @@ def update_user(
     except IntegrityError:
         db.rollback()
         raise HTTPException(status.HTTP_409_CONFLICT, "Email already registered")
+    return UserOut.model_validate(user)
+
+
+def _get_user(db: Session, user_id: uuid.UUID) -> User:
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+    return user
+
+
+@router.put("/{user_id}/avatar")
+def set_user_avatar(
+    user_id: uuid.UUID,
+    raw: bytes = Depends(raw_body),
+    content_type: str | None = Header(default=None),
+    db: Session = Depends(get_db),
+) -> UserOut:
+    user = _get_user(db, user_id)
+    store_avatar(db, user, raw, content_type)
+    return UserOut.model_validate(user)
+
+
+@router.delete("/{user_id}/avatar")
+def delete_user_avatar(user_id: uuid.UUID, db: Session = Depends(get_db)) -> UserOut:
+    user = _get_user(db, user_id)
+    clear_avatar(db, user)
     return UserOut.model_validate(user)

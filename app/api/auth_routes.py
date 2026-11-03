@@ -4,6 +4,7 @@ from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Request, 
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from app.api.avatar_routes import clear_avatar, raw_body, store_avatar
 from app.api.deps import get_current_user
 from app.core.config import settings
 from app.core.rate_limit import client_ip, enforce
@@ -23,7 +24,6 @@ from app.schemas.auth import (
     PasswordChange,
     TokenResponse,
 )
-from app.schemas.common import sniff_image
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -140,41 +140,21 @@ def me(user: User = Depends(get_current_user)) -> MeResponse:
     return _me(user)
 
 
-async def _raw_body(request: Request) -> bytes:
-    return await request.body()
-
-
 @router.put("/me/avatar")
 def set_avatar(
-    raw: bytes = Depends(_raw_body),
+    raw: bytes = Depends(raw_body),
     content_type: str | None = Header(default=None),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> MeResponse:
     """Upload the avatar as a raw image body. Name and email are superadmin-managed."""
-    declared = (content_type or "").split(";")[0].strip().lower()
-    if declared not in ("image/png", "image/jpeg", "image/webp"):
-        raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "Avatar must be PNG, JPEG or WebP")
-    if len(raw) > settings.avatar_max_bytes:
-        raise HTTPException(
-            413,
-            f"Avatar must be at most {settings.avatar_max_bytes // 1024} KB",
-        )
-    if sniff_image(raw) != declared:
-        raise HTTPException(422, "Image contents do not match its content type")
-    user.avatar_data = raw
-    user.avatar_type = declared
-    user.avatar_updated_at = datetime.now(UTC)
-    db.commit()
+    store_avatar(db, user, raw, content_type)
     return _me(user)
 
 
 @router.delete("/me/avatar")
 def delete_avatar(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> MeResponse:
-    user.avatar_data = None
-    user.avatar_type = None
-    user.avatar_updated_at = None
-    db.commit()
+    clear_avatar(db, user)
     return _me(user)
 
 
