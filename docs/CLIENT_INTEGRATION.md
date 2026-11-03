@@ -12,7 +12,7 @@ server. You build the form (UI + a small submit function) inside this app.
 
 | Needed | Example | Notes |
 |---|---|---|
-| `LOUPEBOX_URL` | `https://feedback.pressler.tech/v1/api` | Base URL of the API **including the `/v1/api` prefix**, no trailing slash |
+| `LOUPEBOX_URL` | `https://feedback.example.com/v1/api` | Base URL of the API **including the `/v1/api` prefix**, no trailing slash |
 | `LOUPEBOX_KEY` | `pk_...` | The site's **public** key. Safe to ship in client JS. |
 | This app's origin(s) | `https://app.example.com`, `http://localhost:3000` | Each must be on the site's **allowed origins** list in the Loupebox admin UI (Site → Settings). Ask the user to confirm, including local dev origins. |
 
@@ -21,9 +21,9 @@ server. You build the form (UI + a small submit function) inside this app.
 Every Loupebox route lives under the `/v1/api` prefix, and `LOUPEBOX_URL` includes it:
 
 ```
-LOUPEBOX_URL = https://feedback.pressler.tech/v1/api        (origin + /v1/api, no trailing slash)
+LOUPEBOX_URL = https://feedback.example.com/v1/api        (origin + /v1/api, no trailing slash)
 Endpoint     = {LOUPEBOX_URL}/feedback
-             = https://feedback.pressler.tech/v1/api/feedback
+             = https://feedback.example.com/v1/api/feedback
 ```
 
 Store `LOUPEBOX_URL` as **one** config value with the prefix included, so the code only ever appends
@@ -240,7 +240,7 @@ Plain-HTML variant, for non-framework pages:
    missing Origin; by default it does not, so include one):
 
 ```bash
-LOUPEBOX_URL=https://feedback.pressler.tech/v1/api   # includes the prefix
+LOUPEBOX_URL=https://feedback.example.com/v1/api   # includes the prefix
 curl -i -X POST "$LOUPEBOX_URL/feedback" \
   -H "Content-Type: application/json" \
   -H "X-API-Key: $LOUPEBOX_KEY" \

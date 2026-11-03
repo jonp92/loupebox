@@ -84,22 +84,23 @@ create/update/delete, feedback deletion, and people changing their own password 
   manages settings, key and members. `superadmin` is global: creates sites/users, admin everywhere.
 * Non-members get 404 for sites they can't see.
 
-## Deploy behind Caddy (feedback.pressler.tech)
+## Deploy behind Caddy (feedback.example.com)
 
 Every API route lives under `/v1/api` (`API_PREFIX`), so Caddy needs one rule: `/v1/api/*` goes to
 the API, everything else to the web UI. No path rewriting. UI and API share an origin, so the admin
-UI needs no CORS, and client sites post to `https://feedback.pressler.tech/v1/api/feedback`.
+UI needs no CORS, and client sites post to `https://feedback.example.com/v1/api/feedback`.
 
-1. DNS: point `feedback.pressler.tech` at the machine. Caddy gets the certificate automatically.
-2. `cp deploy/production.env.example .env` and fill in `JWT_SECRET` and `POSTGRES_PASSWORD`.
+1. DNS: point your domain (here `feedback.example.com`; use yours throughout, including in `deploy/Caddyfile`) at the machine. Caddy gets the certificate automatically.
+2. `./scripts/setup.sh deploy/production.env.example` writes `.env` with generated secrets; then set your domain
+   in `API_URL`, `ADMIN_ORIGINS` and `PUBLIC_URL`.
 3. `docker compose up -d --build`, then create the first admin:
-   `docker compose run --rm api python -m scripts.create_superadmin you@pressler.tech`
+   `docker compose run --rm api python -m scripts.create_superadmin you@example.com`
 4. Add [deploy/Caddyfile](deploy/Caddyfile) to the host's Caddyfile and `caddy reload`. It proxies
    to `127.0.0.1:8000` (API) and `127.0.0.1:8080` (UI), which compose binds to localhost only, so
    nothing is reachable except through Caddy. If you change `API_PORT` / `WEB_PORT` in `.env`,
    change the Caddyfile upstreams to match.
 5. In the admin UI create a site and list the client site's origins. Give clients
-   `https://feedback.pressler.tech/v1/api` as their API URL.
+   `https://feedback.example.com/v1/api` as their API URL.
 
 Notes:
 

@@ -1,9 +1,12 @@
 #!/bin/sh
 # First-run setup: writes .env from .env.example with freshly generated secrets.
-# Usage: ./scripts/setup.sh   (refuses to overwrite an existing .env)
+# Usage: ./scripts/setup.sh [template]   (default .env.example; use deploy/production.env.example for a server)
+# Refuses to overwrite an existing .env.
 set -eu
 cd "$(dirname "$0")/.."
 
+template=${1:-.env.example}
+[ -f "$template" ] || { echo "No such template: $template" >&2; exit 1; }
 [ -e .env ] && { echo ".env already exists; delete it first to start over." >&2; exit 1; }
 command -v openssl >/dev/null || { echo "openssl is required to generate secrets." >&2; exit 1; }
 
@@ -16,7 +19,7 @@ awk -v jwt="$(secret)" -v totp="$(secret)" -v hook="$(secret)" -v db="$dbpass" '
   /^WEBHOOK_ENCRYPTION_KEY=$/ { print "WEBHOOK_ENCRYPTION_KEY=" hook; next }
   /^POSTGRES_PASSWORD=$/      { print "POSTGRES_PASSWORD=" db; next }
   { gsub(/CHANGE_ME/, db); print }
-' .env.example > .env
+' "$template" > .env
 chmod 600 .env
 
 cat <<MSG
