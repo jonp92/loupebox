@@ -6,7 +6,7 @@ on:
     tags: ["v*"]
 
 permissions:
-  contents: read
+  contents: write # the release job creates the GitHub Release
   packages: write
 
 jobs:
@@ -49,3 +49,29 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,scope=${{ matrix.image }},mode=max
+
+  release:
+    name: GitHub Release
+    needs: images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Notes from CHANGELOG.md
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          awk -v v="$v" '/^## \[/ { on = index($0, "[" v "]") } /^\[[^]]+\]: / { on = 0 } on' CHANGELOG.md > notes.md
+          [ -s notes.md ] || { echo "No CHANGELOG.md entry for $v" >&2; exit 1; }
+      # What someone needs to run the release without cloning. GitHub drops leading dots from asset names,
+      # so the template is published as env.example.
+      - name: Stage assets
+        run: |
+          mkdir dist
+          cp docker-compose.yml dist/
+          cp scripts/setup.sh dist/setup.sh
+          cp .env.example dist/env.example
+      # --latest on purpose, not --prerelease: the install command in the README uses releases/latest/download,
+      # which skips prereleases. Revisit once there is a stable 1.0.
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "Loupebox $GITHUB_REF_NAME" --notes-file notes.md --latest --verify-tag
