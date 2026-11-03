@@ -233,6 +233,10 @@ code.key { display: inline-block; margin-right: .75rem; background: var(--surfac
   /* overflow-x makes the box scroll vertically too; the tabs' -1px margin would then overflow by 1px. */
   .tabs { overflow-x: auto; overflow-y: hidden; white-space: nowrap; }
   .tabs a { margin-bottom: 0; }
+  /* Fade the edge(s) that have more tabs beyond them, so a cut-off tab reads as "scroll", not "missing". */
+  .tabs[data-more-end] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent); }
+  .tabs[data-more-start] { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 2.5rem), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 2.5rem), transparent); }
+  .tabs[data-more-start][data-more-end] { -webkit-mask-image: linear-gradient(to right, transparent, #000 2.5rem, #000 calc(100% - 2.5rem), transparent); mask-image: linear-gradient(to right, transparent, #000 2.5rem, #000 calc(100% - 2.5rem), transparent); }
   /* User cards: name and badges on the first row, buttons wrap below. */
   .users li .grow { flex-basis: calc(100% - 3rem); }
   .toolbar { flex-wrap: wrap; }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Navigate, Route, Routes, useParams } from "react-router-dom";
 import { api, type Site } from "../api";
+import { ScrollTabs } from "../components";
 import Activity from "./Activity";
 import FeedbackList from "./FeedbackList";
 import Members from "./Members";
@@ -28,13 +29,13 @@ export default function SiteDetail() {
         <span className="badge">{site.my_role}</span>
         {!site.is_active && <span className="badge warn">disabled</span>}
       </div>
-      <nav className="tabs">
+      <ScrollTabs>
         <NavLink to="" end>Feedback</NavLink>
         <NavLink to="activity">Activity</NavLink>
         {isAdmin && <NavLink to="settings">Settings</NavLink>}
         {isAdmin && <NavLink to="members">Members</NavLink>}
         {isAdmin && <NavLink to="notifications">Notifications</NavLink>}
-      </nav>
+      </ScrollTabs>
       <Routes>
         <Route index element={<FeedbackList site={site} />} />
         <Route path="feedback/:feedbackId" element={<FeedbackList site={site} />} />

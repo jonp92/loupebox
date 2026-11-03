@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useLocation } from "react-router-dom";
 import { useOnline } from "./online";
 import { api, avatarSrc, displayName, type ConfigSchema, type JsonSchemaProp, type Profile } from "./api";
 
@@ -206,4 +207,45 @@ export function SchemaFields({ schema, values, onChange }: {
       })}
     </>
   );
+}
+
+/**
+ * Tab bar that scrolls sideways when it doesn't fit (phones). Keeps the active tab in view when the route
+ * changes, and marks which edges have more tabs beyond them (`data-more-start` / `data-more-end`) so CSS can
+ * fade them.
+ */
+export function ScrollTabs({ children }: { children: ReactNode }) {
+  const nav = useRef<HTMLElement>(null);
+  const { pathname } = useLocation();
+
+  function markEdges() {
+    const el = nav.current;
+    if (!el) return;
+    el.toggleAttribute("data-more-start", el.scrollLeft > 1);
+    el.toggleAttribute("data-more-end", el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }
+
+  useEffect(() => {
+    const el = nav.current;
+    if (!el) return;
+    markEdges();
+    const ro = new ResizeObserver(markEdges);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const el = nav.current;
+    const active = el?.querySelector<HTMLElement>("a.active");
+    if (!el || !active) return;
+    const box = el.getBoundingClientRect();
+    const tab = active.getBoundingClientRect();
+    // Centre the active tab, clamped by the browser to the scrollable range.
+    const left = el.scrollLeft + tab.left - box.left - (box.width - tab.width) / 2;
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollTo({ left, behavior: calm ? "auto" : "smooth" });
+    markEdges();
+  }, [pathname]);
+
+  return <nav className="tabs" ref={nav} onScroll={markEdges}>{children}</nav>;
 }
