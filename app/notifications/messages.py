@@ -39,6 +39,8 @@ def build_message(row: NotificationOutbox, site: Site, recipients: list[str]) ->
     p = row.payload
     link = _site_link(site, p.get("feedback_id"))
     facts = []
+    if p.get("issue_type"):
+        facts.append(("Type", p["issue_type"].replace("-", " ").replace("_", " ").capitalize()))
     if p.get("rating") is not None:
         facts.append(("Rating", str(p["rating"])))
     who = " ".join(x for x in (p.get("name"), p.get("email")) if x)

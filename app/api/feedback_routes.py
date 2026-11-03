@@ -30,8 +30,16 @@ def _get(db: Session, site_id: uuid.UUID, feedback_id: uuid.UUID) -> Feedback:
     return item
 
 
-def _filters(site_id: uuid.UUID, status_filter: FeedbackStatus | None, q: str | None) -> list:
+_ISSUE_TYPE = r"^[a-z0-9_-]{1,32}$"  # what the widget's badges send as metadata.issue_type
+_issue_type_col = Feedback.meta["issue_type"].as_string()
+
+
+def _filters(
+    site_id: uuid.UUID, status_filter: FeedbackStatus | None, q: str | None, issue_type: str | None = None
+) -> list:
     where = [Feedback.site_id == site_id]
+    if issue_type:
+        where.append(_issue_type_col == issue_type)
     if status_filter:
         where.append(Feedback.status == status_filter)
     else:
@@ -54,10 +62,11 @@ def list_feedback(
     db: Session = Depends(get_db),
     status_filter: FeedbackStatus | None = Query(default=None, alias="status"),
     q: str | None = Query(default=None, max_length=200),
+    issue_type: str | None = Query(default=None, pattern=_ISSUE_TYPE),
     limit: int = Query(default=25, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
 ) -> FeedbackPage:
-    where = _filters(access.site.id, status_filter, q)
+    where = _filters(access.site.id, status_filter, q, issue_type)
     total = db.scalar(select(func.count()).select_from(Feedback).where(*where)) or 0
     rows = db.scalars(
         select(Feedback).where(*where).order_by(Feedback.created_at.desc()).limit(limit).offset(offset)
@@ -65,7 +74,7 @@ def list_feedback(
     return FeedbackPage(items=[FeedbackOut.model_validate(r) for r in rows], total=total)
 
 
-CSV_COLUMNS = ("id", "created_at", "status", "rating", "name", "email", "message", "page_url", "meta")
+CSV_COLUMNS = ("id", "created_at", "status", "issue_type", "rating", "name", "email", "message", "page_url", "meta")
 # A spreadsheet treats a cell starting with one of these as a formula. Submitter text is untrusted.
 _FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
 
@@ -76,6 +85,11 @@ def csv_cell(value: object) -> object:
     if isinstance(value, str) and value.startswith(_FORMULA_START):
         return "'" + value
     return value
+
+
+def _issue_type_of(item: Feedback) -> str | None:
+    value = (item.meta or {}).get("issue_type")
+    return value if isinstance(value, str) and re.match(_ISSUE_TYPE, value) else None
 
 
 def _csv_rows(site_id: uuid.UUID, where: list) -> Iterator[str]:
@@ -109,6 +123,7 @@ def _csv_rows(site_id: uuid.UUID, where: list) -> Iterator[str]:
                     item.id,
                     created.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
                     item.status.value,
+                    _issue_type_of(item),
                     item.rating,
                     item.name,
                     item.email,
@@ -122,20 +137,35 @@ def _csv_rows(site_id: uuid.UUID, where: list) -> Iterator[str]:
     yield flush()
 
 
+@router.get("/issue-types")
+def issue_types(
+    access: SiteAccess = Depends(site_access(Role.viewer)), db: Session = Depends(get_db)
+) -> list[dict]:
+    """The issue types visitors have sent (from the widget's badges) with how many, for the list filter."""
+    rows = db.execute(
+        select(_issue_type_col, func.count())
+        .where(Feedback.site_id == access.site.id, Feedback.status != FeedbackStatus.spam, _issue_type_col.is_not(None))
+        .group_by(_issue_type_col)
+        .order_by(func.count().desc())
+    )
+    return [{"id": value, "count": count} for value, count in rows if re.match(_ISSUE_TYPE, value or "")]
+
+
 @router.get("/export.csv")
 def export_feedback(
     access: SiteAccess = Depends(site_access(Role.viewer)),
     db: Session = Depends(get_db),
     status_filter: FeedbackStatus | None = Query(default=None, alias="status"),
     q: str | None = Query(default=None, max_length=200),
+    issue_type: str | None = Query(default=None, pattern=_ISSUE_TYPE),
 ) -> StreamingResponse:
     """The same filters as the list, as a CSV download (capped at `EXPORT_MAX_ROWS` rows)."""
-    where = _filters(access.site.id, status_filter, q)
+    where = _filters(access.site.id, status_filter, q, issue_type)
     total = db.scalar(select(func.count()).select_from(Feedback).where(*where)) or 0
     audit(  # bulk personal data leaving the system; the contents are not recorded
         db, access.user, "feedback.export", f"Exported feedback from {access.site.name} as CSV",
         target_type="site", target_id=access.site.id, site=access.site,
-        details={"rows": min(total, settings.export_max_rows), "status": status_filter.value if status_filter else None, "search": bool(q)},
+        details={"rows": min(total, settings.export_max_rows), "status": status_filter.value if status_filter else None, "search": bool(q), "issue_type": issue_type},
     )
     db.commit()
     slug = re.sub(r"[^a-z0-9]+", "-", access.site.name.lower()).strip("-")[:40] or "site"

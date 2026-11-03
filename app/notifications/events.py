@@ -1,3 +1,4 @@
+import re
 from typing import Literal
 
 from pydantic import BaseModel
@@ -5,6 +6,15 @@ from pydantic import BaseModel
 from app.models import Feedback
 
 EXCERPT_CHARS = 500
+
+
+_ISSUE_TYPE = re.compile(r"^[a-z0-9_-]{1,32}$")
+
+
+def _issue_type(item: Feedback) -> str | None:
+    """Client-supplied, so only a plain id gets into emails and webhooks."""
+    value = (item.meta or {}).get("issue_type")
+    return value if isinstance(value, str) and _ISSUE_TYPE.match(value) else None
 
 
 class FeedbackCreated(BaseModel):
@@ -17,6 +27,7 @@ class FeedbackCreated(BaseModel):
     name: str | None = None
     email: str | None = None
     page_url: str | None = None
+    issue_type: str | None = None  # the widget's badge, when the visitor picked one
 
     @classmethod
     def from_feedback(cls, item: Feedback) -> "FeedbackCreated":
@@ -27,6 +38,7 @@ class FeedbackCreated(BaseModel):
             name=item.name,
             email=item.email,
             page_url=item.page_url,
+            issue_type=_issue_type(item),
         )
 
 
