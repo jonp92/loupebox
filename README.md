@@ -5,22 +5,35 @@ site key; staff review it in the UI under per-site roles.
 
 ## Run with Docker
 
+Without cloning, using the published images (needs Docker with the compose plugin and `openssl`):
+
 ```bash
-./scripts/setup.sh       # writes .env with generated secrets (needs openssl)
+mkdir loupebox && cd loupebox
+for f in docker-compose.yml setup.sh env.example; do
+  curl -fsSLO https://github.com/jonp92/loupebox/releases/latest/download/$f
+done
+sh setup.sh              # writes .env with generated secrets
+docker compose up -d
+docker compose run --rm api python -m scripts.create_superadmin you@example.com
+```
+
+From a checkout, building from source:
+
+```bash
+./scripts/setup.sh       # writes .env with generated secrets
 docker compose up -d --build
 docker compose run --rm api python -m scripts.create_superadmin you@example.com
 ```
 
-Then open http://localhost:8080 and sign in. Prerequisites: Docker with the compose plugin. To
-set the secrets by hand instead, `cp .env.example .env` and fill in the blanks (see the comments inside).
+Then open http://localhost:8080 and sign in. To set the secrets by hand instead, copy `.env.example` to `.env` and
+fill in the blanks (see the comments inside).
 
 * Web UI: http://localhost:8080 · API: http://localhost:8000/v1/api (interactive docs at `/v1/api/docs` only when
   `ENVIRONMENT` is not `production`; compose defaults to production, set `ENVIRONMENT=development` locally)
 * Host ports are bound to localhost only; use a reverse proxy for anything public. Override them
   with `API_PORT`, `WEB_PORT` and `DB_PORT` in `.env` (defaults 8000 / 8080 / 5432).
-* **Published images:** releases push `ghcr.io/jonp92/loupebox-api` and `loupebox-web` (amd64 and arm64). To run them
-  without cloning the repo, download only `docker-compose.yml` and put your `.env` next to it, then
-  `docker compose up -d`. Without `docker-compose.override.yml` nothing is built, and `LOUPEBOX_VERSION` in `.env`
+* **Published images:** releases push `ghcr.io/jonp92/loupebox-api` and `loupebox-web` (amd64 and arm64); the worker
+  runs from the API image. Without `docker-compose.override.yml` nothing is built, and `LOUPEBOX_VERSION` in `.env`
   pins a version (default `latest`). In a checkout the override file is loaded automatically and builds from source.
 * Services: `db` (Postgres), `migrate` (one-shot `alembic upgrade head`, the API waits for it),
   `api`, `worker` (sends notification emails), `web` (static build served by nginx, non-root).
