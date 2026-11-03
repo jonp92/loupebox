@@ -62,12 +62,20 @@ class Settings(BaseSettings):
     # Public origin of the admin UI, used for links in emails. Links are omitted when empty.
     public_url: str = ""
 
+    # CSV export stops at this many rows per download.
+    export_max_rows: int = 100_000
+
+    # Webhook notifications. Targets must be public https hosts; turn this on to allow private,
+    # loopback and plain-http targets (for a receiver on your own network).
+    webhook_allow_private: bool = False
+
     # Audit log (admin actions). Events older than this are purged by the worker; 0 keeps them forever.
     audit_retention_days: int = 365
 
-    # TOTP secrets are encrypted at rest with this key (any string; it is hashed into a Fernet key).
-    # Falls back to JWT_SECRET, but then rotating JWT_SECRET locks TOTP users out: set it separately.
-    totp_encryption_key: str = ""
+    # Secrets the server must read back are encrypted at rest, one key per purpose (any string). Each
+    # falls back to JWT_SECRET, but then rotating JWT_SECRET makes them unreadable: set them separately.
+    totp_encryption_key: str = ""  # two-factor seeds
+    webhook_encryption_key: str = ""  # webhook signing secrets
     totp_issuer: str = "Ganymede"
     mfa_token_minutes: int = 5  # how long the password step stays valid while the code is entered
     mfa_hourly_limit: int = 20  # second-factor attempts per user per hour (the per-minute cap is login_account_limit)

@@ -62,14 +62,25 @@ class ChannelOut(BaseModel):
     events: list[str]
     min_role: Role
     extra_recipients: list[str]
+    has_secret: bool  # the secret itself is only returned once, when it is created or rotated
     created_at: datetime
     updated_at: datetime
+
+
+class ChannelCreated(ChannelOut):
+    secret: str | None = None
+
+
+class SecretOut(BaseModel):
+    secret: str
 
 
 class ProviderOut(BaseModel):
     key: str
     label: str
     configured: bool  # server-side settings (API key, sender) are present
+    uses_recipients: bool  # sent to people (role + extra addresses) rather than to one endpoint
+    signs: bool  # channels get a signing secret
     config_schema: dict  # JSON Schema of the provider's per-channel settings
 
 
@@ -92,4 +103,4 @@ class TestResult(BaseModel):
 
     status: Literal["sent", "retry", "failed"]
     error: str | None = None
-    to: str
+    to: str | None = None  # the address a test email went to; none for endpoint-style providers

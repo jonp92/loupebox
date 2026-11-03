@@ -283,3 +283,5 @@ dialog.confirm .row-actions { justify-content: flex-end; }
 .codes { list-style: none; padding: .75rem; margin: .5rem 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: .35rem .75rem; background: var(--surface-2); border-radius: 8px; }
 .login-links { margin: 1rem 0 0; font-size: .9rem; }
 button.link { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font: inherit; text-decoration: underline; }
+
+.secret-notice code.secret { display: block; padding: .6rem .75rem; background: var(--surface-2); border-radius: 8px; overflow-wrap: anywhere; user-select: all; }

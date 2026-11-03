@@ -193,18 +193,37 @@ export async function logout() {
   accessToken = null;
 }
 
-export async function api<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
+async function request(path: string, init: RequestInit, retry = true): Promise<Response> {
   const headers = new Headers(init.headers);
   if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
   if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
   const res = await fetch(BASE + path, { ...init, headers, credentials: "include" });
   if (res.status === 401 && retry) {
-    if (await refresh()) return api<T>(path, init, false);
+    if (await refresh()) return request(path, init, false);
     accessToken = null;
     onLoggedOut();
   }
   if (!res.ok) throw new ApiError(res.status, await detail(res));
+  return res;
+}
+
+export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const res = await request(path, init);
   return res.status === 204 ? (undefined as T) : res.json();
+}
+
+/** Fetch a file with the session's credentials and hand it to the browser as a download. */
+export async function download(path: string, fallbackName: string) {
+  const res = await request(path, {});
+  const name = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? fallbackName;
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 export const json = (method: string, body: unknown): RequestInit => ({
@@ -230,6 +249,8 @@ export interface ProviderInfo {
   key: string;
   label: string;
   configured: boolean;
+  uses_recipients: boolean;
+  signs: boolean;
   config_schema: ConfigSchema;
 }
 export interface VerifierInfo {
@@ -246,6 +267,7 @@ export interface Channel {
   events: string[];
   min_role: Role;
   extra_recipients: string[];
+  has_secret: boolean;
   created_at: string;
 }
 export interface Delivery {

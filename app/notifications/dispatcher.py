@@ -6,13 +6,14 @@ as one summary email.
 """
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 
 from pydantic import BaseModel, ValidationError
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
+from app.core import crypto
 from app.core.config import settings
 from app.models import NotificationChannel, NotificationOutbox, OutboxStatus, Site
 from app.models.user import utcnow
@@ -44,6 +45,7 @@ class Target:
     config: BaseModel
     site: Site
     recipients: list[str]
+    secret: str | None = None
 
 
 def claim_due(db: Session, now: datetime, limit: int) -> list[NotificationOutbox]:
@@ -83,13 +85,20 @@ def _prepare(db: Session, channel_id, site_id) -> Target | SendResult:
     site = db.get(Site, site_id)
     if site is None:
         return SendResult.failed("site deleted")
-    recipients = resolve_recipients(db, channel)
-    if not recipients:
+    recipients = resolve_recipients(db, channel) if provider.uses_recipients else []
+    if provider.uses_recipients and not recipients:
         return SendResult.failed("no recipients")
-    return Target(channel, provider, config, site, recipients)
+    secret = None
+    if provider.signs:
+        secret = crypto.decrypt("webhook", channel.secret) if channel.secret else None
+        if secret is None:
+            return SendResult.failed("signing secret missing or unreadable (check WEBHOOK_ENCRYPTION_KEY)")
+    return Target(channel, provider, config, site, recipients, secret)
 
 
 def _cap_reached(db: Session, channel: NotificationChannel, now: datetime) -> bool:
+    if not get_provider(channel.provider).rate_capped:
+        return False
     sends = db.scalar(
         select(func.count())
         .select_from(NotificationOutbox)
@@ -109,7 +118,7 @@ def _cap_reached(db: Session, channel: NotificationChannel, now: datetime) -> bo
 
 def _call(target: Target, message) -> SendResult:
     try:
-        return target.provider.send(message, target.config)
+        return target.provider.send(replace(message, secret=target.secret), target.config)
     except Exception as exc:  # a buggy provider must not kill the worker
         log.exception("provider %s raised", target.provider.key)
         return SendResult.retry(f"{type(exc).__name__}: {exc}")

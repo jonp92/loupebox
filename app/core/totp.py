@@ -9,8 +9,7 @@ import struct
 import time
 from urllib.parse import quote, urlencode
 
-from cryptography.fernet import Fernet, InvalidToken
-
+from app.core import crypto
 from app.core.config import settings
 
 STEP_SECONDS = 30
@@ -20,20 +19,12 @@ _WINDOW = 1
 RECOVERY_CODE_COUNT = 10
 
 
-def _fernet() -> Fernet:
-    key = settings.totp_encryption_key or settings.jwt_secret
-    return Fernet(base64.urlsafe_b64encode(hashlib.sha256(b"totp:" + key.encode()).digest()))
-
-
 def encrypt_secret(secret: str) -> str:
-    return _fernet().encrypt(secret.encode()).decode()
+    return crypto.encrypt("totp", secret)
 
 
 def decrypt_secret(token: str) -> str | None:
-    try:
-        return _fernet().decrypt(token.encode()).decode()
-    except InvalidToken:
-        return None
+    return crypto.decrypt("totp", token)
 
 
 def new_secret() -> str:

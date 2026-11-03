@@ -17,11 +17,29 @@ const SPLIT = /[\s,;]+/;
 
 const when = (iso: string) => new Date(iso).toLocaleString();
 
+/** The signing secret is only returned when created or rotated, so this is the one chance to copy it. */
+function SecretNotice({ name, secret, onClose }: { name: string; secret: string; onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <section className="card secret-notice" role="status">
+      <h2>Signing secret for "{name}"</h2>
+      <p>Copy it now: it won't be shown again. Your endpoint uses it to check that requests really come from Ganymede. If you lose it, rotate it.</p>
+      <p><code className="secret">{secret}</code></p>
+      <div className="row-actions">
+        <button
+          onClick={() => navigator.clipboard.writeText(secret).then(() => setCopied(true), () => setCopied(false))}
+        >{copied ? "Copied" : "Copy"}</button>
+        <button className="primary" onClick={onClose}>I've saved it</button>
+      </div>
+    </section>
+  );
+}
+
 function ChannelForm({ siteId, providers, channel, onSaved, onCancel }: {
   siteId: string;
   providers: ProviderInfo[];
   channel?: Channel;
-  onSaved: () => void;
+  onSaved: (created?: { name: string; secret: string }) => void;
   onCancel: () => void;
 }) {
   const [provider, setProvider] = useState(channel?.provider ?? providers[0]?.key ?? "");
@@ -36,6 +54,7 @@ function ChannelForm({ siteId, providers, channel, onSaved, onCancel }: {
 
   const info = providers.find((p) => p.key === provider);
   const blocked = info !== undefined && !info.configured;
+  const recipients = info?.uses_recipients ?? true;
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -49,11 +68,11 @@ function ChannelForm({ siteId, providers, channel, onSaved, onCancel }: {
       extra_recipients: extra.split(SPLIT).filter(Boolean),
     };
     try {
-      await api(
+      const saved = await api<Channel & { secret?: string | null }>(
         `/sites/${siteId}/notifications${channel ? `/${channel.id}` : ""}`,
         json(channel ? "PATCH" : "POST", channel ? body : { ...body, provider }),
       );
-      onSaved();
+      onSaved(saved.secret ? { name: saved.name, secret: saved.secret } : undefined);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -88,14 +107,18 @@ function ChannelForm({ siteId, providers, channel, onSaved, onCancel }: {
           </label>
         ))}
       </fieldset>
-      <label>Send to members who are at least
-        <select value={minRole} onChange={(e) => setMinRole(e.target.value as Role)}>
-          {ROLES.map((r) => <option key={r}>{r}</option>)}
-        </select>
-      </label>
-      <label>Extra recipients<small> (one per line, up to 20)</small>
-        <textarea rows={3} value={extra} onChange={(e) => setExtra(e.target.value)} />
-      </label>
+      {recipients && (
+        <>
+          <label>Send to members who are at least
+            <select value={minRole} onChange={(e) => setMinRole(e.target.value as Role)}>
+              {ROLES.map((r) => <option key={r}>{r}</option>)}
+            </select>
+          </label>
+          <label>Extra recipients<small> (one per line, up to 20)</small>
+            <textarea rows={3} value={extra} onChange={(e) => setExtra(e.target.value)} />
+          </label>
+        </>
+      )}
       <label className="inline">
         <input type="checkbox" checked={enabled && !blocked} disabled={blocked} onChange={(e) => setEnabled(e.target.checked)} /> Enabled
       </label>
@@ -116,6 +139,7 @@ export default function Notifications({ site }: { site: Site }) {
   const [testing, setTesting] = useState<string | null>(null);
   const [testMsg, setTestMsg] = useState<Record<string, { ok: boolean; text: string }>>({});
   const [error, setError] = useState("");
+  const [revealed, setRevealed] = useState<{ name: string; secret: string } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -134,21 +158,38 @@ export default function Notifications({ site }: { site: Site }) {
   }, [site.id]);
   useEffect(() => void load(), [load]);
 
+  const info = (key: string) => providers.find((p) => p.key === key);
   const label = (key: string) => providers.find((p) => p.key === key)?.label ?? key;
   const configured = (key: string) => providers.find((p) => p.key === key)?.configured ?? false;
 
   async function test(c: Channel) {
     setTesting(c.id);
     try {
-      const r = await api<{ status: string; error: string | null; to: string }>(
+      const r = await api<{ status: string; error: string | null; to: string | null }>(
         `/sites/${site.id}/notifications/${c.id}/test`, { method: "POST" },
       );
-      const text = r.status === "sent" ? `Test sent to ${r.to}` : `Test ${r.status}: ${r.error ?? "unknown error"}`;
+      const text = r.status === "sent" ? (r.to ? `Test sent to ${r.to}` : "Test delivered") : `Test ${r.status}: ${r.error ?? "unknown error"}`;
       setTestMsg((m) => ({ ...m, [c.id]: { ok: r.status === "sent", text } }));
     } catch (e) {
       setTestMsg((m) => ({ ...m, [c.id]: { ok: false, text: (e as Error).message } }));
     } finally {
       setTesting(null);
+    }
+  }
+
+  async function rotate(c: Channel) {
+    const ok = await confirm({
+      title: `Rotate the signing secret for "${c.name}"?`,
+      message: "The current secret stops working immediately, so update your endpoint with the new one.",
+      confirmLabel: "Rotate",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      const r = await api<{ secret: string }>(`/sites/${site.id}/notifications/${c.id}/rotate-secret`, { method: "POST" });
+      setRevealed({ name: c.name, secret: r.secret });
+    } catch (e) {
+      setError((e as Error).message);
     }
   }
 
@@ -158,7 +199,11 @@ export default function Notifications({ site }: { site: Site }) {
     load();
   }
 
-  const saved = () => { setEditing(null); load(); };
+  const saved = (created?: { name: string; secret: string }) => {
+    setEditing(null);
+    if (created) setRevealed(created);
+    load();
+  };
   const unconfigured = providers.filter((p) => !p.configured && channels.some((c) => c.provider === p.key));
 
   return (
@@ -169,6 +214,8 @@ export default function Notifications({ site }: { site: Site }) {
           {p.label} isn't configured on the server. Channels using it won't send until the operator sets it up.
         </p>
       ))}
+
+      {revealed && <SecretNotice {...revealed} onClose={() => setRevealed(null)} />}
 
       <h2 className="section">Channels <span className="count">{channels.length}</span></h2>
       <ul className="list">
@@ -184,7 +231,7 @@ export default function Notifications({ site }: { site: Site }) {
                     <span className="badge">{label(c.provider)}</span>
                     <span className={`badge ${c.enabled ? "sent" : ""}`}>{c.enabled ? "enabled" : "disabled"}</span>
                     {!configured(c.provider) && <span className="badge failed">not configured</span>}
-                    <span className="badge">{c.min_role}+</span>
+                    {info(c.provider)?.uses_recipients !== false && <span className="badge">{c.min_role}+</span>}
                     {c.extra_recipients.length > 0 && <span className="badge">+{c.extra_recipients.length} extra</span>}
                   </span>
                   {testMsg[c.id] && (
@@ -192,15 +239,16 @@ export default function Notifications({ site }: { site: Site }) {
                   )}
                 </span>
                 <button onClick={() => test(c)} disabled={testing === c.id || !configured(c.provider)}>
-                  {testing === c.id ? "Sending…" : "Send test to me"}
+                  {testing === c.id ? "Sending…" : info(c.provider)?.uses_recipients === false ? "Send test" : "Send test to me"}
                 </button>
+                {info(c.provider)?.signs && <button onClick={() => rotate(c)}>Rotate secret</button>}
                 <button onClick={() => setEditing(c.id)}>Edit</button>
                 <button className="danger" onClick={() => remove(c)}>Delete</button>
               </>
             )}
           </li>
         ))}
-        {channels.length === 0 && <li className="muted">No channels yet. Add one to get emailed when feedback arrives.</li>}
+        {channels.length === 0 && <li className="muted">No channels yet. Add one to get emailed, or posted to a webhook, when feedback arrives.</li>}
       </ul>
 
       {editing === "new" ? (
@@ -236,7 +284,7 @@ export default function Notifications({ site }: { site: Site }) {
         </div>
       )}
       <p className="muted hint">
-        Each channel has an hourly email limit. Anything beyond it is rolled into one summary email a few minutes later.
+        Each email channel has an hourly limit. Anything beyond it is rolled into one summary email a few minutes later. Webhook channels send every event.
       </p>
     </>
   );

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { api, json, type Feedback, type Site, type Status } from "../api";
+import { api, download, json, type Feedback, type Site, type Status } from "../api";
 import { useConfirm } from "../confirm";
 
 const PAGE = 25;
@@ -20,6 +20,7 @@ export default function FeedbackList({ site }: { site: Site }) {
   const [status, setStatus] = useState("");
   const [q, setQ] = useState("");
   const [error, setError] = useState("");
+  const [exporting, setExporting] = useState(false);
   const canEdit = site.my_role === "editor" || site.my_role === "admin";
   const canDelete = site.my_role === "admin";
 
@@ -51,6 +52,20 @@ export default function FeedbackList({ site }: { site: Site }) {
     await api(`/sites/${site.id}/feedback/${id}`, json("PATCH", { status: next })).catch((e) => setError(e.message));
     load();
   }
+  async function exportCsv() {
+    const params = new URLSearchParams();
+    if (status) params.set("status", status);
+    if (q) params.set("q", q);
+    setExporting(true);
+    try {
+      await download(`/sites/${site.id}/feedback/export.csv?${params}`, "feedback.csv");
+      setError("");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setExporting(false);
+    }
+  }
   async function remove(id: string) {
     if (!(await confirm({ title: "Delete this feedback?", message: "This cannot be undone.", confirmLabel: "Delete", danger: true }))) return;
     await api(`/sites/${site.id}/feedback/${id}`, { method: "DELETE" }).catch((e) => setError(e.message));
@@ -71,6 +86,9 @@ export default function FeedbackList({ site }: { site: Site }) {
           <option value="">All (excl. spam)</option>
           {STATUSES.map((s) => <option key={s}>{s}</option>)}
         </select>
+        <button onClick={exportCsv} disabled={exporting || total === 0} title="Download what the search and status filter show, as CSV">
+          {exporting ? "Exporting…" : "Export CSV"}
+        </button>
       </div>}
       {error && <p className="error">{error}</p>}
       {items.length === 0 && !error && <p className="empty-state">No feedback found.</p>}

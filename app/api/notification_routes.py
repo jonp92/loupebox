@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime
 from html import escape
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -7,6 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import SiteAccess, get_current_user, site_access
+from app.core import crypto
 from app.core.audit import audit, changed, snapshot
 from app.core.rate_limit import enforce
 from app.db.session import get_db
@@ -16,10 +18,12 @@ from app.notifications.layout import quote, render
 from app.notifications.registry import all_providers, get_provider
 from app.schemas.notification import (
     ChannelCreate,
+    ChannelCreated,
     ChannelOut,
     ChannelUpdate,
     DeliveryOut,
     ProviderOut,
+    SecretOut,
     TestResult,
 )
 
@@ -44,10 +48,15 @@ def _provider(key: str) -> NotificationProvider:
 def _validated_config(provider: NotificationProvider, config: dict) -> dict:
     """Parse through the provider's model: rejects bad values, drops fields it doesn't declare."""
     try:
-        return provider.ConfigModel.model_validate(config).model_dump(mode="json")
+        model = provider.ConfigModel.model_validate(config)
     except ValidationError as exc:
-        detail = "; ".join(f"{'.'.join(map(str, e['loc']))}: {e['msg']}" for e in exc.errors())
+        detail = "; ".join(f"{'.'.join(map(str, e['loc']))}: {e['msg'].removeprefix('Value error, ')}" for e in exc.errors())
         raise HTTPException(422, f"Invalid config: {detail}") from exc
+    try:
+        provider.check_config(model)
+    except ValueError as exc:
+        raise HTTPException(422, f"Invalid config: {exc}") from exc
+    return model.model_dump(mode="json")
 
 
 def _require_configured(provider: NotificationProvider) -> None:
@@ -79,6 +88,8 @@ def list_providers(
             key=p.key,
             label=p.label,
             configured=p.is_configured(),
+            uses_recipients=p.uses_recipients,
+            signs=p.signs,
             config_schema=p.ConfigModel.model_json_schema(),
         )
         for p in all_providers()
@@ -102,7 +113,7 @@ def create_channel(
     body: ChannelCreate,
     access: SiteAccess = Depends(site_access(Role.admin)),
     db: Session = Depends(get_db),
-) -> ChannelOut:
+) -> ChannelCreated:
     provider = _provider(body.provider)
     config = _validated_config(provider, body.config)
     if body.enabled:
@@ -125,6 +136,9 @@ def create_channel(
         min_role=body.min_role,
         extra_recipients=body.extra_recipients,
     )
+    secret = provider.new_secret() if provider.signs else None
+    if secret:
+        channel.secret = crypto.encrypt("webhook", secret)
     db.add(channel)
     audit(
         db, access.user, "channel.create", f'Added the {provider.label} channel "{channel.name}" to {access.site.name}',
@@ -132,7 +146,7 @@ def create_channel(
         details={"provider": provider.key, "name": channel.name, "enabled": channel.enabled},
     )
     db.commit()
-    return ChannelOut.model_validate(channel)
+    return ChannelCreated.model_validate({**ChannelOut.model_validate(channel).model_dump(), "secret": secret})
 
 
 @router.patch("/sites/{site_id}/notifications/{channel_id}")
@@ -180,6 +194,27 @@ def delete_channel(
     db.commit()
 
 
+@router.post("/sites/{site_id}/notifications/{channel_id}/rotate-secret")
+def rotate_secret(
+    channel_id: uuid.UUID,
+    access: SiteAccess = Depends(site_access(Role.admin)),
+    db: Session = Depends(get_db),
+) -> SecretOut:
+    """Replace the signing secret. The old one stops working immediately; the new one is shown once."""
+    channel = _channel(db, access, channel_id)
+    provider = _provider(channel.provider)
+    if not provider.signs:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{provider.label} channels have no signing secret")
+    secret = provider.new_secret()
+    channel.secret = crypto.encrypt("webhook", secret)
+    audit(
+        db, access.user, "channel.rotate_secret", f'Rotated the signing secret of "{channel.name}" on {access.site.name}',
+        target_type="channel", target_id=channel.id, site=access.site, details={"secret": "changed"},
+    )
+    db.commit()
+    return SecretOut(secret=secret)
+
+
 @router.post("/sites/{site_id}/notifications/{channel_id}/test")
 def send_test(
     channel_id: uuid.UUID,
@@ -193,10 +228,11 @@ def send_test(
     config = provider.ConfigModel.model_validate(channel.config)
     enforce(f"notif-test:{access.user.id}", TEST_LIMIT, TEST_WINDOW)
 
-    to = access.user.email
+    to = access.user.email if provider.uses_recipients else None
+    site_name = " ".join(access.site.name.split())
     result = provider.send(
         Message(
-            to=[to],
+            to=[to] if to else [],
             subject=f"Test notification for {' '.join(access.site.name.split())}",
             text=f'This is a test from the "{channel.name}" channel. Notifications are working.',
             html=render(
@@ -207,6 +243,14 @@ def send_test(
                 site=" ".join(access.site.name.split()),
             ),
             tags=["test"],
+            event={
+                "id": str(uuid.uuid4()),
+                "type": "test",
+                "created_at": datetime.now(UTC).isoformat(),
+                "site": {"id": str(access.site.id), "name": site_name},
+                "data": {"message": f'Test from the "{channel.name}" channel.'},
+            },
+            secret=crypto.decrypt("webhook", channel.secret) if channel.secret else None,
         ),
         config,
     )

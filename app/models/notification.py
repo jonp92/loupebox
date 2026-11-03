@@ -33,8 +33,14 @@ class NotificationChannel(Base):
     events: Mapped[list[str]] = mapped_column(JSON, default=list)
     min_role: Mapped[Role] = mapped_column(Enum(Role, native_enum=False, length=16), default=Role.admin)
     extra_recipients: Mapped[list[str]] = mapped_column(JSON, default=list)
+    # Signing secret for providers that sign (webhooks), encrypted with app.core.crypto.
+    secret: Mapped[str | None] = mapped_column(String(255), default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    @property
+    def has_secret(self) -> bool:
+        return self.secret is not None
 
 
 class NotificationOutbox(Base):

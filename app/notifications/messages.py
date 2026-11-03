@@ -24,6 +24,17 @@ def _safe_href(url: str) -> str | None:
     return url if url.lower().startswith(("http://", "https://")) else None
 
 
+def _event(row: NotificationOutbox, site: Site, type_: str, data: dict) -> dict:
+    """The machine-readable form of an event. `id` is stable across retries, so receivers can dedupe."""
+    return {
+        "id": str(row.id),
+        "type": type_,
+        "created_at": row.created_at.isoformat() if row.created_at else None,
+        "site": {"id": str(site.id), "name": _one_line(site.name)},
+        "data": data,
+    }
+
+
 def build_message(row: NotificationOutbox, site: Site, recipients: list[str]) -> Message:
     p = row.payload
     link = _site_link(site, p.get("feedback_id"))
@@ -51,6 +62,7 @@ def build_message(row: NotificationOutbox, site: Site, recipients: list[str]) ->
         ),
         reply_to=p.get("email"),
         tags=[row.event_type],
+        event=_event(row, site, row.event_type, {**{k: v for k, v in p.items() if k != "type"}, "url": link}),
     )
 
 
@@ -79,4 +91,5 @@ def build_summary(rows: list[NotificationOutbox], site: Site, recipients: list[s
             heading=f"{n} more feedback", preheader=head, body=body, link=link, site=_one_line(site.name)
         ),
         tags=["feedback.summary"],
+        event=_event(rows[0], site, "feedback.summary", {"count": n, "excerpts": excerpts, "url": link}),
     )

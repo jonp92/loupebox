@@ -13,6 +13,10 @@ class Message:
     html: str | None = None
     reply_to: str | None = None
     tags: list[str] = field(default_factory=list)
+    # Structured form of the same event (type, id, site, data) for machine consumers like webhooks.
+    event: dict | None = None
+    # The channel's signing secret, filled in by the sender for providers with `signs = True`.
+    secret: str | None = None
 
 
 @dataclass
@@ -41,10 +45,23 @@ class NotificationProvider(ABC):
     label: ClassVar[str]
     # Per-channel settings, validated on save and before each send. Never put secrets here.
     ConfigModel: ClassVar[type[BaseModel]]
+    # Email-like providers go to people (members plus extra addresses); others go to one endpoint.
+    uses_recipients: ClassVar[bool] = True
+    # Subject to the per-channel hourly cap and summary roll-up. Machine consumers want every event.
+    rate_capped: ClassVar[bool] = True
+    # Channels get a generated signing secret, shown once and stored encrypted.
+    signs: ClassVar[bool] = False
 
     def is_configured(self) -> bool:
         """True when the server-side settings this provider needs (API keys, ...) are present."""
         return True
+
+    def new_secret(self) -> str:
+        """A fresh signing secret. Only called for providers with `signs = True`."""
+        raise NotImplementedError
+
+    def check_config(self, config: BaseModel) -> None:
+        """Extra checks when a channel is saved (may do I/O). Raise ValueError with a user-facing reason."""
 
     @abstractmethod
     def send(self, message: Message, config: BaseModel) -> SendResult:

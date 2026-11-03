@@ -60,7 +60,7 @@ Superadmins see every administrative change under **Audit** in the top bar: who 
 on which site. Recorded: user create/update/promote/demote/enable/disable/password reset/avatar,
 site create/update/key rotation/delete, member add/role change/remove, notification channel
 create/update/delete, feedback deletion, and people changing their own password or two-factor settings
-(including sign-ins with a recovery code).
+(including sign-ins with a recovery code), webhook secret rotation and CSV exports.
 
 * Each event is written in the same transaction as the change, so a change that fails leaves no
   event, and an event never exists for a change that did not happen. Actor email, site name and a
@@ -162,6 +162,20 @@ emails (`PATCH /v1/api/users/{id}`). Users manage their own avatar and password:
 * `POST /v1/api/auth/me/password`: requires the current password and signs out all other sessions.
 
 The UI crops and resizes uploads to 256x256 before sending.
+
+## Exporting feedback
+
+**Export CSV** on a site's feedback list downloads what the search and status filter show
+(`GET /v1/api/sites/{id}/feedback/export.csv?status=&q=`, any role that can view the site). Columns:
+id, created_at (UTC), status, rating, name, email, message, page_url, meta. Text that a spreadsheet
+would run as a formula (starting with `=`, `+`, `-` or `@`) is prefixed with an apostrophe. Downloads
+stop at `EXPORT_MAX_ROWS` (100,000). Each export is recorded in the audit log (who, how many rows, never
+the contents).
+
+## Webhooks
+
+Besides email, a site can POST each new feedback item to a URL as signed JSON, with retries, SSRF
+protection and a per-channel secret. See [docs/WEBHOOKS.md](docs/WEBHOOKS.md).
 
 ## Auth
 
