@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, json, type Feedback, type Site, type Status } from "../api";
+import { useConfirm } from "../confirm";
 
 const PAGE = 25;
 const STATUSES: Status[] = ["new", "read", "archived", "spam"];
@@ -10,6 +11,7 @@ function safeHref(url: string | null): string | null {
 }
 
 export default function FeedbackList({ site }: { site: Site }) {
+  const confirm = useConfirm();
   const { feedbackId } = useParams();
   const navigate = useNavigate();
   const [items, setItems] = useState<Feedback[]>([]);
@@ -50,7 +52,7 @@ export default function FeedbackList({ site }: { site: Site }) {
     load();
   }
   async function remove(id: string) {
-    if (!confirm("Delete this feedback permanently?")) return;
+    if (!(await confirm({ title: "Delete this feedback?", message: "This cannot be undone.", confirmLabel: "Delete", danger: true }))) return;
     await api(`/sites/${site.id}/feedback/${id}`, { method: "DELETE" }).catch((e) => setError(e.message));
     if (feedbackId) navigate(`/sites/${site.id}`);
     else load();

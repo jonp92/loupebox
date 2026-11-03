@@ -256,3 +256,9 @@ code.key { display: inline-block; margin-right: .75rem; background: var(--surfac
 .log-table td:last-child { overflow-wrap: anywhere; }
 fieldset { border: 0; padding: 0; margin: .8rem 0; }
 legend { padding: 0; font-size: .85rem; font-weight: 500; color: var(--muted); }
+
+dialog.confirm { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.25rem 1.5rem; width: min(26rem, calc(100vw - 2rem)); }
+dialog.confirm::backdrop { background: rgb(10 12 20 / 55%); }
+dialog.confirm h2 { margin: 0 0 .5rem; font-size: 1.05rem; }
+dialog.confirm p { margin: 0 0 1rem; }
+dialog.confirm .row-actions { justify-content: flex-end; }

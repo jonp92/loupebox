@@ -9,6 +9,7 @@ import {
   type Role,
   type Site,
 } from "../api";
+import { useConfirm } from "../confirm";
 
 const ROLES: Role[] = ["viewer", "editor", "admin"];
 const EVENTS = [{ key: "feedback.created", label: "New feedback" }];
@@ -155,6 +156,7 @@ function ChannelForm({ siteId, providers, channel, onSaved, onCancel }: {
 }
 
 export default function Notifications({ site }: { site: Site }) {
+  const confirm = useConfirm();
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
@@ -199,7 +201,7 @@ export default function Notifications({ site }: { site: Site }) {
   }
 
   async function remove(c: Channel) {
-    if (!confirm(`Delete the channel "${c.name}"? Past deliveries stay in the log.`)) return;
+    if (!(await confirm({ title: `Delete the channel "${c.name}"?`, message: "Past deliveries stay in the log.", confirmLabel: "Delete", danger: true }))) return;
     await api(`/sites/${site.id}/notifications/${c.id}`, { method: "DELETE" }).catch((e) => setError(e.message));
     load();
   }

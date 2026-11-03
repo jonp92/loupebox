@@ -3,8 +3,10 @@ import { Navigate } from "react-router-dom";
 import { api, displayName, json, type User } from "../api";
 import { useAuth } from "../auth";
 import { Avatar } from "../components";
+import { useConfirm } from "../confirm";
 
 export default function Users() {
+  const confirm = useConfirm();
   const { me, setMe } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [error, setError] = useState("");
@@ -57,6 +59,19 @@ export default function Users() {
     load();
   }
 
+  async function toggleSuperadmin(u: User) {
+    const next = !u.is_superadmin;
+    const name = displayName(u);
+    const ok = await confirm(
+      next
+        ? { title: `Make ${name} a superadmin?`, message: "They will have full access to every site and user.", confirmLabel: "Make superadmin" }
+        : { title: `Remove superadmin from ${name}?`, confirmLabel: "Remove", danger: true },
+    );
+    if (!ok) return;
+    await api(`/users/${u.id}`, json("PATCH", { is_superadmin: next })).catch((e) => setError(e.message));
+    load();
+  }
+
   return (
     <>
       <div className="page-head"><h1>Users</h1><span className="count">{users.length}</span></div>
@@ -89,6 +104,9 @@ export default function Users() {
                 )}
               </span>
               <button onClick={() => setEditing(u.id)}>Edit</button>
+              {u.id !== me.id && (
+                <button onClick={() => toggleSuperadmin(u)}>{u.is_superadmin ? "Remove superadmin" : "Make superadmin"}</button>
+              )}
               {u.id !== me.id && <button onClick={() => toggle(u)}>{u.is_active ? "Disable" : "Enable"}</button>}
             </li>
           ),

@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { AuthProvider } from "./auth";
+import { ConfirmProvider } from "./confirm";
 import "./styles.css";
 
 // Installable PWA + offline shell. Production only, so dev servers never serve stale assets.
@@ -16,7 +17,7 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <App />
+        <ConfirmProvider><App /></ConfirmProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>,

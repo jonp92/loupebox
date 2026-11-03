@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { api, displayName, json, type Member, type Role, type Site } from "../api";
 import { Avatar, UserPicker } from "../components";
+import { useConfirm } from "../confirm";
 
 const ROLES: Role[] = ["viewer", "editor", "admin"];
 const ROLE_HELP: Record<Role, string> = {
@@ -10,6 +11,7 @@ const ROLE_HELP: Record<Role, string> = {
 };
 
 export default function Members({ site }: { site: Site }) {
+  const confirm = useConfirm();
   const [members, setMembers] = useState<Member[]>([]);
   const [error, setError] = useState("");
   const [email, setEmail] = useState("");
@@ -39,7 +41,7 @@ export default function Members({ site }: { site: Site }) {
   }
 
   async function remove(m: Member) {
-    if (!confirm(`Remove ${displayName(m)} from ${site.name}?`)) return;
+    if (!(await confirm({ title: `Remove ${displayName(m)}?`, message: `They will lose access to ${site.name}.`, confirmLabel: "Remove", danger: true }))) return;
     await api(`/sites/${site.id}/members/${m.user_id}`, { method: "DELETE" }).catch((e) => setError(e.message));
     load();
   }

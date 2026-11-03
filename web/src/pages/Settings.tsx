@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from "react";
 import { API_PREFIX, API_URL, api, json, type Site } from "../api";
+import { useConfirm } from "../confirm";
 
 export default function Settings({ site, onChange }: { site: Site; onChange: (s: Site) => void }) {
+  const confirm = useConfirm();
   const [msg, setMsg] = useState("");
 
   async function run(p: Promise<Site>, ok: string) {
@@ -27,8 +29,8 @@ export default function Settings({ site, onChange }: { site: Site; onChange: (s:
     );
   }
 
-  function rotate() {
-    if (!confirm("Rotate the key? Sites using the old key will stop working until updated.")) return;
+  async function rotate() {
+    if (!(await confirm({ title: "Rotate the key?", message: "Sites using the old key will stop working until updated.", confirmLabel: "Rotate", danger: true }))) return;
     run(api<Site>(`/sites/${site.id}/rotate-key`, { method: "POST" }), "Key rotated");
   }
 

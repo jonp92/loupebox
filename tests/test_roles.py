@@ -129,3 +129,16 @@ def test_user_search_for_site_admins(client, db):
 
     v = login(client, "viewer@example.com")
     assert client.get(url, params={"q": "ali"}, headers=v).status_code == 403
+
+
+def test_superadmin_can_promote_and_demote_others_but_not_self(client, db):
+    root = make_user(db, "root@e.com")
+    root.is_superadmin = True
+    other = make_user(db, "o@e.com")
+    db.commit()
+    h = login(client, "root@e.com")
+
+    r = client.patch(f"/users/{other.id}", json={"is_superadmin": True}, headers=h)
+    assert r.status_code == 200 and r.json()["is_superadmin"] is True
+    assert client.patch(f"/users/{other.id}", json={"is_superadmin": False}, headers=h).json()["is_superadmin"] is False
+    assert client.patch(f"/users/{root.id}", json={"is_superadmin": False}, headers=h).status_code == 400
