@@ -3,6 +3,11 @@
 FastAPI + Postgres API with a React admin UI (`web/`). Static sites post feedback with a public
 site key; staff review it in the UI under per-site roles.
 
+> **Alpha software.** Expect rough edges and breaking changes between `0.x` releases (see
+> [CHANGELOG.md](CHANGELOG.md)), and back up your database before upgrading. Known limitations: run a single
+> API replica (rate limiting is in-process until it moves to Redis), replies are one-way (no inbound email), and
+> it has not been load tested.
+
 ## Run with Docker
 
 Without cloning, using the published images (needs Docker with the compose plugin and `openssl`):
@@ -324,6 +329,15 @@ per user; nothing changes for people who don't enable it.
   per-site **challenge** (Site → Settings → Bot protection): a signed, single-use proof-of-work the form
   has to solve, see `docs/CLIENT_INTEGRATION.md`. Challenges are pluggable: add a module under
   `app/challenges/verifiers/` that registers a `ChallengeVerifier` (for example a Turnstile/hCaptcha check).
+
+## Backups and upgrades
+
+* **Back up** the database (everything lives in the `pgdata` volume):
+  `docker compose exec -T db pg_dump -U ganymede ganymede > loupebox-backup.sql`. Restore into an empty database
+  with `docker compose exec -T db psql -U ganymede ganymede < loupebox-backup.sql`.
+* **Upgrade:** back up, then `docker compose pull && docker compose up -d`. Database migrations run
+  automatically before the API starts. Read the [CHANGELOG](CHANGELOG.md) first for breaking changes.
+* **Roll back:** restore the backup and set `LOUPEBOX_VERSION` in `.env` to the previous version.
 
 ## License
 
