@@ -6,6 +6,7 @@ import { useAuth } from "./auth";
 import Audit from "./pages/Audit";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
+import { ForgotPassword, ResetPassword } from "./pages/ResetPassword";
 import SiteDetail from "./pages/SiteDetail";
 import Dashboard from "./pages/Dashboard";
 import Sites from "./pages/Sites";
@@ -92,6 +93,8 @@ export default function App() {
       <OfflineBanner />
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="sites" element={<Sites />} />

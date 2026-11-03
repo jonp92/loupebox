@@ -80,6 +80,13 @@ class Settings(BaseSettings):
     mfa_token_minutes: int = 5  # how long the password step stays valid while the code is entered
     mfa_hourly_limit: int = 20  # second-factor attempts per user per hour (the per-minute cap is login_account_limit)
 
+    # Self-service password reset. It is offered only when PUBLIC_URL and a mail provider are configured.
+    password_reset_minutes: int = 30  # how long an emailed link works
+    password_reset_email_limit: int = 3  # requests per address per hour
+    password_reset_ip_limit: int = 10  # requests per IP per hour
+    # Which email provider sends account mail (password reset). Empty: the first configured one.
+    mail_provider: str = ""
+
     # Login brute-force protection
     login_ip_limit: int = 20
     login_account_limit: int = 5

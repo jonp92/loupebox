@@ -59,7 +59,7 @@ Per-site email alerts for new feedback, sent through Brevo. Admins configure cha
 Superadmins see every administrative change under **Audit** in the top bar: who did what, when, and
 on which site. Recorded: user create/update/promote/demote/enable/disable/password reset/avatar,
 site create/update/key rotation/delete, member add/role change/remove, notification channel
-create/update/delete, feedback deletion, and people changing their own password or two-factor settings
+create/update/delete, feedback deletion, and people changing their own password (or resetting it by email) or two-factor settings
 (including sign-ins with a recovery code), webhook secret rotation and CSV exports.
 
 * Each event is written in the same transaction as the change, so a change that fails leaves no
@@ -182,6 +182,27 @@ protection and a per-channel secret. See [docs/WEBHOOKS.md](docs/WEBHOOKS.md).
 Login returns a 15 min access token (kept in memory by the SPA) and sets a rotating, httpOnly
 refresh cookie (path `/auth`). Replaying a rotated refresh token revokes all of the user's
 sessions. Passwords use argon2. Admin CORS is limited to `ADMIN_ORIGINS`.
+
+### Forgot password
+
+The login page offers **Forgot password?** when the server can send the email: `PUBLIC_URL` is set (it
+builds the link) and an email provider is configured (Brevo today). Otherwise the link is hidden and
+`POST /v1/api/auth/password-reset/request` answers 404, and a superadmin resets the password on the
+Users page instead.
+
+* The email links to `{PUBLIC_URL}/reset-password#token=...`. The token is in the URL fragment, so it
+  never reaches server logs or Referer headers, and the page removes it from the address bar.
+* Links work once and expire after `PASSWORD_RESET_MINUTES` (default 30). A newer request replaces older
+  links. Only a hash of the token is stored.
+* Requests always answer `202` with the same text and send after responding, so neither the response nor
+  its timing shows whether an address has an account. Limits: `PASSWORD_RESET_EMAIL_LIMIT` (3) per
+  address and `PASSWORD_RESET_IP_LIMIT` (10) per IP, per hour. These also bound how much of your email
+  provider's daily quota a stranger can use.
+* Using a link changes the password, signs the user out everywhere and emails them that it happened. It
+  does not log them in, and it does **not** turn off two-factor: they still need their code.
+* The email goes straight out, without the notification outbox (which would keep a live token for
+  `NOTIFY_RETENTION_DAYS`). So there are no retries: if sending fails it is logged and the user asks again.
+  `MAIL_PROVIDER` picks the provider (default: the first configured one).
 
 ### Two-factor authentication (TOTP)
 

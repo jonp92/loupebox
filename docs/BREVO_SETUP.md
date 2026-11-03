@@ -52,3 +52,9 @@ disabled in the UI until the key and sender are both set.
 | Failed with 400 | Sender not verified in Brevo, or an invalid recipient address |
 | `held` rows, then one summary email | Hourly cap (`NOTIFY_HOURLY_CAP`) reached for that channel; this is intended |
 | Retries (429, 5xx, timeouts) | Retried at 30s, 2m, 10m, 1h, 6h, then failed |
+
+## Password reset email
+
+The same sender sends password-reset and password-changed emails once `PUBLIC_URL` is set, with no
+extra setup. They count against Brevo's daily quota (300 on the free plan) alongside notifications.
+See the "Forgot password" section of the README.
