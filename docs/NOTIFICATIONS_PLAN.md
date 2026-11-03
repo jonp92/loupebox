@@ -146,8 +146,8 @@ from the provider schema plus shared fields (name, events, minimum role, extra r
 ## Prerequisites on the Brevo side
 
 * An account and API key (v3).
-* A verified sender, e.g. `feedback@pressler.tech`.
-* Domain authentication (DKIM) for `pressler.tech`. Without it Brevo replaces the sending domain
+* A verified sender, e.g. `feedback@example.com`.
+* Domain authentication (DKIM) for `example.com`. Without it Brevo replaces the sending domain
   with its own `brevosend.com`, which hurts deliverability.
 * Free plan allows 300 sends per day, including transactional API sends.
 
