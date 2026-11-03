@@ -4,3 +4,6 @@ __pycache__/
 .env
 *.py[cod]
 .DS_Store
+
+# Local Claude Code guidance
+CLAUDE.md
