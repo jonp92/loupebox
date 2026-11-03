@@ -42,12 +42,14 @@ Tests run on in-memory SQLite by default: `pytest`. To run them on Postgres, poi
 
 ## Notifications
 
-Per-site email alerts for new feedback, sent through Brevo. Admins configure channels in the UI
+Per-site email alerts for new feedback, sent through Brevo or any SMTP server. Admins configure channels in the UI
 (site, **Notifications** tab). The API only queues rows in an outbox table; the `worker` service
 (`python -m app.worker`) delivers them with retries, so nothing sends without it running.
 
 * Set `BREVO_API_KEY` and `NOTIFY_SENDER_EMAIL` in `.env`; the provider shows as disabled in the UI
-  until both are set. Setup steps: [docs/BREVO_SETUP.md](docs/BREVO_SETUP.md).
+  until both are set. Setup steps: [docs/BREVO_SETUP.md](docs/BREVO_SETUP.md). To use a plain SMTP
+  server instead, set `SMTP_HOST` (plus port, security and credentials) and `NOTIFY_SENDER_EMAIL`:
+  [docs/SMTP_SETUP.md](docs/SMTP_SETUP.md). TLS is verified and never silently dropped.
 * `PUBLIC_URL` (admin UI origin) adds links to emails. `NOTIFY_HOURLY_CAP` (default 5) limits emails
   per channel per hour; the overflow is rolled into one summary email.
 * Locally, run the worker next to the API with the same `.env`: `python -m app.worker`.
@@ -186,7 +188,7 @@ sessions. Passwords use argon2. Admin CORS is limited to `ADMIN_ORIGINS`.
 ### Forgot password
 
 The login page offers **Forgot password?** when the server can send the email: `PUBLIC_URL` is set (it
-builds the link) and an email provider is configured (Brevo today). Otherwise the link is hidden and
+builds the link) and an email provider is configured (Brevo or SMTP). Otherwise the link is hidden and
 `POST /v1/api/auth/password-reset/request` answers 404, and a superadmin resets the password on the
 Users page instead.
 

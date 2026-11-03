@@ -1,7 +1,8 @@
 # Brevo setup
 
 Ganymede sends notification emails through Brevo's HTTP API (`POST /v3/smtp/email`). It does not use
-SMTP, so SMTP credentials will not work.
+SMTP, so SMTP credentials will not work here. To send through a plain SMTP server instead, see
+[SMTP_SETUP.md](SMTP_SETUP.md).
 
 ## 1. Account and sender
 

@@ -51,6 +51,11 @@ services:
       TRUST_PROXY: ${TRUST_PROXY:-false}
       # Notifications: the API uses these for the providers list and test-send, the worker for real sends.
       BREVO_API_KEY: ${BREVO_API_KEY:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURITY: ${SMTP_SECURITY:-starttls}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       NOTIFY_SENDER_EMAIL: ${NOTIFY_SENDER_EMAIL:-}
       NOTIFY_SENDER_NAME: ${NOTIFY_SENDER_NAME:-Ganymede}
       PUBLIC_URL: ${PUBLIC_URL:-}
