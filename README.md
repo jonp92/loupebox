@@ -230,7 +230,7 @@ delete is one audit event (ids and count, never the messages).
 
 * **Assignee**: any editor or admin of the site (viewers and non-members cannot hold one; losing editor access
   clears the assignment). The list has "Assigned to me" / "Unassigned" tabs with counts, a per-person filter,
-  and the dashboard lists your open assigned items across sites. Double-click the assignee on a card,
+  and the dashboard lists your open assigned items across sites. Tap or click the assignee on a card,
   right-click (or long-press, or the "⋯" button) for quick actions, or tick items and use "Assign to…".
   People are found by searching (`GET .../feedback/assignees?q=`, at most 20 results, editors only), never
   listed in full, so large sites work; the menu offers "Me" and your recent picks.

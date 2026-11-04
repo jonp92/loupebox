@@ -6,6 +6,10 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+### Fixed
+- On phones, the assignee picker closed as soon as it opened (the on-screen keyboard counted as a resize), and the
+  assignee on a feedback card needed a double-click. A tap now opens it.
+
 ## [0.1.0-alpha.5] - 2026-11-03
 
 ### Fixed

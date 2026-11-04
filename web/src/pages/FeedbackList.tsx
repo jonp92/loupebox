@@ -183,7 +183,7 @@ export default function FeedbackList({ site }: { site: Site }) {
     if (canDelete) items.push({ label: "Delete", danger: true, onSelect: () => remove(f.id) });
     return items;
   }
-  /** The assignee on a card. Editors double-click it (or press Enter) to change it right there. */
+  /** The assignee on a card. Editors tap or click it (or press Enter) to change it right there. */
   function assigneeChip(f: Feedback) {
     const name = f.assignee_name;
     if (!canEdit) return name && <span className="assignee" title="Assignee">👤 {name}</span>;
@@ -193,8 +193,8 @@ export default function FeedbackList({ site }: { site: Site }) {
         className={`assignee editable${name ? "" : " none"}`}
         role="button"
         tabIndex={0}
-        title="Double-click to change the assignee"
-        onDoubleClick={(e) => change(e.currentTarget)}
+        title="Change the assignee"
+        onClick={(e) => change(e.currentTarget)}
         onKeyDown={(e) => e.key === "Enter" && change(e.currentTarget)}
       >
         👤 {name ?? "Unassigned"}
