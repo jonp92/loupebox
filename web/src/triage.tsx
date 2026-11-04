@@ -53,16 +53,19 @@ function Popover({ at, onClose, className, children }: { at: Point; onClose: () 
     const inside = (e: Event) => ref.current?.contains(e.target as Node);
     const outside = (e: Event) => { if (!inside(e)) onClose(); };
     const key = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    // A phone's on-screen keyboard resizes the viewport (height only) when the picker's input takes focus.
+    const width = innerWidth;
+    const resize = () => { if (innerWidth !== width) onClose(); };
     const scroll = (e: Event) => { if (!inside(e)) onClose(); };
     addEventListener("pointerdown", outside, true);
     addEventListener("keydown", key);
     addEventListener("scroll", scroll, true);
-    addEventListener("resize", onClose);
+    addEventListener("resize", resize);
     return () => {
       removeEventListener("pointerdown", outside, true);
       removeEventListener("keydown", key);
       removeEventListener("scroll", scroll, true);
-      removeEventListener("resize", onClose);
+      removeEventListener("resize", resize);
     };
   }, [onClose]);
   return <div ref={ref} className={className} style={pos}>{children}</div>;
@@ -168,6 +171,8 @@ function AssigneePicker({ siteId, at, current, allowNone, onPick, onClose }: {
   const [q, setQ] = useState("");
   const [found, setFound] = useState<Assignee[]>([]);
   const [active, setActive] = useState(0);
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => input.current?.focus({ preventScroll: true }), []); // focusing must not scroll, which would close the popover
   useEffect(() => {
     const t = window.setTimeout(() => {
       api<Assignee[]>(`/sites/${siteId}/feedback/assignees?q=${encodeURIComponent(q)}`).then(setFound, () => setFound([]));
@@ -189,7 +194,7 @@ function AssigneePicker({ siteId, at, current, allowNone, onPick, onClose }: {
   }
   return (
     <Popover at={at} onClose={onClose} className="picker-pop">
-      <input autoFocus value={q} placeholder="Find a person…" aria-label="Find a person" onChange={(e) => { setQ(e.target.value); setActive(0); }} onKeyDown={key} />
+      <input ref={input} value={q} placeholder="Find a person…" aria-label="Find a person" onChange={(e) => { setQ(e.target.value); setActive(0); }} onKeyDown={key} />
       <ul role="listbox">
         {rows.map((p, i) => (
           <li key={p?.user_id ?? "none"} role="option" aria-selected={i === active} className={i === active ? "active" : undefined}
