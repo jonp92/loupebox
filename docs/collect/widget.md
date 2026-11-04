@@ -4,7 +4,7 @@ A small, dependency-free ES module that adds a feedback button (or an inline for
 can tag what kind of feedback it is with **issue-type badges** (bug, idea, question, praise by default),
 and the choice arrives with the feedback as `metadata.issue_type`.
 
-It talks to the same public endpoint as a hand-built form (see [CLIENT_INTEGRATION.md](CLIENT_INTEGRATION.md)),
+It talks to the same public endpoint as a hand-built form (see [Your own form](own-form.md)),
 including origin checks, the honeypot and the bot-protection challenge, so there is nothing extra to configure
 on the server. The snippet for your site, with its key filled in, is on **Site → Settings → Feedback widget**.
 
@@ -164,12 +164,3 @@ kind this version doesn't understand is reported ("needs a newer widget") rather
   submission reports it as `metadata.widget_version`, so you can see which versions are in the wild.
 * The file is cached for 5 minutes (with a day of stale-while-revalidate). To freeze a version, download the file,
   host it yourself and, if you like, add a Subresource Integrity hash.
-
-## Build and test (contributors)
-
-Source is TypeScript in `web/widget/src` (one small module per concern). `npm run build` in `web/` builds the
-admin app and the widget (`dist/widget/v1/loupebox.js`, about 11 kB gzipped, plus type declarations in
-`dist/widget/v1/types/`). `npm test` rebuilds the widget and runs its tests against the built file, using
-Node's test runner and jsdom. The web Docker image serves it with the CORS headers browsers need for module
-scripts. When adding a feature: add an optional option (give it a default in `options.ts`), add a `capabilities`
-entry, document it here, and keep the v1 promise above.

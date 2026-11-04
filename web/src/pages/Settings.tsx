@@ -74,7 +74,7 @@ export default function Settings({ site, onChange }: { site: Site; onChange: (s:
 
   const verifier = verifiers.find((v) => v.key === mode);
   const chalSnippet = `// Fetch a challenge, solve it, and send the proof with the submission.
-// crypto.subtle needs HTTPS (or localhost); see docs/CLIENT_INTEGRATION.md for a fallback.
+// crypto.subtle needs HTTPS (or localhost); see https://loupebox.dev/collect/own-form/ for a fallback.
 const API = "${API_URL}${API_PREFIX}";
 const headers = { "Content-Type": "application/json", "X-API-Key": "${site.public_key}" };
 
@@ -102,8 +102,11 @@ await fetch(API + "/feedback", {
         <h2>Feedback widget</h2>
         <p>
           Paste this into any page to add a feedback button. Visitors can tag what kind of feedback it is (bug, idea,
-          question, praise), and you can change the badges, fields, colors and wording. Options and theming:{" "}
-          <code>docs/WIDGET.md</code>.
+          question, praise), and you can change the badges, fields, colors and wording. Options and theming are in the{" "}
+          <a href="https://loupebox.dev/collect/widget/" target="_blank" rel="noreferrer">
+            widget docs
+          </a>
+          .
         </p>
         <pre>{widgetSnippet}</pre>
         <div className="row-actions">

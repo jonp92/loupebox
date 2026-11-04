@@ -1,20 +1,18 @@
-# Add a Loupebox feedback form to an app
+# Your own form
 
-> **Easiest path: use the widget.** Loupebox serves a ready-made, customizable feedback widget as an ES
-> module (floating button or inline form, issue-type badges, bot-protection challenge built in). Two lines
-> of JavaScript, no build step. See [WIDGET.md](WIDGET.md). Read on if you are building your own form.
+Most people should use the [widget](widget.md). Build your own form if you want full control over how it
+looks, or if the widget does not fit your app. This page describes everything the form needs to send.
 
-You are helping add a feedback form to an existing app. The form submits to **Loupebox**, a
-separate feedback API server that already exists and is running. You do **not** build or change the
-server. You build the form (UI + a small submit function) inside this app.
+You only build the form and a small function that submits it. You do not change the Loupebox server. You can
+also hand this page to an AI coding assistant as its brief.
 
-## Get these from the user first
+## What you need
 
 | Needed | Example | Notes |
 |---|---|---|
 | `LOUPEBOX_URL` | `https://feedback.example.com/v1/api` | Base URL of the API **including the `/v1/api` prefix**, no trailing slash |
 | `LOUPEBOX_KEY` | `pk_...` | The site's **public** key. Safe to ship in client JS. |
-| This app's origin(s) | `https://app.example.com`, `http://localhost:3000` | Each must be on the site's **allowed origins** list in the Loupebox admin UI (Site → Settings). Ask the user to confirm, including local dev origins. |
+| This app's origin(s) | `https://app.example.com`, `http://localhost:3000` | Each must be on the site's **allowed origins** list in the Loupebox admin UI (site > Settings). Include local development origins. |
 
 ### URL format
 
@@ -52,8 +50,8 @@ also forward a matching `Origin` header (a proxy usually breaks the check).
 
 | Field | Required | Rules |
 |---|---|---|
-| `message` | yes | 1–5000 chars after trimming |
-| `rating` | no | integer 1–5 |
+| `message` | yes | 1 to 5000 chars after trimming |
+| `rating` | no | integer 1 to 5 |
 | `name` | no | ≤120 chars |
 | `email` | no | valid email address |
 | `page_url` | no | must start with `http://` or `https://`, ≤2048 chars. Send `location.href`. |
@@ -202,7 +200,7 @@ function sha256(msg) {
 
 Match this app's existing UI components and styling. Requirements:
 
-1. A `message` textarea (`required`, `maxLength={5000}`), optional rating (1–5), optional email.
+1. A `message` textarea (`required`, `maxLength={5000}`), optional rating (1 to 5), optional email.
 2. A **hidden honeypot input** named `website`: `tabindex="-1"`, `autocomplete="off"`,
    `aria-hidden="true"`, moved off-screen with CSS (not `display:none`, some bots skip those).
    Never label it in a way a screen reader announces.

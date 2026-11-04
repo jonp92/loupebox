@@ -6,6 +6,15 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+### Added
+- Documentation site at loupebox.dev, built with Zensical from `docs/` and published with GitHub Pages. It has
+  install, using, alerts, security and reference pages with screenshots.
+
+### Changed
+- The README is now short and points to the docs site. The old one is kept as `README.old`.
+- The setup guides moved under `docs/` folders. The internal notifications plan was removed.
+- The widget box in site Settings links to the widget docs on the site.
+
 ## [0.1.0-alpha.6] - 2026-11-04
 
 ### Fixed
