@@ -4,6 +4,15 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 and versions follow [Semantic Versioning](https://semver.org). While the project is alpha (`0.x`), anything may
 change between releases; breaking changes are called out below.
 
+## [Unreleased]
+
+### Changed
+- Admin UI redesign around the Loupebox cyan: new dark and light palettes with higher-contrast muted text and
+  visible form-control borders. The top bar is always navy, and glows are limited to focus, primary buttons and
+  the active tab in dark mode.
+- The top bar and sign-in page show the full Loupebox wordmark, with a cyan glow behind the sign-in card.
+- `scripts/generate_logos.py` also generates cropped, transparent wordmarks for the app.
+
 ## [0.1.0-alpha.4] - 2026-11-03
 
 ### Changed

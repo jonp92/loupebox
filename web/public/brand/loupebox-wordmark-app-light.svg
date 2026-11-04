@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="66 66 674 130" role="img" aria-labelledby="t">
+<!-- Generated from the brand wordmarks by scripts/generate_logos.py. Do not edit. -->
+  <!-- Generated from web/brand/loupebox-wordmark-neon-light.svg by scripts/outline_brand.py. Do not edit. -->
+  <title id="t">Loupebox</title>
+  <defs>
+    <filter id="neon-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" />
+      <!-- Softer glow: a full-strength halo smears on a light background -->
+      <feComponentTransfer result="blur"><feFuncA type="linear" slope="0.4" /></feComponentTransfer>
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <linearGradient id="handle-grad" gradientUnits="userSpaceOnUse" x1="213.4" y1="155.4" x2="236" y2="178">
+      <stop offset="0" stop-color="#00A8CC" />
+      <stop offset="1" stop-color="#005F7A" />
+    </linearGradient>
+    <radialGradient id="lens-glass">
+      <stop offset="0" stop-color="rgb(0,149,182)" stop-opacity="0.1" />
+      <stop offset="1" stop-color="rgb(0,149,182)" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Measured with Montserrat: content spans x 63-758, so scale to 92% about its centre -->
+  <g transform="translate(400 125) scale(0.92) translate(-410.6 -125)">
+    <!-- Type: 110px, cap height ~77, so baseline 163.5 puts the cap centre on y 125 (the lens centre).
+         LOUPE is 800, BOX 500. -->
+    <g fill="#11151C" aria-hidden="true">
+      <path d="M71.1 163.5V86.5H92.88V146.23H129.62V163.5Z" />
+      <path d="M286.23 165.04Q269.18 165.04 259.61 155.69Q250.04 146.34 250.04 129.18V86.5H271.82V128.52Q271.82 138.42 275.73 142.71Q279.63 147 286.45 147Q293.27 147 297.12 142.71Q300.97 138.42 300.97 128.52V86.5H322.42V129.18Q322.42 146.34 312.85 155.69Q303.28 165.04 286.23 165.04ZM342.66 163.5V86.5H377.86Q388.42 86.5 396.06 89.91Q403.71 93.32 407.89 99.75Q412.07 106.19 412.07 114.99Q412.07 123.68 407.89 130.06Q403.71 136.44 396.06 139.91Q388.42 143.37 377.86 143.37H354.76L364.44 133.91V163.5ZM364.44 136.22 354.76 126.21H376.54Q383.36 126.21 386.71 123.24Q390.07 120.27 390.07 114.99Q390.07 109.6 386.71 106.63Q383.36 103.66 376.54 103.66H354.76L364.44 93.65ZM428.13 163.5V86.5H488.52V103.33H449.69V146.67H489.95V163.5ZM448.15 132.59V116.31H483.9V132.59Z" /><path d="M511.4 163.5V86.5H545.94Q559.25 86.5 566.4 91.84Q573.55 97.17 573.55 106.41Q573.55 112.68 570.74 116.97Q567.94 121.26 563.21 123.57Q558.48 125.88 552.98 125.88L554.96 122.58Q561.56 122.58 566.62 124.89Q571.68 127.2 574.65 131.66Q577.62 136.11 577.62 142.71Q577.62 152.61 570.19 158.06Q562.77 163.5 548.14 163.5ZM522.4 154.59H547.7Q556.83 154.59 561.67 151.51Q566.51 148.43 566.51 141.83Q566.51 135.12 561.67 132.04Q556.83 128.96 547.7 128.96H521.41V120.05H544.95Q553.31 120.05 557.93 116.97Q562.55 113.89 562.55 107.73Q562.55 101.57 557.93 98.49Q553.31 95.41 544.95 95.41H522.4ZM634.93 164.38Q626.13 164.38 618.6 161.41Q611.06 158.44 605.56 153.11Q600.06 147.77 596.98 140.62Q593.9 133.47 593.9 125Q593.9 116.53 596.98 109.38Q600.06 102.23 605.56 96.89Q611.06 91.56 618.54 88.59Q626.02 85.62 634.93 85.62Q643.73 85.62 651.15 88.53Q658.58 91.45 664.13 96.78Q669.69 102.12 672.72 109.27Q675.74 116.42 675.74 125Q675.74 133.58 672.72 140.73Q669.69 147.88 664.13 153.22Q658.58 158.55 651.15 161.47Q643.73 164.38 634.93 164.38ZM634.93 154.59Q641.31 154.59 646.75 152.39Q652.2 150.19 656.22 146.18Q660.23 142.16 662.49 136.77Q664.74 131.38 664.74 125Q664.74 118.62 662.49 113.23Q660.23 107.84 656.22 103.83Q652.2 99.81 646.75 97.61Q641.31 95.41 634.93 95.41Q628.44 95.41 623 97.61Q617.55 99.81 613.48 103.83Q609.41 107.84 607.15 113.23Q604.9 118.62 604.9 125Q604.9 131.38 607.15 136.77Q609.41 142.16 613.48 146.18Q617.55 150.19 623 152.39Q628.44 154.59 634.93 154.59ZM685.2 163.5 717.21 119.83V128.3L686.96 86.5H699.5L723.48 119.39L718.53 119.5L742.4 86.5H754.39L724.36 127.64V119.72L756.37 163.5H743.72L718.2 128.41H723.04L697.85 163.5Z" />
+    </g>
+
+    <!-- Lens (the O): r 40, ring 6 (15% of r) -->
+    <circle cx="183" cy="125" r="40" fill="url(#lens-glass)" />
+    <circle cx="183" cy="125" r="40" fill="none" stroke="#0095B6" stroke-width="6" filter="url(#neon-glow)" />
+
+    <!-- Insight check: legs meet at 90°, bounding box centred on the lens -->
+    <polyline points="161.8,125 175.9,139.1 204.2,110.9" fill="none" stroke="#11151C" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- Handle: leaves the ring's outer edge at 45° (r + half the ring) -->
+    <line x1="213.4" y1="155.4" x2="236" y2="178" stroke="url(#handle-grad)" stroke-width="12" stroke-linecap="round" />
+  </g>
+</svg>

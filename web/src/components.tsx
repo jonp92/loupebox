@@ -33,10 +33,11 @@ export function OfflineBanner() {
   );
 }
 
-/** Brand mark; decorative wherever the "Loupebox" name is next to it. The theme (see .logo-* in styles.css) shows one. */
-export function Logo({ size = 28, className = "" }: { size?: number; className?: string }) {
+/** Brand mark (icon, or the icon + name wordmark). The theme (see .logo-* in styles.css) shows one variant. */
+export function Logo({ size = 28, wordmark = false, className = "" }: { size?: number; wordmark?: boolean; className?: string }) {
+  const file = (variant: string) => (wordmark ? `loupebox-wordmark-app-${variant}` : `loupebox-icon-neon-${variant}`);
   const img = (variant: "light" | "dark") => (
-    <img className={`logo logo-${variant} ${className}`} src={`/brand/loupebox-icon-neon-${variant}.svg`} width={size} height={size} alt="" />
+    <img className={`logo logo-${variant} ${wordmark ? "wordmark" : ""} ${className}`} src={`/brand/${file(variant)}.svg`} height={size} width={wordmark ? undefined : size} alt={wordmark ? "Loupebox" : ""} />
   );
   return <>{img("light")}{img("dark")}</>;
 }

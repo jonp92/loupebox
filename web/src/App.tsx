@@ -83,7 +83,7 @@ function Layout() {
   return (
     <>
       <header className="topbar">
-        <NavLink to="/" className="brand"><Logo /> Loupebox</NavLink>
+        <NavLink to="/" className="brand" aria-label="Loupebox"><Logo wordmark /></NavLink>
         <nav className="mainnav">
           <NavLink to="/" end>Dashboard</NavLink>
           {/* Sites stays highlighted on /sites/:id too (NavLink matches the prefix) */}

@@ -17,10 +17,15 @@ PUBLIC = Path(__file__).resolve().parent.parent / "web" / "public"
 ART = PUBLIC / "brand" / "loupebox-icon-neon-dark.svg"  # square, opaque dark background
 BACKGROUND = re.compile(r'<rect width="250" height="250" fill="#0B0E14"\s*/>')
 ARTWORK_START = "<!-- Lens"  # everything from here on is the lens, check and handle
-NOTE = "<!-- Generated from brand/loupebox-icon-neon-dark.svg by scripts/generate_logos.py. Do not edit. -->\n"
+NOTE = "<!-- Generated from {} by scripts/generate_logos.py. Do not edit. -->\n"
 
 TILE = "loupebox-icon.svg"  # rounded tile: favicon and PWA "any" icons
 MASKABLE = "loupebox-icon-maskable.svg"  # full-bleed with a safe zone, for maskable icons
+
+# The README wordmarks are 800x250 with the dark one on an opaque background. The app wants them transparent
+# and cropped to the artwork (measured: x 88-718, y 88-174, plus room for the neon glow).
+WORDMARK_BACKGROUND = '  <rect width="800" height="250" fill="#0B0E14" />\n'
+WORDMARK_VIEWBOX = ('viewBox="0 0 800 250"', 'viewBox="66 66 674 130"')
 
 # (output file, source, size in px)
 PNGS = [
@@ -46,13 +51,26 @@ def derive(art: str) -> dict[str, str]:
     return {TILE: tile, MASKABLE: head + shrink}
 
 
+def derive_wordmarks() -> dict[str, str]:
+    """Transparent, cropped app wordmarks (brand/loupebox-wordmark-app-{light,dark}.svg), keyed by output name."""
+    out = {}
+    for variant in ("light", "dark"):
+        art = (PUBLIC / "brand" / f"loupebox-wordmark-neon-{variant}.svg").read_text()
+        if WORDMARK_VIEWBOX[0] not in art:
+            raise SystemExit(f"loupebox-wordmark-neon-{variant}.svg no longer has the expected viewBox")
+        out[f"brand/loupebox-wordmark-app-{variant}.svg"] = art.replace(WORDMARK_BACKGROUND, "").replace(*WORDMARK_VIEWBOX)
+    return out
+
+
 def main() -> int:
     if not shutil.which("rsvg-convert"):
         print("rsvg-convert not found. Install librsvg (brew install librsvg / apt install librsvg2-bin).", file=sys.stderr)
         return 1
-    for name, svg in derive(ART.read_text()).items():
-        (PUBLIC / name).write_text(svg.replace("\n", "\n" + NOTE, 1))  # the note goes under the <svg> line
-        print(f"{name:24} generated")
+    generated = [(derive(ART.read_text()), f"brand/{ART.name}"), (derive_wordmarks(), "the brand wordmarks")]
+    for svgs, source in generated:
+        for name, svg in svgs.items():
+            (PUBLIC / name).write_text(svg.replace("\n", "\n" + NOTE.format(source), 1))  # the note goes under the <svg> line
+            print(f"{name:24} generated")
     for name, source, size in PNGS:
         subprocess.run(
             ["rsvg-convert", "-w", str(size), "-h", str(size), str(PUBLIC / source), "-o", str(PUBLIC / name)], check=True
