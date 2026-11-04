@@ -6,6 +6,8 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+## [0.1.0-alpha.5] - 2026-11-03
+
 ### Fixed
 - Signing in while the page was still restoring the previous session could let the stale restore replace the new
   session's token, signing you in as the wrong user or straight back out.
@@ -82,7 +84,7 @@ First public alpha.
 - Not load tested; capacity numbers are estimates.
 - The database role and name stay `ganymede` (the project's former name) so existing volumes keep working.
 
-[0.1.0-alpha.4]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.4
+[0.1.0-alpha.5]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.5[0.1.0-alpha.4]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.4
 [0.1.0-alpha.3]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.3
 [0.1.0-alpha.2]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.2
 [0.1.0-alpha.1]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.1
