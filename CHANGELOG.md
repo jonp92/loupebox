@@ -7,6 +7,10 @@ change between releases; breaking changes are called out below.
 ## [Unreleased]
 
 ### Fixed
+- On phones, a member's email on the Members tab was squeezed against the role selector. The role and Remove
+  controls now wrap onto their own row.
+
+### Fixed
 - On phones, the assignee picker closed as soon as it opened (the on-screen keyboard counted as a resize), and the
   assignee on a feedback card needed a double-click. A tap now opens it.
 
