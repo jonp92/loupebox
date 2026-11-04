@@ -6,6 +6,8 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+## [0.1.0-alpha.6] - 2026-11-04
+
 ### Fixed
 - On phones, a member's email on the Members tab was squeezed against the role selector. The role and Remove
   controls now wrap onto their own row.
@@ -92,7 +94,9 @@ First public alpha.
 - Not load tested; capacity numbers are estimates.
 - The database role and name stay `ganymede` (the project's former name) so existing volumes keep working.
 
-[0.1.0-alpha.5]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.5[0.1.0-alpha.4]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.4
+[0.1.0-alpha.6]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.6
+[0.1.0-alpha.5]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.5
+[0.1.0-alpha.4]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.4
 [0.1.0-alpha.3]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.3
 [0.1.0-alpha.2]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.2
 [0.1.0-alpha.1]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.1
