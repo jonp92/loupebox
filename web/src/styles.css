@@ -117,6 +117,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outlin
 button:disabled { opacity: .5; cursor: not-allowed; }
 button.primary { background: var(--accent-fill); border-color: var(--accent-fill); color: var(--on-accent); box-shadow: 0 0 14px color-mix(in srgb, var(--glow) 30%, transparent); }
 button.primary:hover:not(:disabled) { background: var(--accent-fill-hover); border-color: var(--accent-fill-hover); }
+button.primary:disabled { box-shadow: none; }
 button.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--border)); }
 button.danger:hover:not(:disabled) { background: var(--danger-soft); }
 button.block { width: 100%; margin-top: .5rem; padding: .65rem; }
