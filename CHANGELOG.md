@@ -4,7 +4,14 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 and versions follow [Semantic Versioning](https://semver.org). While the project is alpha (`0.x`), anything may
 change between releases; breaking changes are called out below.
 
-## [0.1.0-alpha.2] - 2026-11-03
+## [0.1.0-alpha.3] - 2026-11-03
+
+### Fixed
+- The web image's multi-arch release build no longer stalls: the Node build stage runs on the builder's native
+  platform instead of under emulation. Version 0.1.0-alpha.2 was tagged but never published (its release build
+  hung), so alpha.3 is the first release with the downloads and install command described below.
+
+## [0.1.0-alpha.2] - 2026-11-03 (never published)
 
 ### Added
 - Each release publishes `docker-compose.yml`, `setup.sh` and `env.example` as downloads, and the README has a
@@ -45,5 +52,6 @@ First public alpha.
 - Not load tested; capacity numbers are estimates.
 - The database role and name stay `ganymede` (the project's former name) so existing volumes keep working.
 
+[0.1.0-alpha.3]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.3
 [0.1.0-alpha.2]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.2
 [0.1.0-alpha.1]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.1
