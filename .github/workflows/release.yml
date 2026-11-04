@@ -6,18 +6,43 @@ on:
     tags: ["v*"]
 
 permissions:
+  actions: read # the ci job reads the CI run for the tagged commit
   contents: write # the release job creates the GitHub Release
   packages: write
 
 jobs:
+  # A tag must not publish anything CI has not passed. The tag is normally pushed right after the merge to
+  # master, so wait for that push's CI run to finish rather than failing while it is still going.
+  ci:
+    name: CI is green
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for CI on this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for _ in $(seq 40); do
+            run=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$GITHUB_SHA" --event push \
+              --limit 1 --json status,conclusion --jq '.[0] | "\(.status) \(.conclusion)"')
+            case "$run" in
+              "completed success") exit 0 ;;
+              "completed "*) echo "CI for $GITHUB_SHA finished as: $run" >&2; exit 1 ;;
+            esac
+            echo "Waiting for CI on $GITHUB_SHA (${run:-not started})"
+            sleep 30
+          done
+          echo "CI for $GITHUB_SHA did not finish in 20 minutes" >&2
+          exit 1
+
   images:
     name: ${{ matrix.image }}
+    needs: ci
     runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
-          - {image: loupebox-api, context: .}
-          - {image: loupebox-web, context: web}
+          - {image: loupebox-api, context: ., cache: api}
+          - {image: loupebox-web, context: web, cache: web}
     steps:
       - uses: actions/checkout@v4
       - name: Tag must match the VERSION file
@@ -47,8 +72,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.image }}
-          cache-to: type=gha,scope=${{ matrix.image }},mode=max
+          # Read the layers CI cached on master (a tag can read the default branch's cache). No cache-to: a
+          # cache saved from a tag ref is never read by anything else.
+          cache-from: type=gha,scope=${{ matrix.cache }}
 
   release:
     name: GitHub Release
