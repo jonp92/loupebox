@@ -1,0 +1,89 @@
+[project]
+site_name = "Loupebox"
+site_description = "Self-hosted feedback inbox for your websites and small tools."
+site_url = "https://loupebox.dev/"
+repo_url = "https://github.com/jonp92/loupebox"
+repo_name = "jonp92/loupebox"
+edit_uri = "edit/master/docs/"
+copyright = "Copyright 2026 Jonathan L. Pressler. Docs under AGPL-3.0, like the server."
+nav = [
+  { "Home" = "index.md" },
+  { "Install" = [
+    { "With Docker" = "install/docker.md" },
+    { "First steps" = "install/first-steps.md" },
+    { "Put it on the internet" = "install/reverse-proxy.md" },
+    { "Backups and upgrades" = "install/backups-upgrades.md" },
+    { "Production checklist" = "install/production.md" },
+  ] },
+  { "Collect feedback" = [
+    { "The widget" = "collect/widget.md" },
+    { "Your own form" = "collect/own-form.md" },
+    { "Spam and bots" = "collect/spam-and-bots.md" },
+    { "Public API" = "collect/api.md" },
+  ] },
+  { "Work through feedback" = [
+    { "Triage" = "manage/triage.md" },
+    { "Assign, tag and note" = "manage/assign-tags-notes.md" },
+    { "Reply to people" = "manage/replies.md" },
+    { "Export" = "manage/export.md" },
+    { "People and roles" = "manage/roles.md" },
+    { "Phone and PWA" = "manage/phone.md" },
+  ] },
+  { "Get alerts" = [
+    { "Email alerts" = "notifications/index.md" },
+    { "Brevo" = "notifications/brevo.md" },
+    { "SMTP" = "notifications/smtp.md" },
+    { "Webhooks" = "notifications/webhooks.md" },
+  ] },
+  { "Accounts and security" = [
+    { "Two-factor sign-in" = "security/two-factor.md" },
+    { "Password reset" = "security/password-reset.md" },
+    { "Audit log" = "security/audit-log.md" },
+  ] },
+  { "Reference" = [
+    { "Settings (.env)" = "reference/configuration.md" },
+    { "Known limits" = "reference/limitations.md" },
+    { "Develop Loupebox" = "reference/development.md" },
+  ] },
+]
+
+[project.theme]
+language = "en"
+features = [
+  "content.code.copy",
+  "content.tabs.link",
+  "navigation.footer",
+  "navigation.instant",
+  "navigation.path",
+  "navigation.sections",
+  "navigation.top",
+  "search.highlight",
+]
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme)"
+toggle.icon = "lucide/sun-moon"
+toggle.name = "Switch to light mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to system preference"
+
+[project.markdown_extensions]
+admonition = {}
+attr_list = {}
+md_in_html = {}
+toc.permalink = true
+pymdownx.details = {}
+pymdownx.highlight.anchor_linenums = true
+pymdownx.inlinehilite = {}
+pymdownx.superfences = {}
+pymdownx.tabbed.alternate_style = true
