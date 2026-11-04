@@ -51,7 +51,7 @@ def build_message(row: NotificationOutbox, site: Site, recipients: list[str]) ->
 
     text = "\n".join([p.get("excerpt", ""), "", *(f"{k}: {v}" for k, v in facts)] + ([link] if link else []))
     rows = [
-        (k, f'<a class="lnk" href="{escape(v, quote=True)}" style="color:#5b5bd6">{escape(v)}</a>' if k == "Page" and _safe_href(v) else escape(v))
+        (k, f'<a class="lnk" href="{escape(v, quote=True)}" style="color:#007a94">{escape(v)}</a>' if k == "Page" and _safe_href(v) else escape(v))
         for k, v in facts
     ]
     body = quote(escape(p.get("excerpt", "")).replace("\n", "<br>")) + (facts_table(rows) if rows else "")
@@ -82,7 +82,7 @@ def build_summary(rows: list[NotificationOutbox], site: Site, recipients: list[s
         text += f"\n\n{link}"
     items = "".join(f'<li style="margin:0 0 6px">{escape(e)}</li>' for e in excerpts)
     body = (
-        f'<p class="text" style="margin:12px 0 0;color:#171923;font-size:15px">{escape(head)}</p>'
+        f'<p class="text" style="margin:12px 0 0;color:#0f1720;font-size:15px">{escape(head)}</p>'
         + quote(f'<ul style="margin:0;padding-left:18px">{items}</ul>' + (f'<div style="margin-top:8px;opacity:.7">...and {more} more</div>' if more else ""))
     )
     return Message(

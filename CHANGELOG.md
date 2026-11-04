@@ -16,7 +16,8 @@ change between releases; breaking changes are called out below.
   the active tab in dark mode.
 - The top bar and sign-in page show the full Loupebox wordmark, with a cyan glow behind the sign-in card.
 - `scripts/generate_logos.py` also generates cropped, transparent wordmarks for the app.
-- Not yet updated: the embeddable widget and the notification email accent still use the old purple.
+- The embeddable widget and the notification emails use the same cyan palette (light and dark), replacing the
+  old purple. Widgets that set their own `--gm-*` variables are unaffected.
 
 ## [0.1.0-alpha.4] - 2026-11-03
 
