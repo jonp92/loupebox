@@ -57,7 +57,7 @@ export default function Members({ site }: { site: Site }) {
         <p className="muted hint">{ROLE_HELP[role]}. Pick an existing user from the list.</p>
       </section>
       <h2 className="section">Members <span className="count">{members.length}</span></h2>
-      <ul className="list">
+      <ul className="list members">
         {members.map((m) => (
           <li key={m.user_id}>
             <Avatar user={m} />
