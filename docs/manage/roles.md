@@ -28,5 +28,5 @@ Add members from a site's **Members** tab. The person needs a user account first
 
 ## If someone is locked out
 
-A superadmin can reset a password on the Users page. For two-factor problems, see
+A superadmin can reset a password on the Users page, or people can reset it themselves by email once [email is set up](../security/password-reset.md). For two-factor problems, see
 [Two-factor sign-in](../security/two-factor.md#if-someone-is-locked-out).

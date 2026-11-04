@@ -1,6 +1,6 @@
 # Two-factor sign-in
 
-Anyone can turn on a code from an authenticator app (any app that supports TOTP, RFC 6238) under
+Users can set up a code from an authenticator app (any app that supports TOTP, RFC 6238) under
 **Profile and password**. It is optional and per person. Nothing changes for people who do not turn it on.
 
 ![Two-factor setup](../images/two-factor-dark.png#only-dark)

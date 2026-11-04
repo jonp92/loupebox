@@ -28,11 +28,11 @@ answers and errors, and a ready-made example, see [Your own form](own-form.md). 
 
 ## Everything else
 
-The admin app uses the same API under `/v1/api`. When `ENVIRONMENT` is not `production`, the server shows
+The admin app uses the same API under `/v1/api`. When `ENVIRONMENT` is set to `development`, the server shows
 interactive documentation for every route at `/v1/api/docs`.
 
 Some useful calls:
 
 * `GET /sites/{id}/feedback` lists feedback. See [Triage](../manage/triage.md#filters) for the filters.
-* `POST /sites/{id}/feedback/bulk` changes many items. See [Triage](../manage/triage.md#bulk-actions).
-* `GET /sites/{id}/feedback/export.csv` downloads a CSV. See [Export](../manage/export.md).
+* `POST /sites/{id}/feedback/bulk` update many items at once. See [Triage](../manage/triage.md#bulk-actions).
+* `GET /sites/{id}/feedback/export.csv` download a CSV. See [Export](../manage/export.md).

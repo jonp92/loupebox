@@ -1,6 +1,6 @@
 # Production checklist
 
-Check these before you use Loupebox for real feedback.
+Check these before you use Loupebox in production.
 
 * `ENVIRONMENT=production`.
 * `JWT_SECRET` is at least 32 characters. `setup.sh` generates a good one.

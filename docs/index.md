@@ -1,14 +1,16 @@
 # Loupebox
 
-Loupebox is a feedback inbox you run yourself. Visitors to your website or tool send a message from a
-form or a small widget. You and your team read it, sort it, answer it and get an email when something new
-arrives.
+Loupebox is a web form inbox you run yourself. Visitors to your website or tool send a message and other
+information from a form or a small widget. You and anyone you choose can read, sort and reply to it from a web
+app. Set up a notification channel to hear about new submissions by email or webhook. Other channel types can be
+added as plugins.
 
 ![The feedback list in Loupebox](images/feedback-list-dark.png#only-dark)
 ![The feedback list in Loupebox](images/feedback-list-light.png#only-light)
 
-It is a good fit when you have a few small sites or tools and want one place for what people tell you. It is
-not a help desk: there are no tickets, queues or response-time targets.
+Loupebox is meant for self-hosting, for when you have a static page or an app and want to collect feedback from
+its users. It is not a full ticketing system or a CRM. Its public-safe site keys let any static website have a
+form without needing its own application server.
 
 !!! warning "Alpha software"
     Loupebox is at version 0.1 alpha. Things may change between releases, so read the
@@ -17,17 +19,17 @@ not a help desk: there are no tickets, queues or response-time targets.
 
 ## What you get
 
-* A feedback form or widget you add to any site with two lines of code.
+* A feedback form or widget you add to any site with two lines of code, no application server necessary.
 * An inbox with filters, statuses, assignees, tags and private notes.
 * Replies sent by email to the person who wrote in.
 * Email and webhook alerts for new feedback.
 * Several sites in one install, with a role for each person on each site (viewer, editor, admin).
 * Spam protection that works without a CAPTCHA, and an optional proof-of-work challenge.
-* An admin app that works on phones and can be installed like an app.
+* An admin app that works on phones and can be installed as a PWA.
 
 ## Where to start
 
-1. [Install with Docker](install/docker.md). It takes about five minutes.
+1. [Install with Docker](install/docker.md). Get started in about five minutes.
 2. Follow [First steps](install/first-steps.md) to create a site and send a test message.
 3. Add the [widget](collect/widget.md) to your website.
 4. Set up [email alerts](notifications/index.md) so you hear about new feedback.

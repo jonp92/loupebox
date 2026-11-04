@@ -31,7 +31,7 @@ Editors can change its status. See [Assign, tag and note](assign-tags-notes.md) 
 
 ## Bulk actions
 
-Tick items, or choose **Select all on this page**, then change their status, assign them, tag them or
+Check items, or choose **Select all on this page**, then change their status, assign them, tag them or
 delete them in one step. Editors can change status, assign and tag. Only admins can delete.
 
 ![Bulk actions on selected items](../images/bulk-dark.png#only-dark)

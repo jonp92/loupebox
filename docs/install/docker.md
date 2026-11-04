@@ -17,8 +17,8 @@ docker compose up -d
 ```
 
 `setup.sh` creates a `.env` file with a random password for the database and random secrets for sign-in.
-Keep that file safe and do not change the two encryption keys later, or people using two-factor sign-in
-and webhooks will be locked out.
+Keep that file private. Do not change the encryption keys later, or people using two-factor sign-in will be
+locked out and existing webhooks will stop working.
 
 Then create the first administrator. This account can create sites and other users:
 
@@ -32,11 +32,11 @@ It asks you to choose a password. Open <http://localhost:8080> and sign in.
 
 | Service | What it does |
 |---|---|
-| `db` | The Postgres database. Your data lives in the `pgdata` volume. |
-| `migrate` | Updates the database to the current version, then exits. The API waits for it. |
+| `db` | The Postgres database. Your data lives in the `pgdata` volume. See [Backups](backups-upgrades.md) to use a bind mount instead. |
+| `migrate` | Updates the database to the current version when the stack starts, then exits. The API waits for it to finish. |
 | `api` | The server. Available at `http://localhost:8000/v1/api`. |
 | `worker` | Sends email and webhook alerts. Nothing is sent if it is not running. |
-| `web` | The admin app. Available at `http://localhost:8080`. |
+| `web` | The React admin app. Available at `http://localhost:8080`. |
 
 The ports are open on your own machine only. To reach Loupebox from the internet, put a reverse proxy in
 front of it, as described in [Put it on the internet](reverse-proxy.md).

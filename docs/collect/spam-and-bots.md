@@ -31,7 +31,7 @@ they are not counted.
 ## Turn on a challenge
 
 If a site still gets junk, ask visitors' browsers to do a small piece of work before each submission. The
-visitor does not see it. Open the site's **Settings** tab, find **Bot protection** and choose a challenge.
+visitor does not see it, unlike a CAPTCHA. Open the site's **Settings** tab, find **Bot protection** and choose a challenge.
 
 * The built-in challenge is a signed, single-use proof of work. The [widget](widget.md) solves it for you.
   If you built your own form, see [the challenge section](own-form.md#challenges-bot-protection).
