@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="web/public/brand/loupebox-wordmark-neon-dark.svg">
+    <img src="web/public/brand/loupebox-wordmark-neon-light.svg" alt="Loupebox" height="64">
+  </picture>
+</p>
+
 # Loupebox: form feedback server
 
 FastAPI + Postgres API with a React admin UI (`web/`). Static sites post feedback with a public
