@@ -4,6 +4,19 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 and versions follow [Semantic Versioning](https://semver.org). While the project is alpha (`0.x`), anything may
 change between releases; breaking changes are called out below.
 
+## [0.1.0-alpha.4] - 2026-11-03
+
+### Changed
+- New neon Loupebox logo: the app icon, favicon, PWA icons (including a maskable variant), email logo and the
+  README header. The in-app logo follows the light or dark theme. Installed apps pick up the new icons on their
+  next update.
+- The PWA splash and theme colours now match the icon.
+
+### Added
+- Brand artwork in `web/public/brand/` (icon and wordmark, light and dark, text converted to paths so they render
+  without fonts), its editable sources in `web/brand/`, and `scripts/outline_brand.py`.
+- `scripts/generate_logos.py` now generates every app icon from the one brand icon.
+
 ## [0.1.0-alpha.3] - 2026-11-03
 
 ### Fixed
@@ -54,6 +67,7 @@ First public alpha.
 - Not load tested; capacity numbers are estimates.
 - The database role and name stay `ganymede` (the project's former name) so existing volumes keep working.
 
+[0.1.0-alpha.4]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.4
 [0.1.0-alpha.3]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.3
 [0.1.0-alpha.2]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.2
 [0.1.0-alpha.1]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.1
