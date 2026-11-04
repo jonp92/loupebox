@@ -6,6 +6,8 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+## [0.1.0-alpha.5] - 2026-11-03
+
 ### Fixed
 - Signing in while the page was still restoring the previous session could let the stale restore replace the new
   session's token, signing you in as the wrong user or straight back out.
