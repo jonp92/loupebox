@@ -8,8 +8,10 @@ change between releases; breaking changes are called out below.
 
 ### Fixed
 - The web image's multi-arch release build no longer stalls: the Node build stage runs on the builder's native
-  platform instead of under emulation. Version 0.1.0-alpha.2 was tagged but never published (its release build
-  hung), so alpha.3 is the first release with the downloads and install command described below.
+  platform instead of under emulation.
+- Version 0.1.0-alpha.2 was tagged but never published (its release build hung), so alpha.3 is the first release
+  that includes everything listed under 0.1.0-alpha.2: the release downloads and install command, the footer
+  source link, the `.env` fix and the alpha status banner with the backup and upgrade guide.
 
 ## [0.1.0-alpha.2] - 2026-11-03 (never published)
 
