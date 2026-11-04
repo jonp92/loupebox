@@ -7,20 +7,20 @@ export const css = `
 :host {
   all: initial;
   display: block;
-  --gm-accent: #5b5bd6; --gm-accent-text: #ffffff; --gm-bg: #ffffff; --gm-text: #171923; --gm-muted: #6a6f85;
-  --gm-border: #dfe2ec; --gm-surface: #f4f5fa; --gm-danger: #c53030; --gm-ok: #2f855a;
+  --gm-accent: #007a94; --gm-accent-text: #ffffff; --gm-bg: #ffffff; --gm-text: #0f1720; --gm-muted: #5a6b82;
+  --gm-border: #d5dee8; --gm-surface: #eaf0f5; --gm-danger: #c62a3e; --gm-ok: #17794a;
   --gm-radius: 12px; --gm-font: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --gm-z: 2147483000;
   font-family: var(--gm-font); color: var(--gm-text); font-size: 14px; line-height: 1.45;
 }
 :host([data-theme="dark"]) {
-  --gm-accent: #8c8cf5; --gm-accent-text: #10111a; --gm-bg: #181b25; --gm-text: #e8eaf2; --gm-muted: #98a0b8;
-  --gm-border: #2b3040; --gm-surface: #20242f; --gm-danger: #fc8181; --gm-ok: #68d391;
+  --gm-accent: #00e5ff; --gm-accent-text: #0b0e14; --gm-bg: #121722; --gm-text: #e6edf7; --gm-muted: #7889a3;
+  --gm-border: #263044; --gm-surface: #1a2130; --gm-danger: #ff7a8a; --gm-ok: #6fdba0;
 }
 @media (prefers-color-scheme: dark) {
   :host([data-theme="auto"]) {
-    --gm-accent: #8c8cf5; --gm-accent-text: #10111a; --gm-bg: #181b25; --gm-text: #e8eaf2; --gm-muted: #98a0b8;
-    --gm-border: #2b3040; --gm-surface: #20242f; --gm-danger: #fc8181; --gm-ok: #68d391;
+    --gm-accent: #00e5ff; --gm-accent-text: #0b0e14; --gm-bg: #121722; --gm-text: #e6edf7; --gm-muted: #7889a3;
+    --gm-border: #263044; --gm-surface: #1a2130; --gm-danger: #ff7a8a; --gm-ok: #6fdba0;
   }
 }
 *, *::before, *::after { box-sizing: border-box; }

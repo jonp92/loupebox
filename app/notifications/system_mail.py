@@ -15,7 +15,7 @@ from app.notifications.registry import all_providers
 
 log = logging.getLogger("loupebox.system_mail")
 
-_P = 'class="text" style="margin:12px 0 0;color:#171923;font-size:15px;line-height:1.5"'
+_P = 'class="text" style="margin:12px 0 0;color:#0f1720;font-size:15px;line-height:1.5"'
 _FOOTER = "You get this because of an action on your Loupebox account."
 
 
@@ -89,7 +89,7 @@ def reply_message(site: str, body: str, original: str, replier: str) -> tuple[st
     html = render(
         heading=f"A reply from {site}", preheader=body[:120], link=None, site=site, footer=footer,
         body=f'<p {_P}>{_html_text(body)}</p>'
-        f'<p class="muted" style="margin:20px 0 0;color:#6a6f85;font-size:13px">Your feedback:</p>'
+        f'<p class="muted" style="margin:20px 0 0;color:#5a6b82;font-size:13px">Your feedback:</p>'
         + quote(_html_text(original)),
     )
     return f"Re: your feedback on {site}", text, html
