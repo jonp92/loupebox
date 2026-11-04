@@ -156,6 +156,14 @@ export class ApiError extends Error {
 let accessToken: string | null = null;
 let onLoggedOut: () => void = () => {};
 let refreshing: Promise<boolean> | null = null;
+// Bumped whenever the token is set explicitly (sign-in, logout), so a refresh that started earlier
+// (the page-load restore) can't land afterwards and replace the newer session with a stale one.
+let session = 0;
+
+function setToken(token: string | null) {
+  session++;
+  accessToken = token;
+}
 
 export function setLogoutHandler(fn: () => void) {
   onLoggedOut = fn;
@@ -173,9 +181,12 @@ async function detail(res: Response): Promise<string> {
 }
 
 async function tokenRequest(path: string, init?: RequestInit): Promise<boolean> {
+  const started = session;
   const res = await fetch(BASE + path, { method: "POST", credentials: "include", ...init });
   if (!res.ok) return false;
-  accessToken = (await res.json()).access_token;
+  const { access_token } = await res.json();
+  if (session !== started) return false;
+  accessToken = access_token;
   return true;
 }
 
@@ -195,7 +206,7 @@ export async function login(email: string, password: string): Promise<string | n
   if (!res.ok) throw new ApiError(res.status, await detail(res));
   const body = await res.json();
   if (body.mfa_required) return body.mfa_token as string;
-  accessToken = body.access_token;
+  setToken(body.access_token);
   return null;
 }
 
@@ -207,25 +218,25 @@ export async function loginTotp(mfa_token: string, code: string) {
     body: JSON.stringify({ mfa_token, code }),
   });
   if (!res.ok) throw new ApiError(res.status, await detail(res));
-  accessToken = (await res.json()).access_token;
+  setToken((await res.json()).access_token);
 }
 
 /** Enabling or disabling TOTP signs out other sessions; this one gets a fresh token. */
 export async function totpChange<T extends { access_token: string }>(path: string, body: unknown): Promise<T> {
   const r = await api<T>(path, json("POST", body));
-  accessToken = r.access_token;
+  setToken(r.access_token);
   return r;
 }
 
 export async function changePassword(current_password: string, new_password: string) {
   // Other sessions are revoked server-side; this one gets a fresh token pair.
   const r = await api<{ access_token: string }>("/auth/me/password", json("POST", { current_password, new_password }));
-  accessToken = r.access_token;
+  setToken(r.access_token);
 }
 
 export async function logout() {
   await fetch(BASE + "/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
-  accessToken = null;
+  setToken(null);
 }
 
 async function request(path: string, init: RequestInit, retry = true): Promise<Response> {

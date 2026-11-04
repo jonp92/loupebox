@@ -6,6 +6,10 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+### Fixed
+- Signing in while the page was still restoring the previous session could let the stale restore replace the new
+  session's token, signing you in as the wrong user or straight back out.
+
 ### Changed
 - Admin UI redesign around the Loupebox cyan: new dark and light palettes with higher-contrast muted text and
   visible form-control borders. The top bar is always navy, and glows are limited to focus, primary buttons and
