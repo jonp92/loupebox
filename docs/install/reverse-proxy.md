@@ -36,7 +36,7 @@ admin app needs no cross-site settings, and your websites send feedback to
 * Set `TRUST_PROXY=true` so rate limits use the visitor's real address. This is only safe if nobody can
   reach the API port except through the proxy. The default setup keeps it on localhost, do not open it directly to the internet.
 * A health check is available at `/v1/api/health`.
-* The API's Swagger documentation at `/v1/api/docs` is disabled when `ENVIRONMENT=production`.
+* The API's Swagger documentation at `/v1/api/docs` is available when `ENVIRONMENT=development`.
 * If Caddy runs in a container, put it on the compose network and forward to `api:8000` and `web:8080`.
 
 Before you go live, work through the [production checklist](production.md).

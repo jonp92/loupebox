@@ -28,8 +28,7 @@ answers and errors, and a ready-made example, see [Your own form](own-form.md). 
 
 ## Everything else
 
-The admin app uses the same API under `/v1/api`. When `ENVIRONMENT` is set to `development`, the server shows
-interactive documentation for every route at `/v1/api/docs`.
+The admin app uses the same API under `/v1/api`. When `ENVIRONMENT` is set to `development`, the Swagger UI is available for every route at `/v1/api/docs`.
 
 Some useful calls:
 

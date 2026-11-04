@@ -3,7 +3,7 @@
 ## Assignee
 
 You can assign items to individual team members to divide up work. The assignee must be an editor or
-admin of the site. If editor access is later downgraded to viewer, their assignments are cleared.
+admin of the site. If editor access is later downgraded to viewer or deleted, their assignments are cleared.
 
 * Tap or click the assignee on a card to pick someone. You can also right-click it, long-press it on a
   phone, or use the **...** button. Or tick several items and choose **Assign to...**.
