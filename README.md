@@ -24,7 +24,7 @@ You need Docker with the compose plugin, plus `curl` and `openssl`.
 
 ```bash
 mkdir loupebox && cd loupebox
-for f in docker-compose.yml setup.sh env.example; do
+for f in docker-compose.yml setup.sh backup.sh restore.sh env.example; do
   curl -fsSLO https://github.com/jonp92/loupebox/releases/latest/download/$f
 done
 sh setup.sh && docker compose up -d

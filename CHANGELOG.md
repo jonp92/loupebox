@@ -10,6 +10,8 @@ change between releases; breaking changes are called out below.
 - Documentation site at loupebox.dev, built with Zensical from `docs/` and published with GitHub Pages. It has
   install, using, alerts, security and reference pages with screenshots.
 - The docs site has a favicon and runs the Loupebox widget, so visitors can send feedback from any page.
+- `backup.sh` and `restore.sh` (also release downloads): one dated file with the database and `.env`, keeping
+  the newest 14. `DB_DATA_DIR` in `.env` keeps the database in a folder instead of a Docker volume.
 
 ### Changed
 - The README is now short and points to the docs site. The old one is kept as `README.old`.

@@ -93,7 +93,7 @@ jobs:
         run: |
           mkdir dist
           cp docker-compose.yml dist/
-          cp scripts/setup.sh dist/setup.sh
+          cp scripts/setup.sh scripts/backup.sh scripts/restore.sh dist/
           cp .env.example dist/env.example
       # --latest on purpose, not --prerelease: the install command in the README uses releases/latest/download,
       # which skips prereleases. Revisit once there is a stable 1.0.

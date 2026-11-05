@@ -9,7 +9,7 @@ Make a folder, download three files, and let the setup script write your setting
 
 ```bash
 mkdir loupebox && cd loupebox
-for f in docker-compose.yml setup.sh env.example; do
+for f in docker-compose.yml setup.sh backup.sh restore.sh env.example; do
   curl -fsSLO https://github.com/jonp92/loupebox/releases/latest/download/$f
 done
 sh setup.sh
@@ -32,7 +32,7 @@ It asks you to choose a password. Open <http://localhost:8080> and sign in.
 
 | Service | What it does |
 |---|---|
-| `db` | The Postgres database. Your data lives in the `pgdata` volume. See [Backups](backups-upgrades.md) to use a bind mount instead. |
+| `db` | The Postgres database. Your data lives in the `pgdata` volume, or in a folder if you set `DB_DATA_DIR`. See [Backups](backups-upgrades.md). |
 | `migrate` | Updates the database to the current version when the stack starts, then exits. The API waits for it to finish. |
 | `api` | The server. Available at `http://localhost:8000/v1/api`. |
 | `worker` | Sends email and webhook alerts. Nothing is sent if it is not running. |
