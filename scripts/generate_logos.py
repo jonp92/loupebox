@@ -52,7 +52,8 @@ def derive(art: str) -> dict[str, str]:
 
 
 def derive_wordmarks() -> dict[str, str]:
-    """Transparent, cropped app wordmarks (brand/loupebox-wordmark-app-{light,dark}.svg), keyed by output name."""
+    """Transparent, cropped app wordmarks (brand/loupebox-wordmark-app-{light,dark}.svg), keyed by
+    output name."""
     out = {}
     for variant in ("light", "dark"):
         art = (PUBLIC / "brand" / f"loupebox-wordmark-neon-{variant}.svg").read_text()

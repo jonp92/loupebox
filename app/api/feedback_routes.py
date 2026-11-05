@@ -429,7 +429,8 @@ def bulk_feedback(
             db,
             access,
             body.action,
-            f"{'Added' if add else 'Removed'} tag {body.tag} on {len(items)} feedback items in {access.site.name}",
+            f"{'Added' if add else 'Removed'} tag {body.tag} on {len(items)} feedback items"
+            f" in {access.site.name}",
             {"count": len(items), "tag": body.tag, "ids": _ids(items)},
         )
     db.commit()

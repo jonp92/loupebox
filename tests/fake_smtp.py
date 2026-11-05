@@ -5,6 +5,7 @@ Recipients steer behaviour: `refuse@` gets 550, `defer@` gets 450, `hangup@` dro
 """
 
 import base64
+import contextlib
 import datetime
 import re
 import socket
@@ -170,7 +171,5 @@ class FakeSmtp:
         except (OSError, ssl.SSLError):
             pass
         finally:
-            try:
+            with contextlib.suppress(OSError):
                 conn.close()
-            except OSError:
-                pass

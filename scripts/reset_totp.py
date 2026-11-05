@@ -1,4 +1,7 @@
-"""Turn off two-factor authentication for a user (lockout recovery): python -m scripts.reset_totp you@example.com"""
+"""Turn off two-factor authentication for a user (lockout recovery).
+
+python -m scripts.reset_totp you@example.com
+"""
 
 import sys
 from datetime import UTC, datetime

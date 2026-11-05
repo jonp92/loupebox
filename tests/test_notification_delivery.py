@@ -279,6 +279,7 @@ def test_purge_removes_only_old_finished_rows(db, fake):
     for row, status in zip(
         rows,
         [OutboxStatus.sent, OutboxStatus.failed, OutboxStatus.pending, OutboxStatus.held, OutboxStatus.sent],
+        strict=True,
     ):
         row.status = status
         row.created_at = old

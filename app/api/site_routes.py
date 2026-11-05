@@ -114,7 +114,7 @@ def _apply_challenge(site: Site, mode: str | None, config: dict | None) -> None:
     try:
         site.challenge_config = verifier.ConfigModel.model_validate(config).model_dump()
     except ValidationError as e:
-        raise HTTPException(422, e.errors(include_url=False, include_context=False)[0]["msg"])
+        raise HTTPException(422, e.errors(include_url=False, include_context=False)[0]["msg"]) from None
     site.challenge_mode = mode
 
 

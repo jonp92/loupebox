@@ -55,7 +55,7 @@ def outline(text: str, weight: str, size: float, spacing: float, x: float, y: fl
     glyphs, order = tt.getGlyphSet(), tt.getGlyphOrder()
     scale = size / tt["head"].unitsPerEm
     pen = SVGPathPen(glyphs, ntos=lambda n: f"{n:.2f}".rstrip("0").rstrip("."))
-    for info, pos in zip(buf.glyph_infos, buf.glyph_positions):
+    for info, pos in zip(buf.glyph_infos, buf.glyph_positions, strict=True):
         gx, gy = x + pos.x_offset * scale, y - pos.y_offset * scale
         glyphs[order[info.codepoint]].draw(TransformPen(pen, (scale, 0, 0, -scale, gx, gy)))
         x += pos.x_advance * scale + spacing  # CSS letter-spacing follows every glyph, the last one too

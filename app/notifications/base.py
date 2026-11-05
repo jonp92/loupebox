@@ -60,7 +60,7 @@ class NotificationProvider(ABC):
         """A fresh signing secret. Only called for providers with `signs = True`."""
         raise NotImplementedError
 
-    def check_config(self, config: BaseModel) -> None:
+    def check_config(self, config: BaseModel) -> None:  # noqa: B027 (optional hook; no-op by default)
         """Extra checks when a channel is saved (may do I/O). Raise ValueError with a user-facing reason."""
 
     @abstractmethod

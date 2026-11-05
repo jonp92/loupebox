@@ -87,7 +87,7 @@ def create_user(
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status.HTTP_409_CONFLICT, "Email already registered")
+        raise HTTPException(status.HTTP_409_CONFLICT, "Email already registered") from None
     return UserOut.model_validate(user)
 
 
@@ -128,7 +128,7 @@ def update_user(
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status.HTTP_409_CONFLICT, "Email already registered")
+        raise HTTPException(status.HTTP_409_CONFLICT, "Email already registered") from None
     return UserOut.model_validate(user)
 
 

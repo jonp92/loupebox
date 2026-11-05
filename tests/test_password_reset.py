@@ -90,7 +90,7 @@ def test_email_is_matched_case_insensitively_and_sent_to_the_account(client, db,
     make_user(db, "a@example.com")
     request_reset(client, "A@Example.COM")
     assert mail.sent[0].to == ["a@example.com"]
-    assert "Reset your Loupebox password" == mail.sent[0].subject
+    assert mail.sent[0].subject == "Reset your Loupebox password"
 
 
 def test_disabled_accounts_get_nothing(client, db, mail):

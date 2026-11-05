@@ -12,7 +12,8 @@ PUBLIC_PATHS = {f"{settings.api_prefix}/feedback", f"{settings.api_prefix}/feedb
 class DynamicCORSMiddleware(BaseHTTPMiddleware):
     """Two CORS policies:
 
-    * POST {api_prefix}/feedback and /feedback/challenge (public ingest): any origin registered on an active site; no credentials.
+    * POST {api_prefix}/feedback and /feedback/challenge (public ingest): any origin registered on an
+      active site; no credentials.
     * everything else (admin API): only `settings.admin_origins`; credentials allowed for the
       refresh cookie.
     """

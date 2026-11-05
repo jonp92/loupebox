@@ -29,7 +29,8 @@ from app.schemas.notification import (
 
 router = APIRouter(tags=["notifications"])
 
-# Provider settings and recipient addresses can be sensitive: the log records that they changed, not the values.
+# Provider settings and recipient addresses can be sensitive: the log records that they changed,
+# not the values.
 _CHANNEL_FIELDS = ("name", "enabled", "events", "min_role", "extra_recipients", "config")
 _CHANNEL_REDACTED = ("config", "extra_recipients")
 
