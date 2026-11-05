@@ -6,6 +6,8 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+## [0.1.0-alpha.7] - 2026-11-04
+
 ### Added
 - Documentation site at loupebox.dev, built with Zensical from `docs/` and published with GitHub Pages. It has
   install, using, alerts, security and reference pages with screenshots.
@@ -20,6 +22,7 @@ change between releases; breaking changes are called out below.
 - Python dependencies are pinned. Edit `requirements.in` / `requirements-dev.in` and run `pip-compile` to
   regenerate `requirements.txt` / `requirements-dev.txt`; images and CI install the exact versions.
 - Dependabot opens weekly update PRs for pip, npm, GitHub Actions and the Docker base images.
+- The web image serves from nginx 1.31 and builds with Node 26.
 - Python code is formatted with `ruff format`, and CI checks formatting, line length, likely bugs and complexity.
 
 ### Security
@@ -116,6 +119,7 @@ First public alpha.
 - Not load tested; capacity numbers are estimates.
 - The database role and name stay `ganymede` (the project's former name) so existing volumes keep working.
 
+[0.1.0-alpha.7]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.7
 [0.1.0-alpha.6]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.6
 [0.1.0-alpha.5]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.5
 [0.1.0-alpha.4]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.4
