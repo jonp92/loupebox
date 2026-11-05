@@ -3,8 +3,9 @@
     python -m scripts.generate_logos
 
 Needs `rsvg-convert` (macOS: brew install librsvg; Debian/Ubuntu: apt install librsvg2-bin).
-The only source is web/public/brand/loupebox-icon-neon-dark.svg (see scripts/outline_brand.py for the brand
-files). Run this after changing it and commit the generated files.
+The sources are web/public/brand/loupebox-icon-neon-dark.svg (the tiles) and loupebox-icon-neon-light.svg (the
+favicon); see scripts/outline_brand.py for the brand files. Run this after changing them and commit the
+generated files.
 """
 
 import re
@@ -18,12 +19,13 @@ ROOT = Path(__file__).resolve().parent.parent
 PUBLIC = ROOT / "web" / "public"
 DOCS_FAVICON = ROOT / "docs" / "assets" / "favicon.svg"
 ART = PUBLIC / "brand" / "loupebox-icon-neon-dark.svg"  # square, opaque dark background
+FAVICON_ART = PUBLIC / "brand" / "loupebox-icon-neon-light.svg"  # transparent, dark glyph
 BACKGROUND = re.compile(r'<rect width="250" height="250" fill="#0B0E14"\s*/>')
 ARTWORK_START = "<!-- Lens"  # everything from here on is the lens, check and handle
 NOTE = "<!-- Generated from {} by scripts/generate_logos.py. Do not edit. -->\n"
 
 TILE = "loupebox-icon.svg"  # rounded tile: PWA "any" icons and the email logo
-FAVICON = "favicon.svg"  # square and opaque: Safari draws its own plate behind transparent corners
+FAVICON = "favicon.svg"  # transparent: a dark tile shows as a ring on the light plate Safari draws
 MASKABLE = "loupebox-icon-maskable.svg"  # full-bleed with a safe zone, for maskable icons
 
 # The README wordmarks are 800x250 with the dark one on an opaque background. The app wants them transparent
@@ -52,7 +54,7 @@ PNGS = [
 
 
 def derive(art: str) -> dict[str, str]:
-    """The tile, maskable and favicon SVGs, derived from the artwork by text edits that fail if it changes."""
+    """The tile and maskable SVGs, derived from the artwork by text edits that fail if it changes."""
     if not BACKGROUND.search(art) or ARTWORK_START not in art:
         raise SystemExit(f"{ART.name} no longer has the expected background or artwork markers")
     head, art_body = art.split(ARTWORK_START, 1)
@@ -60,7 +62,7 @@ def derive(art: str) -> dict[str, str]:
     tile = BACKGROUND.sub(lambda m: m.group().replace("<rect ", '<rect rx="56" '), art)
     # The maskable safe zone is a central circle of 80% of the icon, so shrink the artwork inside it.
     shrink = f'<g transform="translate(125 125) scale(.8) translate(-125 -125)">\n{art_body}</g>\n</svg>\n'
-    return {TILE: tile, MASKABLE: head + shrink, FAVICON: art}
+    return {TILE: tile, MASKABLE: head + shrink}
 
 
 def derive_wordmarks() -> dict[str, str]:
@@ -103,7 +105,11 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
-    generated = [(derive(ART.read_text()), f"brand/{ART.name}"), (derive_wordmarks(), "the brand wordmarks")]
+    generated = [
+        (derive(ART.read_text()), f"brand/{ART.name}"),
+        ({FAVICON: FAVICON_ART.read_text()}, f"brand/{FAVICON_ART.name}"),
+        (derive_wordmarks(), "the brand wordmarks"),
+    ]
     for svgs, source in generated:
         for name, svg in svgs.items():
             (PUBLIC / name).write_text(
