@@ -29,6 +29,7 @@ export default function Dashboard() {
           <div className="stat"><strong>{data.new_total}</strong><span className="muted">Unread</span></div>
           <div className="stat"><strong>{data.new_24h}</strong><span className="muted">Unread, last 24h</span></div>
           <div className="stat"><strong>{data.sites_with_new}</strong><span className="muted">Sites with unread</span></div>
+          <div className="stat"><strong>{data.received_total}</strong><span className="muted">Received, excl. spam</span></div>
         </div>
       )}
       {data && data.assigned_total > 0 && (
@@ -52,13 +53,24 @@ export default function Dashboard() {
       )}
       {data && data.new_total > 0 && (
         <>
+          <h2 className="section">Unread by site</h2>
+          <ul className="list unread">
+            {sites?.filter((s) => s.new_count > 0).map((s) => (
+              <li key={s.id}>
+                <Link to={`/sites/${s.id}?status=new`} className="grow site-link">
+                  <strong>{s.name}</strong>
+                </Link>
+                <span className="badge new">{s.new_count} new</span>
+              </li>
+            ))}
+          </ul>
           <h2 className="section">Latest unread</h2>
           <ul className="list unread">
             {data.recent_new.map((f) => {
               const canEdit = role(f.site_id) !== "viewer";
               return (
                 <li key={f.id}>
-                  <Link to={`/sites/${f.site_id}`} className="grow site-link">
+                  <Link to={`/sites/${f.site_id}/feedback/${f.id}`} className="grow site-link">
                     <span className="muted">{f.site_name} · {new Date(f.created_at).toLocaleString()}</span>
                     {/* Rendered as text by React; never as HTML. */}
                     <span className="excerpt">{f.message}</span>

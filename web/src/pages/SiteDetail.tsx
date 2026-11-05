@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Navigate, Route, Routes, useParams } from "react-router-dom";
 import { api, type Site } from "../api";
+import { soleSiteId, useAuth } from "../auth";
 import { ScrollTabs } from "../components";
 import Activity from "./Activity";
 import FeedbackDetail from "./FeedbackDetail";
@@ -11,6 +12,7 @@ import Settings from "./Settings";
 
 export default function SiteDetail() {
   const { siteId } = useParams();
+  const { me } = useAuth();
   const [site, setSite] = useState<Site | null>(null);
   const [error, setError] = useState("");
 
@@ -26,7 +28,7 @@ export default function SiteDetail() {
 
   return (
     <>
-      <Link to="/sites" className="back">← All sites</Link>
+      {!soleSiteId(me) && <Link to="/sites" className="back">← All sites</Link>}
       <div className="page-head">
         <h1>{site.name}</h1>
         <span className="badge">{site.my_role}</span>

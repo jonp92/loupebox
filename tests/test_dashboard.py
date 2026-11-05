@@ -33,6 +33,7 @@ def test_dashboard_counts_only_unread_on_visible_sites(client, db):
     fb(db, hidden, "secret")
     r = client.get("/dashboard", headers=login(client, "u@example.com")).json()
     assert (r["new_total"], r["new_24h"], r["sites_with_new"]) == (3, 2, 2)
+    assert r["received_total"] == 4  # a1, a2, read, b1: spam and the hidden site are excluded
     assert {s["name"]: s["new_count"] for s in r["sites"]} == {"A": 2, "B": 1}
     assert {s["name"]: s["my_role"] for s in r["sites"]} == {"A": "viewer", "B": "editor"}
     assert r["recent_new"][0]["message"] in {"a1", "b1"}
@@ -57,6 +58,7 @@ def test_dashboard_empty_and_requires_auth(client, db):
     assert r == {
         "new_total": 0,
         "new_24h": 0,
+        "received_total": 0,
         "sites_with_new": 0,
         "sites": [],
         "recent_new": [],
