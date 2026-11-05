@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { api, json, type Dashboard } from "../api";
-import { useAuth } from "../auth";
+import { soleSiteId, useAuth } from "../auth";
 import { useToast } from "../toast";
 
 export default function Sites() {
@@ -23,6 +23,9 @@ export default function Sites() {
     form.reset();
     load();
   }
+
+  const sole = soleSiteId(me);
+  if (sole) return <Navigate to={`/sites/${sole}`} replace />;
 
   return (
     <>

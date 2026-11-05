@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { api, download, json, type Feedback, type Site, type Status } from "../api";
 import { useAuth } from "../auth";
 import { useConfirm } from "../confirm";
@@ -19,7 +19,8 @@ export default function FeedbackList({ site }: { site: Site }) {
   const [items, setItems] = useState<Feedback[]>([]);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
-  const [status, setStatus] = useState("");
+  const [search] = useSearchParams(); // ?status= pre-selects the filter, e.g. from the dashboard
+  const [status, setStatus] = useState(() => STATUSES.find((s) => s === search.get("status")) ?? "");
   const [q, setQ] = useState("");
   const [issueType, setIssueType] = useState("");
   const [issueTypes, setIssueTypes] = useState<{ id: string; count: number }[]>([]);

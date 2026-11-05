@@ -15,6 +15,10 @@ interface AuthState {
 const Ctx = createContext<AuthState>(null!);
 export const useAuth = () => useContext(Ctx);
 
+/** The one site a regular user belongs to, if that is all they have: there is no list to choose from. */
+export const soleSiteId = (me: Me | null) =>
+  me && !me.is_superadmin && me.memberships.length === 1 ? me.memberships[0].site_id : null;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [me, setMe] = useState<Me | null>(null);
   const [loading, setLoading] = useState(true);

@@ -18,6 +18,7 @@ class DashboardItem(FeedbackOut):
 class Dashboard(BaseModel):
     new_total: int
     new_24h: int
+    received_total: int
     sites_with_new: int
     sites: list[DashboardSite]
     recent_new: list[DashboardItem]

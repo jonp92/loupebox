@@ -49,6 +49,7 @@ export interface DashboardItem extends Feedback {
 export interface Dashboard {
   new_total: number;
   new_24h: number;
+  received_total: number;
   sites_with_new: number;
   sites: DashboardSite[];
   recent_new: DashboardItem[];
