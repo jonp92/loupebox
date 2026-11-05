@@ -8,6 +8,11 @@ It talks to the same public endpoint as a hand-built form (see [Your own form](o
 including origin checks, the honeypot and the bot-protection challenge, so there is nothing extra to configure
 on the server. The snippet for your site, with its key filled in, is on **Site → Settings → Feedback widget**.
 
+The feedback button in the corner of this page is the widget. Feedback from it goes to the Loupebox project.
+
+![The feedback widget, open](../images/widget-dark.png#only-dark)
+![The feedback widget, open](../images/widget-light.png#only-light)
+
 ## Quick start
 
 ```html

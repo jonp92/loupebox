@@ -5,6 +5,7 @@ site_url = "https://loupebox.dev/"
 repo_url = "https://github.com/jonp92/loupebox"
 repo_name = "jonp92/loupebox"
 edit_uri = "edit/master/docs/"
+extra_javascript = [{ path = "javascripts/widget.js", type = "module" }]
 copyright = "Copyright 2026 Jonathan L. Pressler. Docs under AGPL-3.0, like the server."
 nav = [
   { "Home" = "index.md" },
@@ -49,6 +50,7 @@ nav = [
 
 [project.theme]
 language = "en"
+favicon = "assets/favicon.svg"
 features = [
   "content.code.copy",
   "content.tabs.link",

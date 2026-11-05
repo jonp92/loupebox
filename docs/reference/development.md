@@ -37,7 +37,7 @@ zensical serve        # preview at http://localhost:8000
 zensical build        # writes the site to site/
 ```
 
-Screenshots are made by `scripts/docs_screenshots.mjs`. See the comment at the top of that file.
+Screenshots are made by `scripts/docs_screenshots.mjs` (the admin app) and `scripts/docs_widget_screenshot.mjs` (the widget). See the comment at the top of each file.
 
 ## Add a notification provider or challenge
 
