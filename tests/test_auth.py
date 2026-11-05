@@ -35,6 +35,40 @@ def test_login_brute_force_limited(client, db):
     assert client.post("/auth/login", json={**body, "password": "correct-horse-battery"}).status_code == 429
 
 
+def attempt_login(client, ip, email="a@example.com", password="wrong-password-1") -> int:
+    """One sign-in from `ip` (needs TRUST_PROXY). Returns the status code."""
+    body = {"email": email, "password": password}
+    return client.post("/auth/login", json=body, headers={"X-Forwarded-For": ip}).status_code
+
+
+def test_failures_from_many_ips_lock_the_account(client, db, monkeypatch):
+    monkeypatch.setattr(settings, "trust_proxy", True)
+    make_user(db, "a@example.com")
+    make_user(db, "b@example.com")
+    codes = [attempt_login(client, f"10.0.0.{i}") for i in range(settings.login_failure_limit)]
+    assert set(codes) == {401}
+    # Refused from a fresh IP too, even with the right password; other accounts are unaffected.
+    assert attempt_login(client, "10.0.1.1", password="correct-horse-battery") == 429
+    assert attempt_login(client, "10.0.1.2", "b@example.com", "correct-horse-battery") == 200
+
+
+def test_unknown_emails_lock_the_same_way(client, monkeypatch):
+    monkeypatch.setattr(settings, "trust_proxy", True)
+    n = settings.login_failure_limit + 1
+    codes = [attempt_login(client, f"10.0.0.{i}", "nobody@example.com") for i in range(n)]
+    assert codes[-1] == 429
+
+
+def test_a_successful_sign_in_clears_failures(client, db, monkeypatch):
+    monkeypatch.setattr(settings, "trust_proxy", True)
+    make_user(db, "a@example.com")
+    for i in range(settings.login_failure_limit - 1):
+        attempt_login(client, f"10.0.0.{i}")
+    assert attempt_login(client, "10.0.1.1", password="correct-horse-battery") == 200
+    codes = [attempt_login(client, f"10.0.2.{i}") for i in range(settings.login_failure_limit)]
+    assert set(codes) == {401}
+
+
 def test_refresh_rotates_and_detects_replay(client, db):
     make_user(db, "a@example.com")
     client.post("/auth/login", json={"email": "a@example.com", "password": "correct-horse-battery"})
