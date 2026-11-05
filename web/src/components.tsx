@@ -35,10 +35,19 @@ export function OfflineBanner() {
 
 /** Brand mark (icon, or the icon + name wordmark). The theme (see .logo-* in styles.css) shows one variant. */
 export function Logo({ size = 28, wordmark = false, className = "" }: { size?: number; wordmark?: boolean; className?: string }) {
-  const file = (variant: string) => (wordmark ? `loupebox-wordmark-app-${variant}` : `loupebox-icon-neon-${variant}`);
-  const img = (variant: "light" | "dark") => (
-    <img className={`logo logo-${variant} ${wordmark ? "wordmark" : ""} ${className}`} src={`/brand/${file(variant)}.svg`} height={size} width={wordmark ? undefined : size} alt={wordmark ? "Loupebox" : ""} />
-  );
+  const img = (variant: "light" | "dark") => {
+    const cls = `logo logo-${variant} ${wordmark ? "wordmark" : ""} ${className}`;
+    if (!wordmark) return <img className={cls} src={`/brand/loupebox-icon-neon-${variant}.svg`} height={size} width={size} alt="" />;
+    // The SVG, with a high-resolution PNG for browsers that can't use it. The picture carries the theme class
+    // too, so the hidden variant leaves no empty element behind.
+    const base = `/brand/loupebox-wordmark-app-${variant}`;
+    return (
+      <picture className={cls}>
+        <source type="image/svg+xml" srcSet={`${base}.svg`} />
+        <img className={cls} src={`${base}.png`} height={size} alt="Loupebox" />
+      </picture>
+    );
+  };
   return <>{img("light")}{img("dark")}</>;
 }
 

@@ -14,6 +14,11 @@ change between releases; breaking changes are called out below.
 - "Latest unread" on the dashboard opens the feedback item itself, not the site's list.
 - Users who belong to a single site skip the Sites list and land on that site's feedback.
 
+### Fixed
+- The favicon is now a transparent glyph (SVG, `.ico` and 16/32px PNGs, all declared in `index.html`), so Safari
+  no longer shows a light border around it in the tab bar. The docs site uses the same favicon.
+- The app header and login wordmark is an SVG with a 176px-high PNG fallback.
+
 ## [0.1.0-alpha.7] - 2026-11-04
 
 ### Added
