@@ -1,6 +1,6 @@
 # Runs on the builder's own platform: the output is static files, and npm ci under QEMU emulation (multi-arch
 # release builds) takes tens of minutes. Only the nginx stage below is built per target platform.
-FROM --platform=$BUILDPLATFORM node:22-alpine AS build
+FROM --platform=$BUILDPLATFORM node:26-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
