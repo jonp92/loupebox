@@ -12,6 +12,7 @@ from app.notifications import registry
 from app.notifications.base import SendResult
 from app.notifications.system_mail import mail_provider
 from tests.conftest import login, make_user
+from tests.test_auth import attempt_login
 from tests.test_notifications import FakeProvider
 from tests.test_totp import _enroll
 
@@ -172,6 +173,17 @@ def test_ip_rate_limit(client, db, mail, monkeypatch):
 
 
 # --- confirming ---------------------------------------------------------------------------------
+
+
+def test_reset_clears_failed_sign_ins(client, db, mail, monkeypatch):
+    monkeypatch.setattr(settings, "trust_proxy", True)
+    make_user(db, "a@example.com")
+    for i in range(settings.login_failure_limit):
+        attempt_login(client, f"10.0.0.{i}")
+    assert attempt_login(client, "10.0.1.1", password=PW) == 429
+    request_reset(client)
+    assert confirm(client, token_from(mail)).status_code == 200
+    assert attempt_login(client, "10.0.1.2", password=NEW) == 200
 
 
 def test_reset_changes_the_password_and_signs_everyone_out(client, db, mail):

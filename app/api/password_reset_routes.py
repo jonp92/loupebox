@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.core.audit import audit
 from app.core.config import settings
-from app.core.rate_limit import client_ip, enforce
+from app.core.rate_limit import clear_login_failures, client_ip, enforce
 from app.core.security import hash_password, hash_token, new_refresh_token
 from app.db.session import get_db, get_sessionmaker
 from app.models import PasswordResetToken, RefreshToken, User
@@ -128,5 +128,6 @@ def confirm_reset(
         details={"password": "changed"},
     )
     db.commit()
+    clear_login_failures(user.email)  # the owner proved control of the address
     background.add_task(_send_changed_email, user.email)
     return {"status": "Password changed. Sign in with your new password."}

@@ -9,7 +9,13 @@ from app.api.deps import get_current_user
 from app.core import totp
 from app.core.audit import audit
 from app.core.config import settings
-from app.core.rate_limit import client_ip, enforce
+from app.core.rate_limit import (
+    check_login_failures,
+    clear_login_failures,
+    client_ip,
+    enforce,
+    record_login_failure,
+)
 from app.core.security import (
     create_access_token,
     create_mfa_token,
@@ -75,11 +81,14 @@ def login(
     email = body.email.lower()
     enforce(f"login-ip:{ip}", settings.login_ip_limit, settings.login_window_seconds)
     enforce(f"login-acct:{ip}:{email}", settings.login_account_limit, settings.login_window_seconds)
+    check_login_failures(email)  # guesses spread over many IPs
 
     user = db.scalar(select(User).where(User.email == email))
     ok = verify_password(body.password, user.password_hash if user else None)
     if not ok or user is None or not user.is_active:
+        record_login_failure(email)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid email or password")
+    clear_login_failures(email)
     if user.totp_enabled:
         return MfaRequired(mfa_token=create_mfa_token(user.id))
     return _issue(db, user, response)

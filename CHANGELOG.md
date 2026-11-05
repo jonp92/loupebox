@@ -20,6 +20,13 @@ change between releases; breaking changes are called out below.
 - Python dependencies are pinned. Edit `requirements.in` / `requirements-dev.in` and run `pip-compile` to
   regenerate `requirements.txt` / `requirements-dev.txt`; images and CI install the exact versions.
 - Dependabot opens weekly update PRs for pip, npm, GitHub Actions and the Docker base images.
+- Python code is formatted with `ruff format`, and CI checks formatting, line length, likely bugs and complexity.
+
+### Security
+- Sign-in stops an account after 10 wrong passwords in 15 minutes, counted per email across all IPs
+  (`LOGIN_FAILURE_LIMIT`, `LOGIN_FAILURE_WINDOW_SECONDS`). Only failures count, and a successful sign-in or
+  password reset clears them. Unknown emails are limited the same way, so the limit reveals nothing.
+- Admin UI build updated to vite 6.4 and react-router 7.18, which fixes 11 dependency advisories.
 
 ## [0.1.0-alpha.6] - 2026-11-04
 

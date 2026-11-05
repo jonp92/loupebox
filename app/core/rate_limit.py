@@ -11,15 +11,16 @@ class RateLimiter:
     """In-process sliding-window limiter.
 
     State is per-process: with several workers/instances the effective limit is multiplied.
-    Swap this class for a Redis-backed one with the same `hit` signature when scaling out.
+    Swap this class for a Redis-backed one with the same `hit` / `clear` signatures when scaling out.
     """
 
     def __init__(self) -> None:
         self._hits: dict[str, deque[float]] = defaultdict(deque)
         self._lock = threading.Lock()
 
-    def hit(self, key: str, limit: int, window: int) -> int:
-        """Record a hit. Returns 0 if allowed, else seconds until a slot frees up."""
+    def hit(self, key: str, limit: int, window: int, record: bool = True) -> int:
+        """Record a hit (or with `record=False` only check). Returns 0 if allowed, else seconds until a
+        slot frees up."""
         now = time.monotonic()
         with self._lock:
             q = self._hits[key]
@@ -27,10 +28,15 @@ class RateLimiter:
                 q.popleft()
             if len(q) >= limit:
                 return max(1, int(q[0] + window - now) + 1)
-            q.append(now)
+            if record:
+                q.append(now)
             if len(self._hits) > 50_000:
                 self._prune(now, window)
             return 0
+
+    def clear(self, key: str) -> None:
+        with self._lock:
+            self._hits.pop(key, None)
 
     def _prune(self, now: float, window: int) -> None:
         for k in [k for k, q in self._hits.items() if not q or q[-1] <= now - window]:
@@ -53,11 +59,29 @@ def client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-def enforce(key: str, limit: int, window: int) -> None:
-    retry_after = limiter.hit(key, limit, window)
+def enforce(key: str, limit: int, window: int, record: bool = True) -> None:
+    retry_after = limiter.hit(key, limit, window, record)
     if retry_after:
         raise HTTPException(
             status_code=429,
             detail="Too many requests",
             headers={"Retry-After": str(retry_after)},
         )
+
+
+# Failed passwords per (lowercased) email, from any IP, whether or not it has an account, so the limit
+# itself doesn't reveal which emails exist.
+def _login_failures(email: str) -> tuple[str, int, int]:
+    return f"login-fail:{email}", settings.login_failure_limit, settings.login_failure_window_seconds
+
+
+def check_login_failures(email: str) -> None:
+    enforce(*_login_failures(email), record=False)
+
+
+def record_login_failure(email: str) -> None:
+    limiter.hit(*_login_failures(email))
+
+
+def clear_login_failures(email: str) -> None:
+    limiter.clear(_login_failures(email)[0])

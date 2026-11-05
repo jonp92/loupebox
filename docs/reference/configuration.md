@@ -59,4 +59,5 @@ setting, and `setup.sh` fills in the secrets for you.
 | `AVATAR_MAX_BYTES` | 65,536 |
 | `PASSWORD_RESET_EMAIL_LIMIT`, `PASSWORD_RESET_IP_LIMIT` | 3 and 10 per hour |
 | `LOGIN_ACCOUNT_LIMIT` | 5 sign-in attempts per minute |
+| `LOGIN_FAILURE_LIMIT`, `LOGIN_FAILURE_WINDOW_SECONDS` | 10 wrong passwords per email per 15 minutes, from any IP. A successful sign-in or password reset clears them. |
 | `MFA_HOURLY_LIMIT` | 20 two-factor attempts per hour |

@@ -118,6 +118,10 @@ class Settings(BaseSettings):
     login_ip_limit: int = 20
     login_account_limit: int = 5
     login_window_seconds: int = 60
+    # Failed passwords per email from any IP, so guesses spread over many IPs still stop. Only
+    # failures count, and a successful sign-in or password reset clears them.
+    login_failure_limit: int = 10
+    login_failure_window_seconds: int = 900
 
     @property
     def cookie_path(self) -> str:
