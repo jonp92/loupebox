@@ -6,6 +6,14 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+### Added
+- The dashboard shows the total non-spam feedback received across your sites, and an "Unread by site" list that
+  opens each site with the unread filter on. `GET /dashboard` returns the total as `received_total`.
+
+### Changed
+- "Latest unread" on the dashboard opens the feedback item itself, not the site's list.
+- Users who belong to a single site skip the Sites list and land on that site's feedback.
+
 ### Fixed
 - The favicon is now a square, full-bleed icon (SVG, `.ico` and 16/32px PNGs, all declared in `index.html`), so
   Safari no longer shows a light border around it in the tab bar. The docs site uses the same favicon.

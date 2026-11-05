@@ -27,7 +27,7 @@ def dashboard(
     db: Session = Depends(get_db),
     limit: int = Query(default=10, ge=1, le=50),
 ) -> Dashboard:
-    """Unread (status `new`) feedback across every site the caller can see."""
+    """Unread (status `new`) and total non-spam feedback across every site the caller can see."""
     if user.is_superadmin:
         rows = [(s, Role.admin) for s in db.scalars(select(Site).order_by(Site.name))]
     else:
@@ -46,6 +46,15 @@ def dashboard(
         )
         if site_ids
         else {}
+    )
+    received_total = (
+        db.scalar(
+            select(func.count())
+            .select_from(Feedback)
+            .where(Feedback.site_id.in_(site_ids), Feedback.status != FeedbackStatus.spam)
+        )
+        if site_ids
+        else 0
     )
     new_24h = (
         db.scalar(
@@ -97,6 +106,7 @@ def dashboard(
     return Dashboard(
         new_total=sum(per_site.values()),
         new_24h=new_24h or 0,
+        received_total=received_total,
         sites_with_new=len(per_site),
         sites=sites,
         recent_new=[_item(f, name) for f, name in recent],
