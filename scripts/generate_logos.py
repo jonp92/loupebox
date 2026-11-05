@@ -9,17 +9,21 @@ files). Run this after changing it and commit the generated files.
 
 import re
 import shutil
+import struct
 import subprocess
 import sys
 from pathlib import Path
 
-PUBLIC = Path(__file__).resolve().parent.parent / "web" / "public"
+ROOT = Path(__file__).resolve().parent.parent
+PUBLIC = ROOT / "web" / "public"
+DOCS_FAVICON = ROOT / "docs" / "assets" / "favicon.svg"
 ART = PUBLIC / "brand" / "loupebox-icon-neon-dark.svg"  # square, opaque dark background
 BACKGROUND = re.compile(r'<rect width="250" height="250" fill="#0B0E14"\s*/>')
 ARTWORK_START = "<!-- Lens"  # everything from here on is the lens, check and handle
 NOTE = "<!-- Generated from {} by scripts/generate_logos.py. Do not edit. -->\n"
 
-TILE = "loupebox-icon.svg"  # rounded tile: favicon and PWA "any" icons
+TILE = "loupebox-icon.svg"  # rounded tile: PWA "any" icons and the email logo
+FAVICON = "favicon.svg"  # square and opaque: Safari draws its own plate behind transparent corners
 MASKABLE = "loupebox-icon-maskable.svg"  # full-bleed with a safe zone, for maskable icons
 
 # The README wordmarks are 800x250 with the dark one on an opaque background. The app wants them transparent
@@ -27,8 +31,16 @@ MASKABLE = "loupebox-icon-maskable.svg"  # full-bleed with a safe zone, for mask
 WORDMARK_BACKGROUND = '  <rect width="800" height="250" fill="#0B0E14" />\n'
 WORDMARK_VIEWBOX = ('viewBox="0 0 800 250"', 'viewBox="66 66 674 130"')
 
+# The app header shows the wordmark at 28-44px high. 176px keeps it sharp up to 4x displays, as the fallback
+# for browsers that can't use the SVG.
+WORDMARK_PNG_HEIGHT = 176
+
+ICO_SIZES = (16, 32, 48)  # favicon.ico, for browsers that ask for /favicon.ico by default
+
 # (output file, source, size in px)
 PNGS = [
+    ("favicon-16.png", FAVICON, 16),  # <link rel="icon"> in index.html
+    ("favicon-32.png", FAVICON, 32),
     ("icon-192.png", TILE, 192),  # PWA manifest, purpose "any"
     ("icon-512.png", TILE, 512),  # PWA manifest, purpose "any"
     ("icon-maskable-512.png", MASKABLE, 512),  # PWA manifest, purpose "maskable"
@@ -40,7 +52,7 @@ PNGS = [
 
 
 def derive(art: str) -> dict[str, str]:
-    """The tile and maskable SVGs, derived from the artwork by text edits that fail loudly if it changes."""
+    """The tile, maskable and favicon SVGs, derived from the artwork by text edits that fail if it changes."""
     if not BACKGROUND.search(art) or ARTWORK_START not in art:
         raise SystemExit(f"{ART.name} no longer has the expected background or artwork markers")
     head, art_body = art.split(ARTWORK_START, 1)
@@ -48,7 +60,7 @@ def derive(art: str) -> dict[str, str]:
     tile = BACKGROUND.sub(lambda m: m.group().replace("<rect ", '<rect rx="56" '), art)
     # The maskable safe zone is a central circle of 80% of the icon, so shrink the artwork inside it.
     shrink = f'<g transform="translate(125 125) scale(.8) translate(-125 -125)">\n{art_body}</g>\n</svg>\n'
-    return {TILE: tile, MASKABLE: head + shrink}
+    return {TILE: tile, MASKABLE: head + shrink, FAVICON: art}
 
 
 def derive_wordmarks() -> dict[str, str]:
@@ -65,6 +77,25 @@ def derive_wordmarks() -> dict[str, str]:
     return out
 
 
+def render(source: str, height: int, width: int | None = None) -> bytes:
+    """PNG bytes of an SVG under web/public; without a width it keeps the aspect ratio."""
+    cmd = ["rsvg-convert", "-h", str(height)]
+    if width:
+        cmd += ["-w", str(width)]
+    return subprocess.run([*cmd, str(PUBLIC / source)], check=True, capture_output=True).stdout
+
+
+def ico(sizes: tuple[int, ...]) -> bytes:
+    """A .ico holding one PNG per size (PNG-in-ICO is supported everywhere that still asks for .ico)."""
+    images = [render(FAVICON, size, size) for size in sizes]
+    offset = 6 + 16 * len(images)
+    header, entries = struct.pack("<HHH", 0, 1, len(images)), b""
+    for size, png in zip(sizes, images, strict=True):
+        entries += struct.pack("<BBBBHHII", size, size, 0, 0, 1, 32, len(png), offset)
+        offset += len(png)
+    return header + entries + b"".join(images)
+
+
 def main() -> int:
     if not shutil.which("rsvg-convert"):
         print(
@@ -79,21 +110,17 @@ def main() -> int:
                 svg.replace("\n", "\n" + NOTE.format(source), 1)
             )  # the note goes under the <svg> line
             print(f"{name:24} generated")
+    DOCS_FAVICON.write_text((PUBLIC / FAVICON).read_text())  # the docs site uses the same favicon
+    print(f"{DOCS_FAVICON.relative_to(ROOT)} copied from {FAVICON}")
     for name, source, size in PNGS:
-        subprocess.run(
-            [
-                "rsvg-convert",
-                "-w",
-                str(size),
-                "-h",
-                str(size),
-                str(PUBLIC / source),
-                "-o",
-                str(PUBLIC / name),
-            ],
-            check=True,
-        )
+        (PUBLIC / name).write_bytes(render(source, size, size))
         print(f"{name:24} {size}x{size}  from {source}")
+    for variant in ("light", "dark"):
+        name = f"brand/loupebox-wordmark-app-{variant}.png"
+        (PUBLIC / name).write_bytes(render(name.replace(".png", ".svg"), WORDMARK_PNG_HEIGHT))
+        print(f"{name:24} {WORDMARK_PNG_HEIGHT}px high")
+    (PUBLIC / "favicon.ico").write_bytes(ico(ICO_SIZES))
+    print(f"{'favicon.ico':24} {', '.join(map(str, ICO_SIZES))}")
     return 0
 
 

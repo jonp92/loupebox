@@ -20,7 +20,7 @@
     </radialGradient>
   </defs>
 
-  <rect rx="56" width="250" height="250" fill="#0B0E14" />
+  <rect width="250" height="250" fill="#0B0E14" />
 
   <!-- Lens: r 62, ring 9 (15% of r). Lens + handle are centred as one group. -->
   <circle cx="110" cy="110" r="62" fill="url(#lens-glass)" />

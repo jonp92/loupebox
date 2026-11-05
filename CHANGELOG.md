@@ -6,6 +6,11 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+### Fixed
+- The favicon is now a square, full-bleed icon (SVG, `.ico` and 16/32px PNGs, all declared in `index.html`), so
+  Safari no longer shows a light border around it in the tab bar. The docs site uses the same favicon.
+- The app header and login wordmark is an SVG with a 176px-high PNG fallback.
+
 ## [0.1.0-alpha.7] - 2026-11-04
 
 ### Added

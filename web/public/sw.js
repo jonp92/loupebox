@@ -3,7 +3,7 @@
 // Deliberately narrow: it only ever touches an allow-list of same-origin GETs (the page shell,
 // hashed /assets/*, icons, manifest). API calls, /config.js (runtime config) and anything
 // authenticated pass straight through to the network and are never cached.
-const VERSION = "v2"; // bump when cached shell assets (icons, manifest) change so installed apps refresh
+const VERSION = "v3"; // bump when cached shell assets (icons, manifest) change so installed apps refresh
 const SHELL = `loupebox-shell-${VERSION}`;
 const ASSETS = `loupebox-assets-${VERSION}`;
 const MAX_ASSETS = 60;
