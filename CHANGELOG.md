@@ -17,6 +17,9 @@ change between releases; breaking changes are called out below.
 - The README is now short and points to the docs site. The old one is kept as `README.old`.
 - The setup guides moved under `docs/` folders. The internal notifications plan was removed.
 - The widget box in site Settings links to the widget docs on the site.
+- Python dependencies are pinned. Edit `requirements.in` / `requirements-dev.in` and run `pip-compile` to
+  regenerate `requirements.txt` / `requirements-dev.txt`; images and CI install the exact versions.
+- Dependabot opens weekly update PRs for pip, npm, GitHub Actions and the Docker base images.
 
 ## [0.1.0-alpha.6] - 2026-11-04
 

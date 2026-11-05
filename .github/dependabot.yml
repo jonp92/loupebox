@@ -1,0 +1,25 @@
+# Weekly version updates. Minor and patch bumps are grouped into one PR per ecosystem;
+# majors and security fixes arrive on their own.
+version: 2
+updates:
+  - package-ecosystem: pip  # updates requirements*.in and the pip-compile lock files
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      python: { update-types: [minor, patch] }
+
+  - package-ecosystem: npm
+    directory: /web
+    schedule: { interval: weekly }
+    groups:
+      npm: { update-types: [minor, patch] }
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      actions: { update-types: [minor, patch] }
+
+  - package-ecosystem: docker
+    directories: [/, /web]
+    schedule: { interval: weekly }
