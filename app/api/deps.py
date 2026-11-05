@@ -60,9 +60,7 @@ def site_access(min_role: Role):
             role = Role.admin
         else:
             membership = db.scalar(
-                select(Membership).where(
-                    Membership.user_id == user.id, Membership.site_id == site_id
-                )
+                select(Membership).where(Membership.user_id == user.id, Membership.site_id == site_id)
             )
             if membership is None:
                 raise HTTPException(status.HTTP_404_NOT_FOUND, "Site not found")

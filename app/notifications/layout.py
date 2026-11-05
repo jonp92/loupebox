@@ -31,7 +31,9 @@ _DARK_RULES = [
 def _dark_css() -> str:
     media = "\n".join(f"  {sel} {{ {decl}; }}" for sel, decl in _DARK_RULES)
     outlook = "\n".join(
-        f"{prefix} {sel} {{ {decl}; }}" for sel, decl in _DARK_RULES for prefix in ("[data-ogsc]", "[data-ogsb]")
+        f"{prefix} {sel} {{ {decl}; }}"
+        for sel, decl in _DARK_RULES
+        for prefix in ("[data-ogsc]", "[data-ogsb]")
     )
     return f"@media (prefers-color-scheme: dark) {{\n{media}\n}}\n{outlook}\n"
 
@@ -46,7 +48,9 @@ def facts_table(rows: list[tuple[str, str]]) -> str:
         f'<td class="text" style="padding:2px 0;color:#0f1720;font-size:14px" valign="top">{v}</td></tr>'
         for k, v in rows
     )
-    return f'<table role="presentation" cellpadding="0" cellspacing="0" style="margin:16px 0 0">{cells}</table>'
+    return (
+        f'<table role="presentation" cellpadding="0" cellspacing="0" style="margin:16px 0 0">{cells}</table>'
+    )
 
 
 def quote(html: str) -> str:
@@ -86,7 +90,9 @@ def render(
     button = (
         f'<p style="margin:24px 0 0"><a class="btn" href="{escape(link, quote=True)}" '
         f'style="display:inline-block;padding:10px 18px;background:{ACCENT};color:#ffffff;'
-        'text-decoration:none;font-weight:600;font-size:14px;border-radius:8px">' + escape(button_label) + "</a></p>"
+        'text-decoration:none;font-weight:600;font-size:14px;border-radius:8px">'
+        + escape(button_label)
+        + "</a></p>"
         if link
         else ""
     )

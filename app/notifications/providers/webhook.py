@@ -42,7 +42,9 @@ def sign(secret: str, msg_id: str, timestamp: int, body: bytes) -> str:
 class WebhookConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    url: str = Field(title="Endpoint URL", max_length=netguard.MAX_URL, description="Must be a public https URL.")
+    url: str = Field(
+        title="Endpoint URL", max_length=netguard.MAX_URL, description="Must be a public https URL."
+    )
 
     @field_validator("url")
     @classmethod

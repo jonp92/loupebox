@@ -58,9 +58,7 @@ class FeedbackIn(BaseModel):
         for key, val in v.items():
             if len(key) > 64:
                 raise ValueError("metadata keys must be <= 64 chars")
-            out[key.replace("\x00", "")] = (
-                val.replace("\x00", "")[:256] if isinstance(val, str) else val
-            )
+            out[key.replace("\x00", "")] = val.replace("\x00", "")[:256] if isinstance(val, str) else val
         return out
 
 
@@ -149,7 +147,9 @@ class FeedbackBulk(BaseModel):
         if len(self.ids) > settings.bulk_max_ids:
             raise ValueError(f"at most {settings.bulk_max_ids} items per request")
         # Each action takes only its own argument (assign without one unassigns).
-        arg = {"set_status": "status", "add_tag": "tag", "remove_tag": "tag", "assign": "assignee_id"}.get(self.action)
+        arg = {"set_status": "status", "add_tag": "tag", "remove_tag": "tag", "assign": "assignee_id"}.get(
+            self.action
+        )
         given = {f for f in ("status", "tag", "assignee_id") if getattr(self, f) is not None}
         if given - {arg} or (arg in ("status", "tag") and arg not in given):
             raise ValueError(f"{self.action} takes " + (arg if arg else "no extra field"))

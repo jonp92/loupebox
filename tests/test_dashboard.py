@@ -6,10 +6,17 @@ from tests.conftest import add_member, login, make_site, make_user
 
 
 def fb(db, site, message="hi", status="new", age_hours=0):
-    db.add(Feedback(
-        site_id=site.id, message=message, content_hash=message, ip_hash="i", meta={}, status=status,
-        created_at=utcnow() - timedelta(hours=age_hours),
-    ))
+    db.add(
+        Feedback(
+            site_id=site.id,
+            message=message,
+            content_hash=message,
+            ip_hash="i",
+            meta={},
+            status=status,
+            created_at=utcnow() - timedelta(hours=age_hours),
+        )
+    )
     db.commit()
 
 
@@ -47,6 +54,13 @@ def test_dashboard_recent_is_newest_first_and_limited(client, db):
 def test_dashboard_empty_and_requires_auth(client, db):
     make_user(db, "u@example.com")
     r = client.get("/dashboard", headers=login(client, "u@example.com")).json()
-    assert r == {"new_total": 0, "new_24h": 0, "sites_with_new": 0, "sites": [], "recent_new": [],
-                 "assigned_total": 0, "assigned": []}
+    assert r == {
+        "new_total": 0,
+        "new_24h": 0,
+        "sites_with_new": 0,
+        "sites": [],
+        "recent_new": [],
+        "assigned_total": 0,
+        "assigned": [],
+    }
     assert client.get("/dashboard").status_code == 401

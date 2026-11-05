@@ -46,9 +46,7 @@ router = APIRouter(prefix="/sites/{site_id}/feedback", tags=["feedback"])
 
 
 def _get(db: Session, site_id: uuid.UUID, feedback_id: uuid.UUID) -> Feedback:
-    item = db.scalar(
-        select(Feedback).where(Feedback.id == feedback_id, Feedback.site_id == site_id)
-    )
+    item = db.scalar(select(Feedback).where(Feedback.id == feedback_id, Feedback.site_id == site_id))
     if item is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Feedback not found")
     return item
@@ -80,12 +78,20 @@ def filters(
     has_email: bool | None = None,
     created_from: date | None = None,
     created_to: date | None = None,
-    assignee: str | None = Query(default=None, pattern=r"^(none|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"),
+    assignee: str | None = Query(
+        default=None, pattern=r"^(none|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+    ),
     tag: str | None = Query(default=None, pattern=TAG_PATTERN),
 ) -> Filters:
     return Filters(
-        status=status_filter, q=q, issue_type=issue_type, rating=rating, has_email=has_email,
-        created_from=created_from, created_to=created_to, assignee=assignee,
+        status=status_filter,
+        q=q,
+        issue_type=issue_type,
+        rating=rating,
+        has_email=has_email,
+        created_from=created_from,
+        created_to=created_to,
+        assignee=assignee,
         tag=tag,
     )
 
@@ -143,7 +149,9 @@ def _assignable(site_id: uuid.UUID):
 
 def _check_assignee(db: Session, site_id: uuid.UUID, user_id: uuid.UUID | None) -> None:
     if user_id is not None and db.scalar(_assignable(site_id).where(User.id == user_id)) is None:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Assignee must be an editor or admin of this site")
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "Assignee must be an editor or admin of this site"
+        )
 
 
 def _set_tags(item: Feedback, tags: list[str]) -> None:
@@ -166,7 +174,20 @@ def list_feedback(
     return FeedbackPage(items=[FeedbackOut.model_validate(r) for r in rows], total=total)
 
 
-CSV_COLUMNS = ("id", "created_at", "status", "issue_type", "rating", "name", "email", "message", "page_url", "meta", "tags", "assignee")
+CSV_COLUMNS = (
+    "id",
+    "created_at",
+    "status",
+    "issue_type",
+    "rating",
+    "name",
+    "email",
+    "message",
+    "page_url",
+    "meta",
+    "tags",
+    "assignee",
+)
 # A spreadsheet treats a cell starting with one of these as a formula. Submitter text is untrusted.
 _FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
 
@@ -202,7 +223,9 @@ def _csv_rows(site_id: uuid.UUID, where: list) -> Iterator[str]:
     with get_sessionmaker()() as db:
         emails = {
             uid: email
-            for uid, email in db.execute(select(User.id, User.email).join(Membership).where(Membership.site_id == site_id))
+            for uid, email in db.execute(
+                select(User.id, User.email).join(Membership).where(Membership.site_id == site_id)
+            )
         }
         stmt = (
             select(Feedback)
@@ -242,7 +265,11 @@ def issue_types(
     """The issue types visitors have sent (from the widget's badges) with how many, for the list filter."""
     rows = db.execute(
         select(_issue_type_col, func.count())
-        .where(Feedback.site_id == access.site.id, Feedback.status != FeedbackStatus.spam, _issue_type_col.is_not(None))
+        .where(
+            Feedback.site_id == access.site.id,
+            Feedback.status != FeedbackStatus.spam,
+            _issue_type_col.is_not(None),
+        )
         .group_by(_issue_type_col)
         .order_by(func.count().desc())
     )
@@ -250,7 +277,9 @@ def issue_types(
 
 
 @router.get("/tags")
-def tags(access: SiteAccess = Depends(site_access(Role.viewer)), db: Session = Depends(get_db)) -> list[TagCount]:
+def tags(
+    access: SiteAccess = Depends(site_access(Role.viewer)), db: Session = Depends(get_db)
+) -> list[TagCount]:
     """The site's tags with how many items carry each, for the list filter and the tag picker."""
     rows = db.execute(
         select(FeedbackTag.tag, func.count())
@@ -263,12 +292,22 @@ def tags(access: SiteAccess = Depends(site_access(Role.viewer)), db: Session = D
 
 
 @router.get("/counts")
-def counts(access: SiteAccess = Depends(site_access(Role.viewer)), db: Session = Depends(get_db)) -> QuickCounts:
+def counts(
+    access: SiteAccess = Depends(site_access(Role.viewer)), db: Session = Depends(get_db)
+) -> QuickCounts:
     """Sizes of the list's quick tabs: what is assigned to the caller and what is nobody's (spam excluded)."""
-    def count(*where) -> int:
-        return db.scalar(select(func.count()).select_from(Feedback).where(*_where(access.site.id, Filters()), *where)) or 0
 
-    return QuickCounts(mine=count(Feedback.assignee_id == access.user.id), unassigned=count(Feedback.assignee_id.is_(None)))
+    def count(*where) -> int:
+        return (
+            db.scalar(
+                select(func.count()).select_from(Feedback).where(*_where(access.site.id, Filters()), *where)
+            )
+            or 0
+        )
+
+    return QuickCounts(
+        mine=count(Feedback.assignee_id == access.user.id), unassigned=count(Feedback.assignee_id.is_(None))
+    )
 
 
 @router.get("/assignees")
@@ -283,9 +322,16 @@ def assignees(
     stmt = _assignable(access.site.id)
     if q.strip():
         stmt = stmt.where(
-            or_(*(c.icontains(q.strip(), autoescape=True) for c in (User.email, User.first_name, User.last_name)))
+            or_(
+                *(
+                    c.icontains(q.strip(), autoescape=True)
+                    for c in (User.email, User.first_name, User.last_name)
+                )
+            )
         )
-    rows = db.execute(stmt.with_only_columns(User.id, User.email, user_name()).order_by(User.email).limit(limit))
+    rows = db.execute(
+        stmt.with_only_columns(User.id, User.email, user_name()).order_by(User.email).limit(limit)
+    )
     return [Assignee(user_id=uid, email=email, name=name) for uid, email, name in rows]
 
 
@@ -299,11 +345,25 @@ def export_feedback(
     where = _where(access.site.id, f)
     total = db.scalar(select(func.count()).select_from(Feedback).where(*where)) or 0
     audit(  # bulk personal data leaving the system; the contents are not recorded
-        db, access.user, "feedback.export", f"Exported feedback from {access.site.name} as CSV",
-        target_type="site", target_id=access.site.id, site=access.site,
-        details={"rows": min(total, settings.export_max_rows), "status": f.status.value if f.status else None, "search": bool(f.q), "issue_type": f.issue_type,
-                 "rating": f.rating, "has_email": f.has_email, "from": str(f.created_from or ""), "to": str(f.created_to or ""),
-                 "assignee": f.assignee, "tag": f.tag},
+        db,
+        access.user,
+        "feedback.export",
+        f"Exported feedback from {access.site.name} as CSV",
+        target_type="site",
+        target_id=access.site.id,
+        site=access.site,
+        details={
+            "rows": min(total, settings.export_max_rows),
+            "status": f.status.value if f.status else None,
+            "search": bool(f.q),
+            "issue_type": f.issue_type,
+            "rating": f.rating,
+            "has_email": f.has_email,
+            "from": str(f.created_from or ""),
+            "to": str(f.created_to or ""),
+            "assignee": f.assignee,
+            "tag": f.tag,
+        },
     )
     db.commit()
     slug = re.sub(r"[^a-z0-9]+", "-", access.site.name.lower()).strip("-")[:40] or "site"
@@ -332,8 +392,13 @@ def bulk_feedback(
     items = list(db.scalars(select(Feedback).where(Feedback.site_id == access.site.id, Feedback.id.in_(ids))))
     if body.action == "delete":
         audit(  # as for a single delete: ids and count only, never the messages
-            db, access.user, "feedback.bulk_delete", f"Deleted {len(items)} feedback items from {access.site.name}",
-            target_type="site", target_id=access.site.id, site=access.site,
+            db,
+            access.user,
+            "feedback.bulk_delete",
+            f"Deleted {len(items)} feedback items from {access.site.name}",
+            target_type="site",
+            target_id=access.site.id,
+            site=access.site,
             details={"count": len(items), "ids": sorted(str(i.id) for i in items)},
         )
         for item in items:
@@ -345,16 +410,28 @@ def bulk_feedback(
         _check_assignee(db, access.site.id, body.assignee_id)
         for item in items:
             item.assignee_id = body.assignee_id
-        _audit_labels(db, access, "bulk_assign", f"Assigned {len(items)} feedback items on {access.site.name}",
-                      {"count": len(items), "assignee_id": _str(body.assignee_id), "ids": _ids(items)})
+        _audit_labels(
+            db,
+            access,
+            "bulk_assign",
+            f"Assigned {len(items)} feedback items on {access.site.name}",
+            {"count": len(items), "assignee_id": _str(body.assignee_id), "ids": _ids(items)},
+        )
     else:
         add = body.action == "add_tag"
         for item in items:
             if add and body.tag not in item.tags and len(item.tags) >= MAX_TAGS:
-                raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"An item can have at most {MAX_TAGS} tags")
+                raise HTTPException(
+                    status.HTTP_422_UNPROCESSABLE_CONTENT, f"An item can have at most {MAX_TAGS} tags"
+                )
             _set_tags(item, sorted({*item.tags, body.tag} if add else set(item.tags) - {body.tag}))
-        _audit_labels(db, access, body.action, f"{'Added' if add else 'Removed'} tag {body.tag} on {len(items)} feedback items in {access.site.name}",
-                      {"count": len(items), "tag": body.tag, "ids": _ids(items)})
+        _audit_labels(
+            db,
+            access,
+            body.action,
+            f"{'Added' if add else 'Removed'} tag {body.tag} on {len(items)} feedback items in {access.site.name}",
+            {"count": len(items), "tag": body.tag, "ids": _ids(items)},
+        )
     db.commit()
     return BulkResult(affected=len(items), skipped=len(ids) - len(items))
 
@@ -369,8 +446,16 @@ def _ids(items: list[Feedback]) -> list[str]:
 
 def _audit_labels(db: Session, access: SiteAccess, action: str, summary: str, details: dict) -> None:
     """Assignment and tag changes: who and what, never the feedback text. (Status changes are not logged.)"""
-    audit(db, access.user, f"feedback.{action}", summary, target_type="site", target_id=access.site.id,
-          site=access.site, details=details)
+    audit(
+        db,
+        access.user,
+        f"feedback.{action}",
+        summary,
+        target_type="site",
+        target_id=access.site.id,
+        site=access.site,
+        details=details,
+    )
 
 
 @router.get("/{feedback_id}")
@@ -397,11 +482,21 @@ def update_feedback(
         _check_assignee(db, access.site.id, body.assignee_id)
         if item.assignee_id != body.assignee_id:
             item.assignee_id = body.assignee_id
-            _audit_labels(db, access, "assign", f"Assigned a feedback item on {access.site.name}",
-                          {"feedback_id": str(item.id), "assignee_id": _str(body.assignee_id)})
+            _audit_labels(
+                db,
+                access,
+                "assign",
+                f"Assigned a feedback item on {access.site.name}",
+                {"feedback_id": str(item.id), "assignee_id": _str(body.assignee_id)},
+            )
     if "tags" in sent and body.tags != item.tags:
-        _audit_labels(db, access, "tags", f"Changed the tags of a feedback item on {access.site.name}",
-                      {"feedback_id": str(item.id), "from": item.tags, "to": body.tags})
+        _audit_labels(
+            db,
+            access,
+            "tags",
+            f"Changed the tags of a feedback item on {access.site.name}",
+            {"feedback_id": str(item.id), "from": item.tags, "to": body.tags},
+        )
         _set_tags(item, body.tags)
     db.commit()
     return FeedbackOut.model_validate(item)
@@ -434,7 +529,9 @@ def add_note(
     note = FeedbackNote(feedback_id=item.id, author_id=access.user.id, body=body.body)
     db.add(note)
     db.commit()
-    return NoteOut.model_validate(note).model_copy(update={"author_name": db.scalar(select(user_name()).where(User.id == access.user.id))})
+    return NoteOut.model_validate(note).model_copy(
+        update={"author_name": db.scalar(select(user_name()).where(User.id == access.user.id))}
+    )
 
 
 @router.delete("/{feedback_id}/notes/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -446,13 +543,23 @@ def delete_note(
 ) -> None:
     """An editor removes their own notes; an admin can remove any."""
     item = _get(db, access.site.id, feedback_id)
-    note = db.scalar(select(FeedbackNote).where(FeedbackNote.id == note_id, FeedbackNote.feedback_id == item.id))
+    note = db.scalar(
+        select(FeedbackNote).where(FeedbackNote.id == note_id, FeedbackNote.feedback_id == item.id)
+    )
     if note is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Note not found")
     if note.author_id != access.user.id and ROLE_RANK[access.role] < ROLE_RANK[Role.admin]:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Only the author or an admin can delete a note")
-    audit(db, access.user, "feedback.note_delete", f"Deleted a note on a feedback item in {access.site.name}",
-          target_type="feedback", target_id=item.id, site=access.site, details={"note_id": str(note.id)})
+    audit(
+        db,
+        access.user,
+        "feedback.note_delete",
+        f"Deleted a note on a feedback item in {access.site.name}",
+        target_type="feedback",
+        target_id=item.id,
+        site=access.site,
+        details={"note_id": str(note.id)},
+    )
     db.delete(note)
     db.commit()
 
@@ -465,8 +572,14 @@ def delete_feedback(
 ) -> None:
     item = _get(db, access.site.id, feedback_id)
     audit(  # the message itself is personal data, so only its id and status are kept
-        db, access.user, "feedback.delete", f"Deleted a feedback item from {access.site.name}",
-        target_type="feedback", target_id=item.id, site=access.site, details={"status": item.status.value},
+        db,
+        access.user,
+        "feedback.delete",
+        f"Deleted a feedback item from {access.site.name}",
+        target_type="feedback",
+        target_id=item.id,
+        site=access.site,
+        details={"status": item.status.value},
     )
     db.delete(item)
     db.commit()

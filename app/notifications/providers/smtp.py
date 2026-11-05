@@ -60,7 +60,7 @@ def _connect() -> smtplib.SMTP:
 
 def _reply_to(value: str | None) -> str | None:
     """Submitter-supplied, so only a plausible single address is allowed into a header."""
-    if value and "@" in value and not any(c in value for c in "\r\n<>,;\" "):
+    if value and "@" in value and not any(c in value for c in '\r\n<>,;" '):
         return value
     return None
 
@@ -84,7 +84,11 @@ def build(message: Message, address: str) -> EmailMessage:
 
 def _text(code: int | None, detail: object) -> str:
     raw = detail.decode("utf-8", "replace") if isinstance(detail, bytes) else str(detail)
-    return f"smtp {code}: {' '.join(raw.split())[:ERROR_MAX]}" if code else f"smtp: {' '.join(raw.split())[:ERROR_MAX]}"
+    return (
+        f"smtp {code}: {' '.join(raw.split())[:ERROR_MAX]}"
+        if code
+        else f"smtp: {' '.join(raw.split())[:ERROR_MAX]}"
+    )
 
 
 def _classify(exc: smtplib.SMTPException | OSError) -> SendResult:
@@ -95,7 +99,11 @@ def _classify(exc: smtplib.SMTPException | OSError) -> SendResult:
         return SendResult.failed(f"smtp: TLS certificate not trusted ({exc.verify_message})")
     if isinstance(exc, smtplib.SMTPRecipientsRefused):
         code = next(iter(exc.recipients.values()))[0]
-        return SendResult.failed(f"smtp {code}: recipient refused") if code >= 500 else SendResult.retry(f"smtp {code}: recipient deferred")
+        return (
+            SendResult.failed(f"smtp {code}: recipient refused")
+            if code >= 500
+            else SendResult.retry(f"smtp {code}: recipient deferred")
+        )
     if isinstance(exc, smtplib.SMTPResponseException):  # auth, sender, data, ... all carry a code
         code = exc.smtp_code
         detail = _text(code, exc.smtp_error)

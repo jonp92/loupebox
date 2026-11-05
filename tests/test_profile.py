@@ -43,7 +43,9 @@ def test_avatar_url_changes_with_new_upload(client, db):
 
 
 def test_avatar_requires_auth(client):
-    assert client.put("/auth/me/avatar", content=PNG, headers={"Content-Type": "image/png"}).status_code == 401
+    assert (
+        client.put("/auth/me/avatar", content=PNG, headers={"Content-Type": "image/png"}).status_code == 401
+    )
     assert client.delete("/auth/me/avatar").status_code == 401
 
 
@@ -85,10 +87,15 @@ def test_lists_expose_avatar_url_not_data(client, db):
     h = login(client, "boss@example.com")
     put_avatar(client, h)
     members = client.get(f"/sites/{site.id}/members", headers=h).json()
-    assert members[0]["avatar_url"].startswith(f"{settings.api_prefix}/avatars/") and "avatar" not in members[0]
+    assert (
+        members[0]["avatar_url"].startswith(f"{settings.api_prefix}/avatars/") and "avatar" not in members[0]
+    )
     rh = login(client, "root@example.com")
     users = client.get("/users", headers=rh).json()
-    assert {u["email"]: bool(u["avatar_url"]) for u in users} == {"boss@example.com": True, "root@example.com": False}
+    assert {u["email"]: bool(u["avatar_url"]) for u in users} == {
+        "boss@example.com": True,
+        "root@example.com": False,
+    }
 
 
 def test_user_cannot_change_own_name_or_email(client, db):
@@ -102,15 +109,31 @@ def test_change_password(client, db):
     make_user(db, "u@example.com")
     h = login(client, "u@example.com")
 
-    wrong = client.post("/auth/me/password", json={"current_password": "nope-nope-nope", "new_password": "brand-new-password"}, headers=h)
+    wrong = client.post(
+        "/auth/me/password",
+        json={"current_password": "nope-nope-nope", "new_password": "brand-new-password"},
+        headers=h,
+    )
     assert wrong.status_code == 400
-    same = client.post("/auth/me/password", json={"current_password": "correct-horse-battery", "new_password": "correct-horse-battery"}, headers=h)
+    same = client.post(
+        "/auth/me/password",
+        json={"current_password": "correct-horse-battery", "new_password": "correct-horse-battery"},
+        headers=h,
+    )
     assert same.status_code == 400
-    short = client.post("/auth/me/password", json={"current_password": "correct-horse-battery", "new_password": "short"}, headers=h)
+    short = client.post(
+        "/auth/me/password",
+        json={"current_password": "correct-horse-battery", "new_password": "short"},
+        headers=h,
+    )
     assert short.status_code == 422
 
     old_refresh = client.cookies.get("refresh_token")
-    ok = client.post("/auth/me/password", json={"current_password": "correct-horse-battery", "new_password": "brand-new-password"}, headers=h)
+    ok = client.post(
+        "/auth/me/password",
+        json={"current_password": "correct-horse-battery", "new_password": "brand-new-password"},
+        headers=h,
+    )
     assert ok.status_code == 200 and ok.json()["access_token"]
     # this session keeps working on its fresh refresh token; old one is dead
     assert client.cookies.get("refresh_token") != old_refresh
@@ -119,7 +142,12 @@ def test_change_password(client, db):
     client.cookies.clear()
     bad = client.post("/auth/login", json={"email": "u@example.com", "password": "correct-horse-battery"})
     assert bad.status_code == 401
-    assert client.post("/auth/login", json={"email": "u@example.com", "password": "brand-new-password"}).status_code == 200
+    assert (
+        client.post(
+            "/auth/login", json={"email": "u@example.com", "password": "brand-new-password"}
+        ).status_code
+        == 200
+    )
 
 
 def test_superadmin_edits_name_and_email(client, db):
@@ -128,9 +156,17 @@ def test_superadmin_edits_name_and_email(client, db):
     make_user(db, "taken@example.com")
     h = login(client, "root@example.com")
 
-    r = client.patch(f"/users/{u.id}", json={"first_name": " Ada ", "last_name": "Lovelace", "email": "ADA@Example.com"}, headers=h)
+    r = client.patch(
+        f"/users/{u.id}",
+        json={"first_name": " Ada ", "last_name": "Lovelace", "email": "ADA@Example.com"},
+        headers=h,
+    )
     assert r.status_code == 200
-    assert (r.json()["first_name"], r.json()["last_name"], r.json()["email"]) == ("Ada", "Lovelace", "ada@example.com")
+    assert (r.json()["first_name"], r.json()["last_name"], r.json()["email"]) == (
+        "Ada",
+        "Lovelace",
+        "ada@example.com",
+    )
     assert client.patch(f"/users/{u.id}", json={"email": "taken@example.com"}, headers=h).status_code == 409
     assert client.patch(f"/users/{u.id}", json={"first_name": ""}, headers=h).status_code == 422
     assert client.patch(f"/users/{root.id}", json={"first_name": "Root"}, headers=h).status_code == 200
@@ -165,7 +201,9 @@ def test_superadmin_can_set_and_clear_another_users_avatar(client, db):
     url = f"/users/{other.id}/avatar"
 
     r = client.put(url, content=PNG, headers={**admin, "Content-Type": "image/png"})
-    assert r.status_code == 200 and r.json()["avatar_url"].startswith(f"{settings.api_prefix}/avatars/{other.id}?v=")
+    assert r.status_code == 200 and r.json()["avatar_url"].startswith(
+        f"{settings.api_prefix}/avatars/{other.id}?v="
+    )
     assert client.get(f"/avatars/{other.id}").content == PNG
     assert client.put(url, content=b"nope", headers={**admin, "Content-Type": "image/png"}).status_code == 422
 
@@ -182,5 +220,9 @@ def test_admin_avatar_upload_allows_a_body_over_the_default_cap(client, db):
     other = make_user(db, "o@example.com")
     big = PNG + b"\x00" * (settings.max_body_bytes + 1024)  # over the 16 KB default, under the avatar cap
     assert len(big) <= settings.avatar_max_bytes
-    r = client.put(f"/users/{other.id}/avatar", content=big, headers={**login(client, "root@example.com"), "Content-Type": "image/png"})
+    r = client.put(
+        f"/users/{other.id}/avatar",
+        content=big,
+        headers={**login(client, "root@example.com"), "Content-Type": "image/png"},
+    )
     assert r.status_code == 200

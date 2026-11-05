@@ -51,6 +51,9 @@ class FeedbackReplied(BaseModel):
     length: int
 
 
-EVENT_TYPES: dict[str, type[BaseModel]] = {"feedback.created": FeedbackCreated, "feedback.replied": FeedbackReplied}
+EVENT_TYPES: dict[str, type[BaseModel]] = {
+    "feedback.created": FeedbackCreated,
+    "feedback.replied": FeedbackReplied,
+}
 # Only for endpoints that feed other systems (webhooks); emailing the team about its own replies is noise.
 MACHINE_ONLY = {"feedback.replied"}

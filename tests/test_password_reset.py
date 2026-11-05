@@ -155,13 +155,19 @@ def test_request_rate_limits(client, db, mail):
     codes = [request_reset(client).status_code for _ in range(settings.password_reset_email_limit + 1)]
     assert codes[-1] == 429 and set(codes[:-1]) == {202}
     # The limit is per address, applied whether or not the account exists.
-    codes = [request_reset(client, "ghost@example.com").status_code for _ in range(settings.password_reset_email_limit + 1)]
+    codes = [
+        request_reset(client, "ghost@example.com").status_code
+        for _ in range(settings.password_reset_email_limit + 1)
+    ]
     assert codes[-1] == 429
 
 
 def test_ip_rate_limit(client, db, mail, monkeypatch):
     monkeypatch.setattr(settings, "password_reset_email_limit", 100)
-    codes = [request_reset(client, f"u{i}@example.com").status_code for i in range(settings.password_reset_ip_limit + 1)]
+    codes = [
+        request_reset(client, f"u{i}@example.com").status_code
+        for i in range(settings.password_reset_ip_limit + 1)
+    ]
     assert codes[-1] == 429
 
 

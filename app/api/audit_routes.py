@@ -35,7 +35,10 @@ def list_audit(
         stmt = stmt.where(AuditEvent.actor_id == actor_id)
     if q:
         stmt = stmt.where(
-            or_(AuditEvent.summary.icontains(q, autoescape=True), AuditEvent.actor_email.icontains(q, autoescape=True))
+            or_(
+                AuditEvent.summary.icontains(q, autoescape=True),
+                AuditEvent.actor_email.icontains(q, autoescape=True),
+            )
         )
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     rows = db.scalars(stmt.order_by(AuditEvent.created_at.desc(), AuditEvent.id).limit(limit).offset(offset))

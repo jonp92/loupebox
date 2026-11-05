@@ -42,8 +42,15 @@ def _isolated_from_dotenv(monkeypatch):
     """Settings also read the developer's real .env (Brevo key, PUBLIC_URL, ...). Tests must never see it,
     and no test may send real mail or webhooks: providers get a transport that fails loudly unless a test
     installs its own."""
-    for name, value in (("brevo_api_key", ""), ("notify_sender_email", ""), ("public_url", ""), ("mail_provider", ""),
-                        ("smtp_host", ""), ("smtp_username", ""), ("smtp_password", "")):
+    for name, value in (
+        ("brevo_api_key", ""),
+        ("notify_sender_email", ""),
+        ("public_url", ""),
+        ("mail_provider", ""),
+        ("smtp_host", ""),
+        ("smtp_username", ""),
+        ("smtp_password", ""),
+    ):
         monkeypatch.setattr(settings, name, value)
     monkeypatch.setattr(brevo, "_transport", lambda: httpx.MockTransport(_no_network))
     monkeypatch.setattr(webhook, "_transport", lambda: httpx.MockTransport(_no_network))

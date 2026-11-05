@@ -37,7 +37,11 @@ def _key() -> bytes:
 
 
 def _sign(body: str) -> str:
-    return base64.urlsafe_b64encode(hmac.new(_key(), body.encode(), hashlib.sha256).digest()).decode().rstrip("=")
+    return (
+        base64.urlsafe_b64encode(hmac.new(_key(), body.encode(), hashlib.sha256).digest())
+        .decode()
+        .rstrip("=")
+    )
 
 
 def _now() -> datetime:
@@ -74,7 +78,9 @@ class ProofOfWork(ChallengeVerifier):
             "e": int((_now() + timedelta(seconds=settings.challenge_ttl_seconds)).timestamp()),
             "b": config.bits,
         }
-        body = base64.urlsafe_b64encode(json.dumps(payload, separators=(",", ":")).encode()).decode().rstrip("=")
+        body = (
+            base64.urlsafe_b64encode(json.dumps(payload, separators=(",", ":")).encode()).decode().rstrip("=")
+        )
         token = f"{_VERSION}.{body}"
         return {"algorithm": "sha256", "token": f"{token}.{_sign(token)}", "bits": config.bits}
 
@@ -91,7 +97,12 @@ class ProofOfWork(ChallengeVerifier):
             return False
         try:
             payload = json.loads(base64.urlsafe_b64decode(body + "=" * (-len(body) % 4)))
-            salt, site_id, expires, bits = payload["r"], uuid.UUID(payload["s"]), int(payload["e"]), int(payload["b"])
+            salt, site_id, expires, bits = (
+                payload["r"],
+                uuid.UUID(payload["s"]),
+                int(payload["e"]),
+                int(payload["b"]),
+            )
         except (ValueError, KeyError, TypeError):
             return False
         if site_id != site.id or expires < _now().timestamp():

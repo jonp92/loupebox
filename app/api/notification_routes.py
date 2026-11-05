@@ -50,7 +50,9 @@ def _validated_config(provider: NotificationProvider, config: dict) -> dict:
     try:
         model = provider.ConfigModel.model_validate(config)
     except ValidationError as exc:
-        detail = "; ".join(f"{'.'.join(map(str, e['loc']))}: {e['msg'].removeprefix('Value error, ')}" for e in exc.errors())
+        detail = "; ".join(
+            f"{'.'.join(map(str, e['loc']))}: {e['msg'].removeprefix('Value error, ')}" for e in exc.errors()
+        )
         raise HTTPException(422, f"Invalid config: {detail}") from exc
     try:
         provider.check_config(model)
@@ -61,9 +63,7 @@ def _validated_config(provider: NotificationProvider, config: dict) -> dict:
 
 def _require_configured(provider: NotificationProvider) -> None:
     if not provider.is_configured():
-        raise HTTPException(
-            status.HTTP_409_CONFLICT, f"{provider.label} is not configured on the server"
-        )
+        raise HTTPException(status.HTTP_409_CONFLICT, f"{provider.label} is not configured on the server")
 
 
 def _channel(db: Session, access: SiteAccess, channel_id: uuid.UUID) -> NotificationChannel:
@@ -141,12 +141,19 @@ def create_channel(
         channel.secret = crypto.encrypt("webhook", secret)
     db.add(channel)
     audit(
-        db, access.user, "channel.create", f'Added the {provider.label} channel "{channel.name}" to {access.site.name}',
-        target_type="channel", target_id=channel.id, site=access.site,
+        db,
+        access.user,
+        "channel.create",
+        f'Added the {provider.label} channel "{channel.name}" to {access.site.name}',
+        target_type="channel",
+        target_id=channel.id,
+        site=access.site,
         details={"provider": provider.key, "name": channel.name, "enabled": channel.enabled},
     )
     db.commit()
-    return ChannelCreated.model_validate({**ChannelOut.model_validate(channel).model_dump(), "secret": secret})
+    return ChannelCreated.model_validate(
+        {**ChannelOut.model_validate(channel).model_dump(), "secret": secret}
+    )
 
 
 @router.patch("/sites/{site_id}/notifications/{channel_id}")
@@ -172,8 +179,14 @@ def update_channel(
     diff = changed(before, channel, redact=_CHANNEL_REDACTED)
     if diff:
         audit(
-            db, access.user, "channel.update", f'Updated the channel "{channel.name}" on {access.site.name}: {", ".join(diff)}',
-            target_type="channel", target_id=channel.id, site=access.site, details=diff,
+            db,
+            access.user,
+            "channel.update",
+            f'Updated the channel "{channel.name}" on {access.site.name}: {", ".join(diff)}',
+            target_type="channel",
+            target_id=channel.id,
+            site=access.site,
+            details=diff,
         )
     db.commit()
     return ChannelOut.model_validate(channel)
@@ -187,8 +200,14 @@ def delete_channel(
 ) -> None:
     channel = _channel(db, access, channel_id)
     audit(
-        db, access.user, "channel.delete", f'Deleted the channel "{channel.name}" from {access.site.name}',
-        target_type="channel", target_id=channel.id, site=access.site, details={"provider": channel.provider, "name": channel.name},
+        db,
+        access.user,
+        "channel.delete",
+        f'Deleted the channel "{channel.name}" from {access.site.name}',
+        target_type="channel",
+        target_id=channel.id,
+        site=access.site,
+        details={"provider": channel.provider, "name": channel.name},
     )
     db.delete(channel)
     db.commit()
@@ -208,8 +227,14 @@ def rotate_secret(
     secret = provider.new_secret()
     channel.secret = crypto.encrypt("webhook", secret)
     audit(
-        db, access.user, "channel.rotate_secret", f'Rotated the signing secret of "{channel.name}" on {access.site.name}',
-        target_type="channel", target_id=channel.id, site=access.site, details={"secret": "changed"},
+        db,
+        access.user,
+        "channel.rotate_secret",
+        f'Rotated the signing secret of "{channel.name}" on {access.site.name}',
+        target_type="channel",
+        target_id=channel.id,
+        site=access.site,
+        details={"secret": "changed"},
     )
     db.commit()
     return SecretOut(secret=secret)

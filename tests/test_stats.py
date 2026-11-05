@@ -49,13 +49,37 @@ def test_stats_endpoint_aggregates_and_zero_fills(client, db):
     make_user(db, "root@example.com", superadmin=True)
     h = login(client, "root@example.com")
     now = datetime.now(UTC)
-    db.add_all([
-        Feedback(site_id=site.id, message="a", content_hash="1", ip_hash="i", meta={}, created_at=now),
-        Feedback(site_id=site.id, message="b", content_hash="2", ip_hash="i", meta={}, created_at=now),
-        Feedback(site_id=site.id, message="s", content_hash="3", ip_hash="i", meta={}, status="spam", created_at=now),
-        Feedback(site_id=site.id, message="old", content_hash="4", ip_hash="i", meta={}, created_at=now - timedelta(days=2)),
-        Feedback(site_id=site.id, message="ancient", content_hash="5", ip_hash="i", meta={}, created_at=now - timedelta(days=40)),
-    ])
+    db.add_all(
+        [
+            Feedback(site_id=site.id, message="a", content_hash="1", ip_hash="i", meta={}, created_at=now),
+            Feedback(site_id=site.id, message="b", content_hash="2", ip_hash="i", meta={}, created_at=now),
+            Feedback(
+                site_id=site.id,
+                message="s",
+                content_hash="3",
+                ip_hash="i",
+                meta={},
+                status="spam",
+                created_at=now,
+            ),
+            Feedback(
+                site_id=site.id,
+                message="old",
+                content_hash="4",
+                ip_hash="i",
+                meta={},
+                created_at=now - timedelta(days=2),
+            ),
+            Feedback(
+                site_id=site.id,
+                message="ancient",
+                content_hash="5",
+                ip_hash="i",
+                meta={},
+                created_at=now - timedelta(days=40),
+            ),
+        ]
+    )
     db.commit()
     post(client, {"message": "bot", "website": "x"})
 

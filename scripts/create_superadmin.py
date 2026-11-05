@@ -1,4 +1,5 @@
 """Create (or promote) the first superadmin: python -m scripts.create_superadmin you@example.com"""
+
 import getpass
 import sys
 

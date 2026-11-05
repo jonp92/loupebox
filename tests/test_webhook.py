@@ -30,7 +30,10 @@ def dns(monkeypatch):
     def fake(host, port, **_kw):
         if host not in table:
             raise socket.gaierror("not found")
-        return [(socket.AF_INET6 if ":" in ip else socket.AF_INET, socket.SOCK_STREAM, 6, "", (ip, port)) for ip in table[host]]
+        return [
+            (socket.AF_INET6 if ":" in ip else socket.AF_INET, socket.SOCK_STREAM, 6, "", (ip, port))
+            for ip in table[host]
+        ]
 
     monkeypatch.setattr(netguard, "_getaddrinfo", fake)
     return table
@@ -67,7 +70,10 @@ def make_webhook(db, site, url_=HOOK, secret=SECRET, **kw):
 
 def expected_signature(secret, msg_id, ts, body):
     key = base64.b64decode(secret.removeprefix("whsec_"))
-    return "v1," + base64.b64encode(hmac.new(key, f"{msg_id}.{ts}.".encode() + body, hashlib.sha256).digest()).decode()
+    return (
+        "v1,"
+        + base64.b64encode(hmac.new(key, f"{msg_id}.{ts}.".encode() + body, hashlib.sha256).digest()).decode()
+    )
 
 
 # --- netguard -----------------------------------------------------------------------------------
@@ -97,7 +103,9 @@ def test_static_checks_reject(bad):
         netguard.parse(bad, allow_private=False)
 
 
-@pytest.mark.parametrize("answer", [["127.0.0.1"], ["10.1.2.3"], [PUBLIC, "169.254.169.254"], ["::1"], ["::ffff:10.0.0.1"]])
+@pytest.mark.parametrize(
+    "answer", [["127.0.0.1"], ["10.1.2.3"], [PUBLIC, "169.254.169.254"], ["::1"], ["::ffff:10.0.0.1"]]
+)
 def test_resolution_to_private_is_refused(dns, answer):
     dns["hooks.example.com"] = answer
     with pytest.raises(netguard.UnsafeTarget):
@@ -125,8 +133,13 @@ def test_allow_private_opts_in(dns):
 
 
 def event():
-    return {"id": "evt-1", "type": "feedback.created", "created_at": "2026-11-02T00:00:00+00:00",
-            "site": {"id": "s", "name": "Shop"}, "data": {"excerpt": "héllo"}}
+    return {
+        "id": "evt-1",
+        "type": "feedback.created",
+        "created_at": "2026-11-02T00:00:00+00:00",
+        "site": {"id": "s", "name": "Shop"},
+        "data": {"excerpt": "héllo"},
+    }
 
 
 def send(message_event=None, secret=SECRET, url_=HOOK):
@@ -152,8 +165,20 @@ def test_request_is_signed_and_pinned(receiver):
 
 @pytest.mark.parametrize(
     "status,expected",
-    [(200, "sent"), (204, "sent"), (301, "failed"), (302, "failed"), (400, "failed"), (401, "failed"),
-     (404, "failed"), (410, "failed"), (408, "retry"), (429, "retry"), (500, "retry"), (503, "retry")],
+    [
+        (200, "sent"),
+        (204, "sent"),
+        (301, "failed"),
+        (302, "failed"),
+        (400, "failed"),
+        (401, "failed"),
+        (404, "failed"),
+        (410, "failed"),
+        (408, "retry"),
+        (429, "retry"),
+        (500, "retry"),
+        (503, "retry"),
+    ],
 )
 def test_status_mapping(receiver, status, expected):
     receiver.status = status
@@ -213,7 +238,9 @@ def test_proxy_environment_is_ignored(receiver, monkeypatch):
 
 
 def create(client, site, h, **body):
-    return client.post(url(site), headers=h, json={"provider": "webhook", "name": "Hook", "config": {"url": HOOK}, **body})
+    return client.post(
+        url(site), headers=h, json={"provider": "webhook", "name": "Hook", "config": {"url": HOOK}, **body}
+    )
 
 
 def test_create_returns_the_secret_once_and_stores_it_encrypted(client, db, admin):
@@ -232,7 +259,14 @@ def test_create_returns_the_secret_once_and_stores_it_encrypted(client, db, admi
 
 @pytest.mark.parametrize(
     "bad",
-    ["http://hooks.example.com/x", "https://127.0.0.1/x", "https://localhost/x", "https://nope.example.com/x", "not a url", ""],
+    [
+        "http://hooks.example.com/x",
+        "https://127.0.0.1/x",
+        "https://localhost/x",
+        "https://nope.example.com/x",
+        "not a url",
+        "",
+    ],
 )
 def test_create_rejects_unsafe_or_unresolvable_urls(client, db, admin, bad):
     site, h = admin
@@ -251,8 +285,16 @@ def test_localhost_name_is_rejected_via_resolution(client, admin, dns):
 def test_update_revalidates_the_url(client, admin):
     site, h = admin
     cid = create(client, site, h).json()["id"]
-    assert client.patch(url(site, f"/{cid}"), headers=h, json={"config": {"url": "https://10.0.0.1/x"}}).status_code == 422
-    assert client.patch(url(site, f"/{cid}"), headers=h, json={"config": {"url": HOOK + "/v2"}}).status_code == 200
+    assert (
+        client.patch(
+            url(site, f"/{cid}"), headers=h, json={"config": {"url": "https://10.0.0.1/x"}}
+        ).status_code
+        == 422
+    )
+    assert (
+        client.patch(url(site, f"/{cid}"), headers=h, json={"config": {"url": HOOK + "/v2"}}).status_code
+        == 200
+    )
 
 
 def test_rotate_secret(client, db, admin):
@@ -286,7 +328,9 @@ def test_send_test_posts_a_test_event(client, db, admin, receiver):
     [req] = receiver.requests
     body = json.loads(req.content)
     assert body["type"] == "test" and body["site"]["name"] == site.name
-    assert req.headers["webhook-signature"] == expected_signature(made["secret"], body["id"], req.headers["webhook-timestamp"], req.content)
+    assert req.headers["webhook-signature"] == expected_signature(
+        made["secret"], body["id"], req.headers["webhook-timestamp"], req.content
+    )
 
 
 def test_secrets_never_leak_into_audit_or_listing(client, db, admin):
@@ -311,7 +355,9 @@ def test_feedback_is_delivered_without_recipients(client, db, receiver):
     assert body["type"] == "feedback.created" and body["id"] == str(row.id)
     assert body["site"] == {"id": str(site.id), "name": site.name}
     assert body["data"]["excerpt"] == "Great shop" and "type" not in body["data"]
-    assert req.headers["webhook-signature"] == expected_signature(secret, body["id"], req.headers["webhook-timestamp"], req.content)
+    assert req.headers["webhook-signature"] == expected_signature(
+        secret, body["id"], req.headers["webhook-timestamp"], req.content
+    )
 
 
 def test_webhooks_are_not_held_by_the_email_cap(client, db, receiver, monkeypatch):
@@ -337,7 +383,9 @@ def test_retry_keeps_the_same_event_id(client, db, receiver):
     db.commit()
     receiver.status = 200
     process_due(db)
-    assert {r.headers["webhook-id"] for r in receiver.requests} == {str(row.id)} and len(receiver.requests) == 2
+    assert {r.headers["webhook-id"] for r in receiver.requests} == {str(row.id)} and len(
+        receiver.requests
+    ) == 2
 
 
 def test_unreadable_secret_fails_permanently(client, db, receiver, monkeypatch):

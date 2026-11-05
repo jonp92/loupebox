@@ -25,16 +25,21 @@ def make_cert(directory) -> tuple[str, str, str]:
     now = datetime.datetime.now(datetime.UTC)
     cert = (
         x509.CertificateBuilder()
-        .subject_name(name).issuer_name(name).public_key(key.public_key())
+        .subject_name(name)
+        .issuer_name(name)
+        .public_key(key.public_key())
         .serial_number(x509.random_serial_number())
-        .not_valid_before(now - datetime.timedelta(minutes=1)).not_valid_after(now + datetime.timedelta(days=1))
+        .not_valid_before(now - datetime.timedelta(minutes=1))
+        .not_valid_after(now + datetime.timedelta(days=1))
         .add_extension(x509.SubjectAlternativeName([x509.DNSName("localhost")]), critical=False)
         .sign(key, hashes.SHA256())
     )
     pem = cert.public_bytes(serialization.Encoding.PEM)
     cert_path, key_path = str(directory / "cert.pem"), str(directory / "key.pem")
     key_pem = key.private_bytes(
-        serialization.Encoding.PEM, serialization.PrivateFormat.TraditionalOpenSSL, serialization.NoEncryption()
+        serialization.Encoding.PEM,
+        serialization.PrivateFormat.TraditionalOpenSSL,
+        serialization.NoEncryption(),
     )
     directory.joinpath("cert.pem").write_bytes(pem)
     directory.joinpath("key.pem").write_bytes(key_pem)

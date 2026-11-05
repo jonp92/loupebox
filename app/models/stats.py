@@ -25,9 +25,7 @@ class SiteStat(Base):
 
     __tablename__ = "site_stats"
 
-    site_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("sites.id", ondelete="CASCADE"), primary_key=True
-    )
+    site_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("sites.id", ondelete="CASCADE"), primary_key=True)
     day: Mapped[date] = mapped_column(Date, primary_key=True)
     kind: Mapped[str] = mapped_column(String(24), primary_key=True)
     count: Mapped[int] = mapped_column(Integer, default=0)

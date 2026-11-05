@@ -51,7 +51,11 @@ def test_the_widgets_payload_is_accepted_and_stored(client, db, shop):
 
 
 def test_minimal_widget_payload(client, db, shop):
-    r = client.post("/feedback", json={"message": "hi", "metadata": {"widget_version": "1.0.0"}, "website": ""}, headers=HEADERS)
+    r = client.post(
+        "/feedback",
+        json={"message": "hi", "metadata": {"widget_version": "1.0.0"}, "website": ""},
+        headers=HEADERS,
+    )
     assert r.status_code == 201
 
 
@@ -80,7 +84,12 @@ def test_filter_by_issue_type(client, db, shop):
 def test_issue_type_counts_for_the_filter_dropdown(client, db, shop):
     site, h = shop
     for kind in ["bug", "bug", "idea"]:
-        submit(client, message=f"{kind} {len(db.scalars(select(Feedback)).all())}", metadata={"issue_type": kind}, email=None)
+        submit(
+            client,
+            message=f"{kind} {len(db.scalars(select(Feedback)).all())}",
+            metadata={"issue_type": kind},
+            email=None,
+        )
     submit(client, message="spammy", metadata={"issue_type": "praise"}, email=None)
     spam = db.scalars(select(Feedback).where(Feedback.message == "spammy")).one()
     spam.status = FeedbackStatus.spam
@@ -93,7 +102,11 @@ def test_issue_type_counts_for_the_filter_dropdown(client, db, shop):
 def test_issue_type_is_scoped_to_the_site_and_role(client, db, shop):
     site, h = shop
     other = make_site(db, "Other")
-    db.add(Feedback(site_id=other.id, message="theirs", content_hash="h", ip_hash="i", meta={"issue_type": "bug"}))
+    db.add(
+        Feedback(
+            site_id=other.id, message="theirs", content_hash="h", ip_hash="i", meta={"issue_type": "bug"}
+        )
+    )
     db.commit()
     assert client.get(f"/sites/{site.id}/feedback/issue-types", headers=h).json() == []
     assert client.get(f"/sites/{other.id}/feedback/issue-types", headers=h).status_code == 404
@@ -143,6 +156,10 @@ def test_old_outbox_rows_without_the_field_still_render(db, shop):
     from app.models import NotificationOutbox
 
     site = shop[0]
-    row = NotificationOutbox(site_id=site.id, event_type="feedback.created", payload={"type": "feedback.created", "feedback_id": "x", "excerpt": "old"})
+    row = NotificationOutbox(
+        site_id=site.id,
+        event_type="feedback.created",
+        payload={"type": "feedback.created", "feedback_id": "x", "excerpt": "old"},
+    )
     message = build_message(row, site, ["a@example.com"])
     assert "Type:" not in message.text

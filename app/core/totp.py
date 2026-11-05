@@ -59,16 +59,20 @@ def verify(secret: str, code: str, last_step: int | None = None, now: float | No
 
 def provisioning_uri(email: str, secret: str) -> str:
     label = quote(f"{settings.totp_issuer}:{email}")
-    query = urlencode({"secret": secret, "issuer": settings.totp_issuer, "digits": DIGITS, "period": STEP_SECONDS})
+    query = urlencode(
+        {"secret": secret, "issuer": settings.totp_issuer, "digits": DIGITS, "period": STEP_SECONDS}
+    )
     return f"otpauth://totp/{label}?{query}"
 
 
 def new_recovery_codes() -> list[str]:
     """Ten codes like `k3f9a-27xqd`: 50 bits each, from an alphabet without look-alike characters."""
     alphabet = "abcdefghjkmnpqrstuvwxyz23456789"
+
     def one() -> str:
         raw = "".join(secrets.choice(alphabet) for _ in range(10))
         return f"{raw[:5]}-{raw[5:]}"
+
     return [one() for _ in range(RECOVERY_CODE_COUNT)]
 
 

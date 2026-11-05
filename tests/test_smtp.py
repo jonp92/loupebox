@@ -34,9 +34,15 @@ def serve(monkeypatch, cert):
         server = FakeSmtp(mode=mode, credentials=credentials, cert=cert[:2]).start()
         started.append(server)
         for name, value in {
-            "smtp_host": "localhost", "smtp_port": server.port, "notify_sender_email": SENDER,
-            "notify_sender_name": "Loupebox", "smtp_security": {"plain": "none"}.get(mode, "ssl" if mode == "ssl" else "starttls"),
-            "smtp_username": "", "smtp_password": "", "smtp_timeout": 3, **settings_override,
+            "smtp_host": "localhost",
+            "smtp_port": server.port,
+            "notify_sender_email": SENDER,
+            "notify_sender_name": "Loupebox",
+            "smtp_security": {"plain": "none"}.get(mode, "ssl" if mode == "ssl" else "starttls"),
+            "smtp_username": "",
+            "smtp_password": "",
+            "smtp_timeout": 3,
+            **settings_override,
         }.items():
             monkeypatch.setattr(settings, name, value)
         if trust:
@@ -51,7 +57,9 @@ def serve(monkeypatch, cert):
 
 def send(*, to=("a@example.com",), **kw):
     provider = registry.get_provider("smtp")
-    message = Message(to=list(to), subject=kw.pop("subject", "Hi"), text="plain body", html="<p>html body</p>", **kw)
+    message = Message(
+        to=list(to), subject=kw.pop("subject", "Hi"), text="plain body", html="<p>html body</p>", **kw
+    )
     return provider.send(message, provider.ConfigModel())
 
 
@@ -89,7 +97,9 @@ def test_credentials_are_never_sent_without_encryption(monkeypatch):
 
 def test_message_shape(serve):
     server = serve("plain")
-    result = send(to=["a@example.com", "b@example.com"], reply_to="user@example.com", tags=["feedback.created"])
+    result = send(
+        to=["a@example.com", "b@example.com"], reply_to="user@example.com", tags=["feedback.created"]
+    )
     assert result.status == "sent" and result.message_id and result.message_id.startswith("<")
     assert len(server.messages) == 2  # one per recipient: they never see each other
     first = parsed(server.messages[0])
@@ -135,10 +145,17 @@ def test_untrusted_certificate_is_refused(serve):
 
 
 def test_auth_success_and_failure(serve):
-    server = serve("starttls", credentials=("mailer", "s3cret-pass"), smtp_username="mailer", smtp_password="s3cret-pass")
+    server = serve(
+        "starttls", credentials=("mailer", "s3cret-pass"), smtp_username="mailer", smtp_password="s3cret-pass"
+    )
     assert send().status == "sent" and server.auth_attempts == [("mailer", "s3cret-pass")]
 
-    bad = serve("starttls", credentials=("mailer", "s3cret-pass"), smtp_username="mailer", smtp_password="wrong-pass-123")
+    bad = serve(
+        "starttls",
+        credentials=("mailer", "s3cret-pass"),
+        smtp_username="mailer",
+        smtp_password="wrong-pass-123",
+    )
     result = send()
     assert result.status == "failed" and "535" in result.error
     assert "wrong-pass-123" not in result.error and "s3cret-pass" not in result.error
@@ -236,7 +253,11 @@ def test_smtp_secrets_never_appear_in_responses(client, db, admin, serve):
     serve("plain", credentials=None, smtp_password="PASSWORD-SHOULD-NOT-LEAK")
     site, h = admin
     channel = make_channel(db, site, provider="smtp")
-    for path in ("/notifications/providers", f"/sites/{site.id}/notifications", f"/sites/{site.id}/notifications/deliveries"):
+    for path in (
+        "/notifications/providers",
+        f"/sites/{site.id}/notifications",
+        f"/sites/{site.id}/notifications/deliveries",
+    ):
         assert "PASSWORD-SHOULD-NOT-LEAK" not in client.get(path, headers=h).text
     client.post(url(site, f"/{channel.id}/test"), headers=h)
     assert "PASSWORD-SHOULD-NOT-LEAK" not in client.get(url(site, "/deliveries"), headers=h).text
@@ -253,7 +274,10 @@ def test_password_reset_can_use_smtp(client, db, serve, monkeypatch):
     assert client.post("/auth/password-reset/request", json={"email": "a@example.com"}).status_code == 202
     [received] = server.messages
     assert received.rcpt == ["a@example.com"] and received.tls
-    assert "https://admin.example.com/reset-password#token=" in parsed(received).get_body(("plain",)).get_content()
+    assert (
+        "https://admin.example.com/reset-password#token="
+        in parsed(received).get_body(("plain",)).get_content()
+    )
 
 
 def test_classification_of_smtp_errors():

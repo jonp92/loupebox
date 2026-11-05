@@ -36,8 +36,19 @@ def url(site, qs=""):
 
 @pytest.mark.parametrize(
     "value,expected",
-    [("=1+1", "'=1+1"), ("+44 20", "'+44 20"), ("-2", "'-2"), ("@SUM(A1)", "'@SUM(A1)"), ("\tx", "'\tx"),
-     ("\rx", "'\rx"), ("safe", "safe"), ("a=b", "a=b"), ("", ""), (5, 5), (None, None)],
+    [
+        ("=1+1", "'=1+1"),
+        ("+44 20", "'+44 20"),
+        ("-2", "'-2"),
+        ("@SUM(A1)", "'@SUM(A1)"),
+        ("\tx", "'\tx"),
+        ("\rx", "'\rx"),
+        ("safe", "safe"),
+        ("a=b", "a=b"),
+        ("", ""),
+        (5, 5),
+        (None, None),
+    ],
 )
 def test_formula_neutralising(value, expected):
     assert csv_cell(value) == expected
@@ -45,8 +56,16 @@ def test_formula_neutralising(value, expected):
 
 def test_export_contents_and_headers(client, db, viewer):
     site, h = viewer
-    seed(db, site, message='He said "hi",\nthen left', name="Zoë", email="z@example.com", rating=5,
-         page_url="https://shop.example.com/p?a=1", meta={"k": "v"})
+    seed(
+        db,
+        site,
+        message='He said "hi",\nthen left',
+        name="Zoë",
+        email="z@example.com",
+        rating=5,
+        page_url="https://shop.example.com/p?a=1",
+        meta={"k": "v"},
+    )
     r = client.get(url(site), headers=h)
     assert r.status_code == 200
     assert r.headers["content-type"].startswith("text/csv")
@@ -61,7 +80,7 @@ def test_export_contents_and_headers(client, db, viewer):
 
 def test_untrusted_text_cannot_become_a_formula(client, db, viewer):
     site, h = viewer
-    seed(db, site, message="=HYPERLINK(\"http://evil\",\"x\")", name="+cmd|' /C calc'!A0", email="@evil.com")
+    seed(db, site, message='=HYPERLINK("http://evil","x")', name="+cmd|' /C calc'!A0", email="@evil.com")
     [row] = parse(client.get(url(site), headers=h))
     for col in ("message", "name", "email"):
         assert row[col].startswith("'"), col
@@ -120,7 +139,17 @@ def test_export_is_audited_without_contents(client, db, viewer):
     seed(db, site, message="secret words", email="p@example.com")
     client.get(url(site, "?q=secret"), headers=h)
     ev = db.scalars(select(AuditEvent).where(AuditEvent.action == "feedback.export")).one()
-    assert ev.details == {"rows": 1, "status": None, "search": True, "issue_type": None,
-                          "rating": None, "has_email": None, "from": "", "to": "", "assignee": None, "tag": None}
+    assert ev.details == {
+        "rows": 1,
+        "status": None,
+        "search": True,
+        "issue_type": None,
+        "rating": None,
+        "has_email": None,
+        "from": "",
+        "to": "",
+        "assignee": None,
+        "tag": None,
+    }
     assert "secret" not in ev.summary and "secret" not in str(ev.details)
     assert ev.actor_email == "v@example.com"

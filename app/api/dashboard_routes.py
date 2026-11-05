@@ -40,28 +40,54 @@ def dashboard(
     site_ids = [s.id for s, _ in rows]
     unread = [Feedback.site_id.in_(site_ids), Feedback.status == FeedbackStatus.new]
 
-    per_site = dict(
-        db.execute(select(Feedback.site_id, func.count()).where(*unread).group_by(Feedback.site_id)).all()
-    ) if site_ids else {}
-    new_24h = db.scalar(
-        select(func.count()).select_from(Feedback).where(*unread, Feedback.created_at > utcnow() - timedelta(hours=24))
-    ) if site_ids else 0
-    recent = db.execute(
-        select(Feedback, Site.name)
-        .join(Site, Site.id == Feedback.site_id)
-        .where(*unread)
-        .order_by(Feedback.created_at.desc())
-        .limit(limit)
-    ).all() if site_ids else []
+    per_site = (
+        dict(
+            db.execute(select(Feedback.site_id, func.count()).where(*unread).group_by(Feedback.site_id)).all()
+        )
+        if site_ids
+        else {}
+    )
+    new_24h = (
+        db.scalar(
+            select(func.count())
+            .select_from(Feedback)
+            .where(*unread, Feedback.created_at > utcnow() - timedelta(hours=24))
+        )
+        if site_ids
+        else 0
+    )
+    recent = (
+        db.execute(
+            select(Feedback, Site.name)
+            .join(Site, Site.id == Feedback.site_id)
+            .where(*unread)
+            .order_by(Feedback.created_at.desc())
+            .limit(limit)
+        ).all()
+        if site_ids
+        else []
+    )
 
     # Open items (not archived or spam) the caller has been assigned, on sites they can still see.
-    mine = [Feedback.site_id.in_(site_ids), Feedback.assignee_id == user.id,
-            Feedback.status.in_([FeedbackStatus.new, FeedbackStatus.read])]
-    assigned_total = (db.scalar(select(func.count()).select_from(Feedback).where(*mine)) or 0) if site_ids else 0
-    assigned = db.execute(
-        select(Feedback, Site.name).join(Site, Site.id == Feedback.site_id).where(*mine)
-        .order_by(Feedback.created_at.desc()).limit(limit)
-    ).all() if assigned_total else []
+    mine = [
+        Feedback.site_id.in_(site_ids),
+        Feedback.assignee_id == user.id,
+        Feedback.status.in_([FeedbackStatus.new, FeedbackStatus.read]),
+    ]
+    assigned_total = (
+        (db.scalar(select(func.count()).select_from(Feedback).where(*mine)) or 0) if site_ids else 0
+    )
+    assigned = (
+        db.execute(
+            select(Feedback, Site.name)
+            .join(Site, Site.id == Feedback.site_id)
+            .where(*mine)
+            .order_by(Feedback.created_at.desc())
+            .limit(limit)
+        ).all()
+        if assigned_total
+        else []
+    )
 
     sites = []
     for site, role in rows:

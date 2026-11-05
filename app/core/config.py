@@ -16,7 +16,9 @@ class Settings(BaseSettings):
 
     app_name: str = "Loupebox"
     app_version: str = VERSION
-    app_description: str = "A self-hosted feedback inbox: collect, triage and answer feedback from your sites."
+    app_description: str = (
+        "A self-hosted feedback inbox: collect, triage and answer feedback from your sites."
+    )
 
     environment: str = "development"
     # Every route lives under this prefix, so a reverse proxy can send /v1/api/* to the API
@@ -97,7 +99,9 @@ class Settings(BaseSettings):
     webhook_encryption_key: str = ""  # webhook signing secrets
     totp_issuer: str = "Loupebox"
     mfa_token_minutes: int = 5  # how long the password step stays valid while the code is entered
-    mfa_hourly_limit: int = 20  # second-factor attempts per user per hour (the per-minute cap is login_account_limit)
+    mfa_hourly_limit: int = (
+        20  # second-factor attempts per user per hour (the per-minute cap is login_account_limit)
+    )
 
     # Self-service password reset. It is offered only when PUBLIC_URL and a mail provider are configured.
     password_reset_minutes: int = 30  # how long an emailed link works
