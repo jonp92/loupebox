@@ -40,6 +40,8 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - run: ruff check .
         if: matrix.db == 'sqlite'
+      - run: ruff format --check .
+        if: matrix.db == 'sqlite'
       - run: pytest -q
         if: matrix.db == 'sqlite'
       # The suite drops all tables in TEST_DATABASE_URL: this is the job's own throwaway service container.

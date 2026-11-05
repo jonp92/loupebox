@@ -21,6 +21,8 @@ export default function SiteDetail() {
   if (error) return <p className="error">{error}</p>;
   if (!site) return <p className="muted">Loading…</p>;
   const isAdmin = site.my_role === "admin";
+  // Absolute links: inside the sites/:siteId/* route, relative ones resolve against the full URL.
+  const base = `/sites/${site.id}`;
 
   return (
     <>
@@ -31,11 +33,11 @@ export default function SiteDetail() {
         {!site.is_active && <span className="badge warn">disabled</span>}
       </div>
       <ScrollTabs>
-        <NavLink to="" end>Feedback</NavLink>
-        <NavLink to="activity">Activity</NavLink>
-        {isAdmin && <NavLink to="settings">Settings</NavLink>}
-        {isAdmin && <NavLink to="members">Members</NavLink>}
-        {isAdmin && <NavLink to="notifications">Notifications</NavLink>}
+        <NavLink to={base} end>Feedback</NavLink>
+        <NavLink to={`${base}/activity`}>Activity</NavLink>
+        {isAdmin && <NavLink to={`${base}/settings`}>Settings</NavLink>}
+        {isAdmin && <NavLink to={`${base}/members`}>Members</NavLink>}
+        {isAdmin && <NavLink to={`${base}/notifications`}>Notifications</NavLink>}
       </ScrollTabs>
       <Routes>
         <Route index element={<FeedbackList site={site} />} />
@@ -44,7 +46,7 @@ export default function SiteDetail() {
         {isAdmin && <Route path="settings" element={<Settings site={site} onChange={setSite} />} />}
         {isAdmin && <Route path="members" element={<Members site={site} />} />}
         {isAdmin && <Route path="notifications" element={<Notifications site={site} />} />}
-        <Route path="*" element={<Navigate to="" replace />} />
+        <Route path="*" element={<Navigate to={base} replace />} />
       </Routes>
     </>
   );

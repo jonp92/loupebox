@@ -51,7 +51,9 @@ def test_setup_is_inert_until_confirmed(client, db):
     assert body["uri"].startswith("otpauth://totp/") and body["secret"] in body["uri"]
     assert client.get("/auth/me", headers=h).json()["totp_enabled"] is False
     # Login still works with the password alone.
-    assert "access_token" in client.post("/auth/login", json={"email": "a@example.com", "password": PW}).json()
+    assert (
+        "access_token" in client.post("/auth/login", json={"email": "a@example.com", "password": PW}).json()
+    )
     bad = client.post("/auth/me/totp/enable", headers=h, json={"code": "000000"})
     assert bad.status_code == 400
 
@@ -90,7 +92,9 @@ def test_mfa_token_is_not_an_access_token_and_vice_versa(client, db):
     uid = db.scalar(select(User.id))
     mfa = create_mfa_token(uid)
     assert client.get("/auth/me", headers={"Authorization": f"Bearer {mfa}"}).status_code == 401
-    r = client.post("/auth/login/totp", json={"mfa_token": create_access_token(uid), "code": _next_code(secret)})
+    r = client.post(
+        "/auth/login/totp", json={"mfa_token": create_access_token(uid), "code": _next_code(secret)}
+    )
     assert r.status_code == 401
     r = client.post("/auth/login/totp", json={"mfa_token": "junk", "code": _next_code(secret)})
     assert r.status_code == 401
@@ -128,7 +132,10 @@ def test_attempts_are_rate_limited(client, db):
     ]
     assert codes[-1] == 429
     # Even a correct code is refused while locked out.
-    assert client.post("/auth/login/totp", json={"mfa_token": mfa, "code": _next_code(secret)}).status_code == 429
+    assert (
+        client.post("/auth/login/totp", json={"mfa_token": mfa, "code": _next_code(secret)}).status_code
+        == 429
+    )
 
 
 def test_enable_signs_out_other_sessions(client, db):
@@ -146,7 +153,12 @@ def test_enable_signs_out_other_sessions(client, db):
 def test_disable_needs_password_and_code(client, db):
     h, secret, codes = _enroll(client, db)
     url = "/auth/me/totp/disable"
-    assert client.post(url, headers=h, json={"password": "wrong-password-1", "code": _next_code(secret)}).status_code == 400
+    assert (
+        client.post(
+            url, headers=h, json={"password": "wrong-password-1", "code": _next_code(secret)}
+        ).status_code
+        == 400
+    )
     assert client.post(url, headers=h, json={"password": PW, "code": "000000"}).status_code == 400
     assert client.get("/auth/me", headers=h).json()["totp_enabled"] is True
 
@@ -156,14 +168,21 @@ def test_disable_needs_password_and_code(client, db):
     me = client.get("/auth/me", headers=h).json()
     assert me["totp_enabled"] is False and me["recovery_codes_left"] == 0
     assert db.scalars(select(RecoveryCode)).all() == []
-    assert "access_token" in client.post("/auth/login", json={"email": "a@example.com", "password": PW}).json()
+    assert (
+        "access_token" in client.post("/auth/login", json={"email": "a@example.com", "password": PW}).json()
+    )
     assert db.scalars(select(AuditEvent).where(AuditEvent.action == "auth.totp_disable")).one()
 
 
 def test_regenerate_recovery_codes(client, db):
     h, secret, codes = _enroll(client, db)
     url = "/auth/me/totp/recovery-codes"
-    assert client.post(url, headers=h, json={"password": "wrong-password-1", "code": _next_code(secret)}).status_code == 400
+    assert (
+        client.post(
+            url, headers=h, json={"password": "wrong-password-1", "code": _next_code(secret)}
+        ).status_code
+        == 400
+    )
     r = client.post(url, headers=h, json={"password": PW, "code": _next_code(secret)})
     assert r.status_code == 200
     new = r.json()["recovery_codes"]
@@ -192,12 +211,18 @@ def test_superadmin_can_reset_totp(client, db):
     root = login(client, "root@example.com")
 
     users = {u["email"]: u for u in client.get("/users", headers=root).json()}
-    assert users["user@example.com"]["totp_enabled"] is True and users["root@example.com"]["totp_enabled"] is False
+    assert (
+        users["user@example.com"]["totp_enabled"] is True
+        and users["root@example.com"]["totp_enabled"] is False
+    )
 
     assert client.delete(f"/users/{victim}/totp", headers=root).json()["totp_enabled"] is False
     assert client.delete(f"/users/{victim}/totp", headers=root).status_code == 400  # already off
     assert all(r.revoked_at for r in db.scalars(select(RefreshToken).where(RefreshToken.user_id == victim)))
-    assert "access_token" in client.post("/auth/login", json={"email": "user@example.com", "password": PW}).json()
+    assert (
+        "access_token"
+        in client.post("/auth/login", json={"email": "user@example.com", "password": PW}).json()
+    )
     assert db.scalars(select(AuditEvent).where(AuditEvent.action == "user.totp_reset")).one()
 
 
@@ -214,7 +239,10 @@ def test_disabled_user_cannot_finish_login(client, db):
     mfa = create_mfa_token(user.id)
     user.is_active = False
     db.commit()
-    assert client.post("/auth/login/totp", json={"mfa_token": mfa, "code": _next_code(secret)}).status_code == 401
+    assert (
+        client.post("/auth/login/totp", json={"mfa_token": mfa, "code": _next_code(secret)}).status_code
+        == 401
+    )
 
 
 def test_login_lockout_does_not_block_managing_totp(client, db):

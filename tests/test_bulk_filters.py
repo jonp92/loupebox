@@ -78,7 +78,14 @@ def test_bulk_skips_other_sites_and_unknown_ids(client, db):
     site, other = make_site(db), make_site(db, "Other")
     h = as_role(client, db, site, Role.editor)
     mine, theirs = seed(db, site), seed(db, other)
-    r = bulk(client, site, h, ids=[str(mine.id), str(theirs.id), str(uuid.uuid4())], action="set_status", status="read")
+    r = bulk(
+        client,
+        site,
+        h,
+        ids=[str(mine.id), str(theirs.id), str(uuid.uuid4())],
+        action="set_status",
+        status="read",
+    )
     assert r.json() == {"affected": 1, "skipped": 2}
     db.expire_all()
     assert theirs.status == FeedbackStatus.new
@@ -115,4 +122,6 @@ def test_bulk_validation(client, db, monkeypatch):
     assert bulk(client, site, h, ids=[one], action="delete", status="read").status_code == 422
     assert bulk(client, site, h, ids=[one], action="explode").status_code == 422
     monkeypatch.setattr(settings, "bulk_max_ids", 2)
-    assert bulk(client, site, h, ids=[str(uuid.uuid4()) for _ in range(3)], action="delete").status_code == 422
+    assert (
+        bulk(client, site, h, ids=[str(uuid.uuid4()) for _ in range(3)], action="delete").status_code == 422
+    )

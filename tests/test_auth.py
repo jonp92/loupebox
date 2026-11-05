@@ -27,7 +27,9 @@ def test_requires_token(client):
 def test_login_brute_force_limited(client, db):
     make_user(db, "a@example.com")
     body = {"email": "a@example.com", "password": "wrong-password-1"}
-    codes = [client.post("/auth/login", json=body).status_code for _ in range(settings.login_account_limit + 1)]
+    codes = [
+        client.post("/auth/login", json=body).status_code for _ in range(settings.login_account_limit + 1)
+    ]
     assert codes[-1] == 429
     # Correct password is also blocked while locked out.
     assert client.post("/auth/login", json={**body, "password": "correct-horse-battery"}).status_code == 429

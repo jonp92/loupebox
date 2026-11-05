@@ -12,7 +12,8 @@ PUBLIC_PATHS = {f"{settings.api_prefix}/feedback", f"{settings.api_prefix}/feedb
 class DynamicCORSMiddleware(BaseHTTPMiddleware):
     """Two CORS policies:
 
-    * POST {api_prefix}/feedback and /feedback/challenge (public ingest): any origin registered on an active site; no credentials.
+    * POST {api_prefix}/feedback and /feedback/challenge (public ingest): any origin registered on an
+      active site; no credentials.
     * everything else (admin API): only `settings.admin_origins`; credentials allowed for the
       refresh cookie.
     """
@@ -75,9 +76,7 @@ class BodySizeLimitMiddleware:
         length = dict(scope["headers"]).get(b"content-length")
         if length is not None:
             if not length.isdigit():
-                await JSONResponse({"detail": "Bad Content-Length"}, status_code=400)(
-                    scope, receive, send
-                )
+                await JSONResponse({"detail": "Bad Content-Length"}, status_code=400)(scope, receive, send)
                 return
             if int(length) > max_bytes:
                 await too_large(scope, receive, send)

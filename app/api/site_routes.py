@@ -29,12 +29,21 @@ _SITE_FIELDS = ("name", "allowed_origins", "is_active", "daily_limit", "challeng
 
 
 def _profile(u: User) -> dict:
-    return {"email": u.email, "first_name": u.first_name, "last_name": u.last_name, "avatar_url": u.avatar_url}
+    return {
+        "email": u.email,
+        "first_name": u.first_name,
+        "last_name": u.last_name,
+        "avatar_url": u.avatar_url,
+    }
 
 
 def _unassign(db: Session, site: Site, user_id: uuid.UUID) -> None:
     """Only editors and admins can hold assignments, so losing that access clears them."""
-    db.execute(update(Feedback).where(Feedback.site_id == site.id, Feedback.assignee_id == user_id).values(assignee_id=None))
+    db.execute(
+        update(Feedback)
+        .where(Feedback.site_id == site.id, Feedback.assignee_id == user_id)
+        .values(assignee_id=None)
+    )
 
 
 def _out(site: Site, role: Role | None) -> SiteOut:
@@ -69,7 +78,13 @@ def create_site(
     )
     db.add(site)
     audit(
-        db, actor, "site.create", f"Created site {site.name}", target_type="site", target_id=site.id, site=site,
+        db,
+        actor,
+        "site.create",
+        f"Created site {site.name}",
+        target_type="site",
+        target_id=site.id,
+        site=site,
         details={"name": site.name, "allowed_origins": site.allowed_origins, "daily_limit": site.daily_limit},
     )
     db.commit()
@@ -99,7 +114,7 @@ def _apply_challenge(site: Site, mode: str | None, config: dict | None) -> None:
     try:
         site.challenge_config = verifier.ConfigModel.model_validate(config).model_dump()
     except ValidationError as e:
-        raise HTTPException(422, e.errors(include_url=False, include_context=False)[0]["msg"])
+        raise HTTPException(422, e.errors(include_url=False, include_context=False)[0]["msg"]) from None
     site.challenge_mode = mode
 
 
@@ -119,8 +134,14 @@ def update_site(
     diff = changed(before, access.site)
     if diff:
         audit(
-            db, access.user, "site.update", f"Updated settings of {access.site.name}: {', '.join(diff)}",
-            target_type="site", target_id=access.site.id, site=access.site, details=diff,
+            db,
+            access.user,
+            "site.update",
+            f"Updated settings of {access.site.name}: {', '.join(diff)}",
+            target_type="site",
+            target_id=access.site.id,
+            site=access.site,
+            details=diff,
         )
     db.commit()
     public_origins.invalidate()
@@ -143,8 +164,13 @@ def rotate_key(
     """Issue a new public key; the old one stops working immediately."""
     access.site.public_key = new_public_key()
     audit(  # never the key itself
-        db, access.user, "site.rotate_key", f"Rotated the API key of {access.site.name}",
-        target_type="site", target_id=access.site.id, site=access.site,
+        db,
+        access.user,
+        "site.rotate_key",
+        f"Rotated the API key of {access.site.name}",
+        target_type="site",
+        target_id=access.site.id,
+        site=access.site,
     )
     db.commit()
     return _out(access.site, access.role)
@@ -157,7 +183,15 @@ def delete_site(
     site = db.get(Site, site_id)
     if site is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Site not found")
-    audit(db, actor, "site.delete", f"Deleted site {site.name}", target_type="site", target_id=site.id, site=site)
+    audit(
+        db,
+        actor,
+        "site.delete",
+        f"Deleted site {site.name}",
+        target_type="site",
+        target_id=site.id,
+        site=site,
+    )
     db.delete(site)
     db.commit()
     public_origins.invalidate()
@@ -211,21 +245,29 @@ def upsert_member(
     if user is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No user with that email")
     membership = db.scalar(
-        select(Membership).where(
-            Membership.user_id == user.id, Membership.site_id == access.site.id
-        )
+        select(Membership).where(Membership.user_id == user.id, Membership.site_id == access.site.id)
     )
     if membership is None:
         db.add(Membership(user_id=user.id, site_id=access.site.id, role=body.role))
         audit(
-            db, access.user, "member.add", f"Added {user.email} to {access.site.name} as {body.role.value}",
-            target_type="user", target_id=user.id, site=access.site, details={"email": user.email, "role": body.role.value},
+            db,
+            access.user,
+            "member.add",
+            f"Added {user.email} to {access.site.name} as {body.role.value}",
+            target_type="user",
+            target_id=user.id,
+            site=access.site,
+            details={"email": user.email, "role": body.role.value},
         )
     elif membership.role != body.role:
         audit(
-            db, access.user, "member.role_change",
+            db,
+            access.user,
+            "member.role_change",
             f"Changed {user.email} on {access.site.name} from {membership.role.value} to {body.role.value}",
-            target_type="user", target_id=user.id, site=access.site,
+            target_type="user",
+            target_id=user.id,
+            site=access.site,
             details={"email": user.email, "role": {"from": membership.role.value, "to": body.role.value}},
         )
         membership.role = body.role
@@ -242,17 +284,21 @@ def remove_member(
     db: Session = Depends(get_db),
 ) -> None:
     membership = db.scalar(
-        select(Membership).where(
-            Membership.user_id == user_id, Membership.site_id == access.site.id
-        )
+        select(Membership).where(Membership.user_id == user_id, Membership.site_id == access.site.id)
     )
     if membership is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Member not found")
     removed = db.get(User, user_id)
     email = removed.email if removed else str(user_id)
     audit(
-        db, access.user, "member.remove", f"Removed {email} from {access.site.name}",
-        target_type="user", target_id=user_id, site=access.site, details={"email": email, "role": membership.role.value},
+        db,
+        access.user,
+        "member.remove",
+        f"Removed {email} from {access.site.name}",
+        target_type="user",
+        target_id=user_id,
+        site=access.site,
+        details={"email": email, "role": membership.role.value},
     )
     _unassign(db, access.site, user_id)
     db.delete(membership)

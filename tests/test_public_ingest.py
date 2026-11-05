@@ -29,7 +29,10 @@ def test_rejects_missing_or_unknown_key(client, db):
 
 def test_rejects_wrong_or_missing_origin(client, db):
     make_site(db)
-    assert post(client, headers={"X-API-Key": "pk_test_Shop", "Origin": "https://evil.example"}).status_code == 403
+    assert (
+        post(client, headers={"X-API-Key": "pk_test_Shop", "Origin": "https://evil.example"}).status_code
+        == 403
+    )
     assert post(client, headers={"X-API-Key": "pk_test_Shop"}).status_code == 403
 
 

@@ -74,9 +74,7 @@ def login(
     ip = client_ip(request)
     email = body.email.lower()
     enforce(f"login-ip:{ip}", settings.login_ip_limit, settings.login_window_seconds)
-    enforce(
-        f"login-acct:{ip}:{email}", settings.login_account_limit, settings.login_window_seconds
-    )
+    enforce(f"login-acct:{ip}:{email}", settings.login_account_limit, settings.login_window_seconds)
 
     user = db.scalar(select(User).where(User.email == email))
     ok = verify_password(body.password, user.password_hash if user else None)
@@ -95,11 +93,14 @@ def _enforce_mfa_limits(user: User, scope: str) -> None:
 
 
 def _recovery_codes_left(db: Session, user: User) -> int:
-    return db.scalar(
-        select(func.count()).select_from(RecoveryCode).where(
-            RecoveryCode.user_id == user.id, RecoveryCode.used_at.is_(None)
+    return (
+        db.scalar(
+            select(func.count())
+            .select_from(RecoveryCode)
+            .where(RecoveryCode.user_id == user.id, RecoveryCode.used_at.is_(None))
         )
-    ) or 0
+        or 0
+    )
 
 
 def _check_second_factor(db: Session, user: User, code: str) -> str | None:
@@ -152,8 +153,12 @@ def login_totp(
         raise invalid
     if used == "recovery":
         audit(  # the account lost its authenticator or someone has a leaked code: worth a trail
-            db, user, "auth.recovery_code_used", "Signed in with a recovery code",
-            target_type="user", target_id=user.id,
+            db,
+            user,
+            "auth.recovery_code_used",
+            "Signed in with a recovery code",
+            target_type="user",
+            target_id=user.id,
             details={"remaining": _recovery_codes_left(db, user)},
         )
     return _issue(db, user, response)
@@ -262,8 +267,13 @@ def change_password(
     # Sign out every other session; this one continues with a fresh refresh token.
     _revoke_sessions(db, user)
     audit(  # self-service, but a password change is what an account takeover looks like
-        db, user, "auth.password_change", "Changed their own password",
-        target_type="user", target_id=user.id, details={"password": "changed"},
+        db,
+        user,
+        "auth.password_change",
+        "Changed their own password",
+        target_type="user",
+        target_id=user.id,
+        details={"password": "changed"},
     )
     return _issue(db, user, response)
 
@@ -317,8 +327,14 @@ def totp_enable(
     user.totp_last_step = step
     codes = _store_recovery_codes(db, user)
     _revoke_sessions(db, user)
-    audit(db, user, "auth.totp_enable", "Turned on two-factor authentication",
-          target_type="user", target_id=user.id)
+    audit(
+        db,
+        user,
+        "auth.totp_enable",
+        "Turned on two-factor authentication",
+        target_type="user",
+        target_id=user.id,
+    )
     token = _issue(db, user, response)
     return TotpEnabled(access_token=token.access_token, recovery_codes=codes)
 
@@ -336,8 +352,14 @@ def totp_disable(
     user.totp_secret = user.totp_enabled_at = user.totp_last_step = None
     db.execute(delete(RecoveryCode).where(RecoveryCode.user_id == user.id))
     _revoke_sessions(db, user)
-    audit(db, user, "auth.totp_disable", "Turned off two-factor authentication",
-          target_type="user", target_id=user.id)
+    audit(
+        db,
+        user,
+        "auth.totp_disable",
+        "Turned off two-factor authentication",
+        target_type="user",
+        target_id=user.id,
+    )
     return _issue(db, user, response)
 
 
@@ -350,7 +372,8 @@ def totp_new_recovery_codes(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "TOTP is not enabled")
     _require_proof(db, user, body)
     codes = _store_recovery_codes(db, user)
-    audit(db, user, "auth.recovery_codes", "Generated new recovery codes",
-          target_type="user", target_id=user.id)
+    audit(
+        db, user, "auth.recovery_codes", "Generated new recovery codes", target_type="user", target_id=user.id
+    )
     db.commit()
     return RecoveryCodes(recovery_codes=codes)

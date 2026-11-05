@@ -98,9 +98,7 @@ def confirm_reset(
 ) -> dict[str, str]:
     enforce(f"pw-reset-confirm:{client_ip(request)}", settings.login_ip_limit, settings.login_window_seconds)
     invalid = HTTPException(status.HTTP_400_BAD_REQUEST, "This reset link is invalid or has expired")
-    row = db.scalar(
-        select(PasswordResetToken).where(PasswordResetToken.token_hash == hash_token(body.token))
-    )
+    row = db.scalar(select(PasswordResetToken).where(PasswordResetToken.token_hash == hash_token(body.token)))
     now = datetime.now(UTC)
     if row is None or row.used_at is not None:
         raise invalid
@@ -121,8 +119,13 @@ def confirm_reset(
         .values(revoked_at=now)
     )
     audit(
-        db, user, "auth.password_reset", "Reset their password with an emailed link",
-        target_type="user", target_id=user.id, details={"password": "changed"},
+        db,
+        user,
+        "auth.password_reset",
+        "Reset their password with an emailed link",
+        target_type="user",
+        target_id=user.id,
+        details={"password": "changed"},
     )
     db.commit()
     background.add_task(_send_changed_email, user.email)

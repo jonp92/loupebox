@@ -46,6 +46,7 @@ Python:
 ```python
 import base64, hashlib, hmac, time
 
+
 def verify(secret: str, headers: dict, body: bytes, tolerance: int = 300) -> None:
     msg_id, ts = headers["webhook-id"], headers["webhook-timestamp"]
     if abs(time.time() - int(ts)) > tolerance:

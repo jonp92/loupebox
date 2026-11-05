@@ -66,7 +66,10 @@ def test_rotate_key_invalidates_old(client, db):
     new_key = client.post(f"/sites/{site.id}/rotate-key", headers=root).json()["public_key"]
     old = {"X-API-Key": "pk_test_Shop", "Origin": SITE_ORIGIN}
     assert client.post("/feedback", json={"message": "x"}, headers=old).status_code == 403
-    assert client.post("/feedback", json={"message": "x"}, headers={**old, "X-API-Key": new_key}).status_code == 201
+    assert (
+        client.post("/feedback", json={"message": "x"}, headers={**old, "X-API-Key": new_key}).status_code
+        == 201
+    )
 
 
 def test_origin_change_takes_effect_for_cors(client, db):
@@ -84,7 +87,9 @@ def test_membership_management(client, db):
     make_user(db, "root@example.com", superadmin=True)
     make_user(db, "u@example.com")
     root = login(client, "root@example.com")
-    r = client.put(f"/sites/{site.id}/members", json={"email": "U@example.com", "role": "editor"}, headers=root)
+    r = client.put(
+        f"/sites/{site.id}/members", json={"email": "U@example.com", "role": "editor"}, headers=root
+    )
     assert r.status_code == 200
     members = client.get(f"/sites/{site.id}/members", headers=root).json()
     assert [(m["email"], m["role"]) for m in members] == [("u@example.com", "editor")]
@@ -95,10 +100,14 @@ def test_spam_hidden_by_default_and_search(client, db):
     site = make_site(db)
     make_user(db, "root@example.com", superadmin=True)
     root = login(client, "root@example.com")
-    db.add_all([
-        Feedback(site_id=site.id, message="50% off", content_hash="1", ip_hash="i", meta={}, status="spam"),
-        Feedback(site_id=site.id, message="great app", content_hash="2", ip_hash="i", meta={}),
-    ])
+    db.add_all(
+        [
+            Feedback(
+                site_id=site.id, message="50% off", content_hash="1", ip_hash="i", meta={}, status="spam"
+            ),
+            Feedback(site_id=site.id, message="great app", content_hash="2", ip_hash="i", meta={}),
+        ]
+    )
     db.commit()
     base = f"/sites/{site.id}/feedback"
     assert client.get(base, headers=root).json()["total"] == 1
@@ -140,5 +149,8 @@ def test_superadmin_can_promote_and_demote_others_but_not_self(client, db):
 
     r = client.patch(f"/users/{other.id}", json={"is_superadmin": True}, headers=h)
     assert r.status_code == 200 and r.json()["is_superadmin"] is True
-    assert client.patch(f"/users/{other.id}", json={"is_superadmin": False}, headers=h).json()["is_superadmin"] is False
+    assert (
+        client.patch(f"/users/{other.id}", json={"is_superadmin": False}, headers=h).json()["is_superadmin"]
+        is False
+    )
     assert client.patch(f"/users/{root.id}", json={"is_superadmin": False}, headers=h).status_code == 400

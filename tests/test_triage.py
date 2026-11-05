@@ -37,7 +37,17 @@ def test_status_only_patch_still_works(client, db, setup):
     assert r.status_code == 200 and r.json()["status"] == "read" and r.json()["tags"] == []
 
 
-@pytest.mark.parametrize("body", [{}, {"status": None}, {"tags": None}, {"nope": 1}, {"tags": ["bad tag!"]}, {"tags": [str(n) for n in range(11)]}])
+@pytest.mark.parametrize(
+    "body",
+    [
+        {},
+        {"status": None},
+        {"tags": None},
+        {"nope": 1},
+        {"tags": ["bad tag!"]},
+        {"tags": [str(n) for n in range(11)]},
+    ],
+)
 def test_bad_patch_rejected(client, setup, body):
     site, h, item = setup
     assert patch(client, site, item, h, **body).status_code == 422
@@ -91,7 +101,10 @@ def test_filter_by_tag_and_assignee(client, db, setup):
     assert client.get(f"/sites/{site.id}/feedback?assignee=zzz", headers=h).status_code == 422
     tags = client.get(f"/sites/{site.id}/feedback/tags", headers=h).json()
     assert {t["tag"]: t["count"] for t in tags} == {"bug": 1, "idea": 1}
-    assert [a["email"] for a in client.get(f"/sites/{site.id}/feedback/assignees", headers=h).json()] == ["ed@example.com", "me@example.com"]
+    assert [a["email"] for a in client.get(f"/sites/{site.id}/feedback/assignees", headers=h).json()] == [
+        "ed@example.com",
+        "me@example.com",
+    ]
 
 
 def test_tags_do_not_leak_across_sites(client, db, setup):
@@ -122,11 +135,17 @@ def test_bulk_assign_and_tags(client, db, setup):
     assert {"feedback.bulk_assign", "feedback.add_tag", "feedback.remove_tag"} <= actions
 
 
-@pytest.mark.parametrize("body", [
-    {"action": "add_tag"}, {"action": "add_tag", "tag": "a", "status": "read"},
-    {"action": "set_status", "status": "read", "tag": "a"}, {"action": "delete", "tag": "a"},
-    {"action": "assign", "tag": "a"}, {"action": "add_tag", "tag": "bad!"},
-])
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"action": "add_tag"},
+        {"action": "add_tag", "tag": "a", "status": "read"},
+        {"action": "set_status", "status": "read", "tag": "a"},
+        {"action": "delete", "tag": "a"},
+        {"action": "assign", "tag": "a"},
+        {"action": "add_tag", "tag": "bad!"},
+    ],
+)
 def test_bulk_arguments_must_match_action(client, setup, body):
     site, h, item = setup
     assert bulk(client, site, h, ids=[str(item.id)], **body).status_code == 422
@@ -134,7 +153,12 @@ def test_bulk_arguments_must_match_action(client, setup, body):
 
 def test_bulk_assign_checks_assignee_and_tag_limit(client, db, setup):
     site, h, item = setup
-    assert bulk(client, site, h, ids=[str(item.id)], action="assign", assignee_id=user_id(db, "o@example.com")).status_code == 422
+    assert (
+        bulk(
+            client, site, h, ids=[str(item.id)], action="assign", assignee_id=user_id(db, "o@example.com")
+        ).status_code
+        == 422
+    )
     patch(client, site, item, h, tags=[f"t{n}" for n in range(10)])
     assert bulk(client, site, h, ids=[str(item.id)], action="add_tag", tag="one-more").status_code == 422
 
@@ -145,7 +169,9 @@ def test_notes_lifecycle_and_permissions(client, db, setup):
     assert r.status_code == 201 and r.json()["body"] == "looks like a dupe"
     note = r.json()["id"]
     assert client.post(url(site, item, "/notes"), headers=h, json={"body": "  "}).status_code == 422
-    assert [n["body"] for n in client.get(url(site, item, "/notes"), headers=h).json()] == ["looks like a dupe"]
+    assert [n["body"] for n in client.get(url(site, item, "/notes"), headers=h).json()] == [
+        "looks like a dupe"
+    ]
     # another editor cannot delete it, an admin can
     h2 = as_role(client, db, site, Role.editor, "ed2@example.com")
     assert client.delete(url(site, item, f"/notes/{note}"), headers=h2).status_code == 403
@@ -179,12 +205,19 @@ def test_removing_member_or_demoting_clears_assignments(client, db, setup):
     admin_h = as_role(client, db, site, Role.admin, "adm@example.com")
     me = _member(db, site, "me@example.com", Role.editor)
     patch(client, site, item, h, assignee_id=me)
-    r = client.put(f"/sites/{site.id}/members", headers=admin_h, json={"email": "me@example.com", "role": "viewer"})
+    r = client.put(
+        f"/sites/{site.id}/members", headers=admin_h, json={"email": "me@example.com", "role": "viewer"}
+    )
     assert r.status_code == 200
     db.expire_all()
     assert item.assignee_id is None
     patch(client, site, item, h, assignee_id=_member(db, site, "me2@example.com", Role.editor))
-    assert client.delete(f"/sites/{site.id}/members/{_user_id_by(db, 'me2@example.com')}", headers=admin_h).status_code == 204
+    assert (
+        client.delete(
+            f"/sites/{site.id}/members/{_user_id_by(db, 'me2@example.com')}", headers=admin_h
+        ).status_code
+        == 204
+    )
     db.expire_all()
     assert item.assignee_id is None
 
@@ -199,14 +232,20 @@ def test_deleting_feedback_removes_its_tags_and_notes(client, db, setup):
     client.post(url(site, item, "/notes"), headers=h, json={"body": "n"})
     admin_h = as_role(client, db, site, Role.admin, "adm@example.com")
     assert client.delete(url(site, item), headers=admin_h).status_code == 204
-    assert db.scalar(select(FeedbackTag)) is None  # notes go via the database's cascade (not enforced on SQLite)
+    assert (
+        db.scalar(select(FeedbackTag)) is None
+    )  # notes go via the database's cascade (not enforced on SQLite)
 
 
 def test_export_has_tags_and_assignee(client, db, setup):
     site, h, item = setup
     me = _member(db, site, "me@example.com", Role.editor)
     patch(client, site, item, h, tags=["b", "a"], assignee_id=me)
-    lines = client.get(f"/sites/{site.id}/feedback/export.csv", headers=h).content.decode("utf-8-sig").splitlines()
+    lines = (
+        client.get(f"/sites/{site.id}/feedback/export.csv", headers=h)
+        .content.decode("utf-8-sig")
+        .splitlines()
+    )
     assert lines[0].endswith(",tags,assignee") and lines[1].endswith(",a b,me@example.com")
 
 
@@ -216,7 +255,10 @@ def test_note_count_in_list_and_detail(client, db, setup):
     for body in ("one", "two"):
         client.post(url(site, item, "/notes"), headers=h, json={"body": body})
     assert client.get(url(site, item), headers=h).json()["note_count"] == 2
-    counts = {i["message"]: i["note_count"] for i in client.get(f"/sites/{site.id}/feedback", headers=h).json()["items"]}
+    counts = {
+        i["message"]: i["note_count"]
+        for i in client.get(f"/sites/{site.id}/feedback", headers=h).json()["items"]
+    }
     assert counts == {"hello": 2, "other": 0} and other
 
 

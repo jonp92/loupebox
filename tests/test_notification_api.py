@@ -98,7 +98,9 @@ def test_provider_list_reports_configuration_and_schema(client, admin, fake, mon
 
 def test_create_applies_defaults_and_normalizes(client, admin, fake):
     site, h = admin
-    r = client.post(url(site), json={**BODY, "extra_recipients": ["A@x.com", "a@X.com", "b@x.com"]}, headers=h)
+    r = client.post(
+        url(site), json={**BODY, "extra_recipients": ["A@x.com", "a@X.com", "b@x.com"]}, headers=h
+    )
     assert r.status_code == 201
     body = r.json()
     assert body["enabled"] is True and body["min_role"] == "admin"
@@ -247,8 +249,17 @@ def test_deliveries_newest_first_capped_and_without_payload(client, db, admin, f
     assert data[0]["channel_name"] == "ops" and data[0]["summary"] is False
     assert "private words" not in r.text and "who@example.com" not in r.text
     assert set(data[0]) == {
-        "id", "channel_id", "channel_name", "event_type", "status", "attempts", "summary",
-        "last_error", "created_at", "next_attempt_at", "sent_at",
+        "id",
+        "channel_id",
+        "channel_name",
+        "event_type",
+        "status",
+        "attempts",
+        "summary",
+        "last_error",
+        "created_at",
+        "next_attempt_at",
+        "sent_at",
     }
 
 
@@ -279,4 +290,9 @@ def test_server_secrets_never_appear_in_responses(client, db, admin, monkeypatch
         client.patch(url(site, f"/{cid}"), json={"name": "Mail2"}, headers=h),
     ]
     assert all("TOP-SECRET" not in r.text for r in responses)
-    assert client.post(url(site), json={"provider": "brevo", "name": "x", "config": {"api_key": "k"}}, headers=h).status_code == 422
+    assert (
+        client.post(
+            url(site), json={"provider": "brevo", "name": "x", "config": {"api_key": "k"}}, headers=h
+        ).status_code
+        == 422
+    )

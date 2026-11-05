@@ -55,7 +55,7 @@ def outline(text: str, weight: str, size: float, spacing: float, x: float, y: fl
     glyphs, order = tt.getGlyphSet(), tt.getGlyphOrder()
     scale = size / tt["head"].unitsPerEm
     pen = SVGPathPen(glyphs, ntos=lambda n: f"{n:.2f}".rstrip("0").rstrip("."))
-    for info, pos in zip(buf.glyph_infos, buf.glyph_positions):
+    for info, pos in zip(buf.glyph_infos, buf.glyph_positions, strict=True):
         gx, gy = x + pos.x_offset * scale, y - pos.y_offset * scale
         glyphs[order[info.codepoint]].draw(TransformPen(pen, (scale, 0, 0, -scale, gx, gy)))
         x += pos.x_advance * scale + spacing  # CSS letter-spacing follows every glyph, the last one too
@@ -70,7 +70,10 @@ def text_to_paths(el: ET.Element, inherited: dict) -> list[ET.Element]:
     spacing = float(spacing[:-2]) * size if spacing.endswith("em") else float(spacing)
     runs = [(el.text, attrs["font-weight"])]
     for span in el.findall(f"{{{SVG_NS}}}tspan"):
-        runs += [(span.text, span.get("font-weight", attrs["font-weight"])), (span.tail, attrs["font-weight"])]
+        runs += [
+            (span.text, span.get("font-weight", attrs["font-weight"])),
+            (span.tail, attrs["font-weight"]),
+        ]
     runs = [(t, w) for t, w in runs if t and t.strip()]
 
     def lay_out(x: float) -> tuple[list[str], float]:
@@ -106,7 +109,10 @@ def main() -> int:
         print("Needs fonttools and uharfbuzz: pip install fonttools uharfbuzz", file=sys.stderr)
         return 1
     if not shutil.which("fc-match"):
-        print("fc-match not found. Install fontconfig (brew install fontconfig / apt install fontconfig).", file=sys.stderr)
+        print(
+            "fc-match not found. Install fontconfig (brew install fontconfig / apt install fontconfig).",
+            file=sys.stderr,
+        )
         return 1
     ET.register_namespace("", SVG_NS)
     OUT.mkdir(exist_ok=True)

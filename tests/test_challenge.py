@@ -119,7 +119,11 @@ def test_challenge_endpoint_is_cors_enabled_for_site_origins(client, db):
     pow_site(db)
     r = client.options(
         "/feedback/challenge",
-        headers={"Origin": SITE_ORIGIN, "Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "x-api-key"},
+        headers={
+            "Origin": SITE_ORIGIN,
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "x-api-key",
+        },
     )
     assert r.status_code == 204 and r.headers["access-control-allow-origin"] == SITE_ORIGIN
     assert "access-control-allow-credentials" not in r.headers
@@ -127,7 +131,12 @@ def test_challenge_endpoint_is_cors_enabled_for_site_origins(client, db):
 
 def test_expired_replay_markers_are_purged(db):
     now = datetime.now(UTC)
-    db.add_all([UsedChallenge(id="old", expires_at=now - timedelta(minutes=1)), UsedChallenge(id="live", expires_at=now + timedelta(minutes=1))])
+    db.add_all(
+        [
+            UsedChallenge(id="old", expires_at=now - timedelta(minutes=1)),
+            UsedChallenge(id="live", expires_at=now + timedelta(minutes=1)),
+        ]
+    )
     db.commit()
     assert purge_expired(db, now) == 1
     assert [u.id for u in db.scalars(select(UsedChallenge))] == ["live"]
@@ -138,7 +147,13 @@ def test_registry_rejects_reserved_and_duplicate_keys():
 
     for key in ("off", "pow"):
         with pytest.raises(ValueError):
-            register_verifier(type("V", (ChallengeVerifier,), {"key": key, "label": "x", "issue": lambda *a: {}, "verify": lambda *a: True}))
+            register_verifier(
+                type(
+                    "V",
+                    (ChallengeVerifier,),
+                    {"key": key, "label": "x", "issue": lambda *a: {}, "verify": lambda *a: True},
+                )
+            )
 
 
 # --- admin settings -------------------------------------------------------------------------
@@ -157,8 +172,12 @@ def test_admin_enables_configures_and_disables_the_challenge(client, db):
 
     r = client.patch(url, json={"challenge_mode": "pow"}, headers=h).json()
     assert r["challenge_mode"] == "pow" and r["challenge_config"] == {"bits": 16}  # defaults filled in
-    assert client.patch(url, json={"challenge_config": {"bits": 10}}, headers=h).json()["challenge_config"] == {"bits": 10}
-    assert client.patch(url, json={"name": "Renamed"}, headers=h).json()["challenge_config"] == {"bits": 10}  # untouched
+    assert client.patch(url, json={"challenge_config": {"bits": 10}}, headers=h).json()[
+        "challenge_config"
+    ] == {"bits": 10}
+    assert client.patch(url, json={"name": "Renamed"}, headers=h).json()["challenge_config"] == {
+        "bits": 10
+    }  # untouched
     assert client.patch(url, json={"challenge_mode": "off"}, headers=h).json()["challenge_config"] == {}
 
 
@@ -167,8 +186,18 @@ def test_challenge_settings_are_validated_and_admin_only(client, db):
     h = admin_headers(client, db, site)
     url = f"/sites/{site.id}"
     assert client.patch(url, json={"challenge_mode": "captcha9000"}, headers=h).status_code == 422
-    assert client.patch(url, json={"challenge_mode": "pow", "challenge_config": {"bits": 99}}, headers=h).status_code == 422
-    assert client.patch(url, json={"challenge_mode": "pow", "challenge_config": {"bits": "x"}}, headers=h).status_code == 422
+    assert (
+        client.patch(
+            url, json={"challenge_mode": "pow", "challenge_config": {"bits": 99}}, headers=h
+        ).status_code
+        == 422
+    )
+    assert (
+        client.patch(
+            url, json={"challenge_mode": "pow", "challenge_config": {"bits": "x"}}, headers=h
+        ).status_code
+        == 422
+    )
     editor = admin_headers(client, db, site, Role.editor)
     assert client.patch(url, json={"challenge_mode": "pow"}, headers=editor).status_code == 403
     assert client.get(url, headers=h).json()["challenge_mode"] == "off"  # nothing half-applied

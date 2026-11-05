@@ -51,7 +51,12 @@ def build_message(row: NotificationOutbox, site: Site, recipients: list[str]) ->
 
     text = "\n".join([p.get("excerpt", ""), "", *(f"{k}: {v}" for k, v in facts)] + ([link] if link else []))
     rows = [
-        (k, f'<a class="lnk" href="{escape(v, quote=True)}" style="color:#007a94">{escape(v)}</a>' if k == "Page" and _safe_href(v) else escape(v))
+        (
+            k,
+            f'<a class="lnk" href="{escape(v, quote=True)}" style="color:#007a94">{escape(v)}</a>'
+            if k == "Page" and _safe_href(v)
+            else escape(v),
+        )
         for k, v in facts
     ]
     body = quote(escape(p.get("excerpt", "")).replace("\n", "<br>")) + (facts_table(rows) if rows else "")
@@ -60,7 +65,11 @@ def build_message(row: NotificationOutbox, site: Site, recipients: list[str]) ->
         subject=f"New feedback on {_one_line(site.name)}",
         text=text.strip(),
         html=render(
-            heading="New feedback", preheader=_one_line(p.get("excerpt", ""))[:120], body=body, link=link, site=_one_line(site.name)
+            heading="New feedback",
+            preheader=_one_line(p.get("excerpt", ""))[:120],
+            body=body,
+            link=link,
+            site=_one_line(site.name),
         ),
         reply_to=p.get("email"),
         tags=[row.event_type],
@@ -81,9 +90,9 @@ def build_summary(rows: list[NotificationOutbox], site: Site, recipients: list[s
     if link:
         text += f"\n\n{link}"
     items = "".join(f'<li style="margin:0 0 6px">{escape(e)}</li>' for e in excerpts)
-    body = (
-        f'<p class="text" style="margin:12px 0 0;color:#0f1720;font-size:15px">{escape(head)}</p>'
-        + quote(f'<ul style="margin:0;padding-left:18px">{items}</ul>' + (f'<div style="margin-top:8px;opacity:.7">...and {more} more</div>' if more else ""))
+    body = f'<p class="text" style="margin:12px 0 0;color:#0f1720;font-size:15px">{escape(head)}</p>' + quote(
+        f'<ul style="margin:0;padding-left:18px">{items}</ul>'
+        + (f'<div style="margin-top:8px;opacity:.7">...and {more} more</div>' if more else "")
     )
     return Message(
         to=recipients,

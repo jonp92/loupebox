@@ -91,8 +91,16 @@ def test_one_request_per_recipient(monkeypatch):
 
 @pytest.mark.parametrize(
     ("status", "outcome"),
-    [(400, "failed"), (401, "failed"), (403, "failed"), (404, "failed"),
-     (429, "retry"), (500, "retry"), (502, "retry"), (503, "retry")],
+    [
+        (400, "failed"),
+        (401, "failed"),
+        (403, "failed"),
+        (404, "failed"),
+        (429, "retry"),
+        (500, "retry"),
+        (502, "retry"),
+        (503, "retry"),
+    ],
 )
 def test_status_mapping(monkeypatch, status, outcome):
     use_transport(monkeypatch, lambda r: httpx.Response(status, json={"code": "c", "message": "m"}))

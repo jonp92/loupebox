@@ -21,9 +21,20 @@ def site_stats(
     today = datetime.now(UTC).date()
     first = today - timedelta(days=days - 1)
     start = datetime(first.year, first.month, first.day, tzinfo=UTC)
-    buckets = {first + timedelta(days=i): DayStats(day=first + timedelta(days=i), accepted=0,
-               quarantined=0, honeypot=0, duplicate=0, origin_denied=0, rate_limited=0,
-               daily_limit=0, challenge_failed=0) for i in range(days)}
+    buckets = {
+        first + timedelta(days=i): DayStats(
+            day=first + timedelta(days=i),
+            accepted=0,
+            quarantined=0,
+            honeypot=0,
+            duplicate=0,
+            origin_denied=0,
+            rate_limited=0,
+            daily_limit=0,
+            challenge_failed=0,
+        )
+        for i in range(days)
+    }
 
     day_col = func.date(Feedback.created_at)
     rows = db.execute(
@@ -41,9 +52,7 @@ def site_stats(
             bucket.quarantined = int(spam or 0)
             bucket.accepted = int(total) - bucket.quarantined
 
-    for stat in db.scalars(
-        select(SiteStat).where(SiteStat.site_id == access.site.id, SiteStat.day >= first)
-    ):
+    for stat in db.scalars(select(SiteStat).where(SiteStat.site_id == access.site.id, SiteStat.day >= first)):
         bucket = buckets.get(stat.day)
         if bucket and hasattr(bucket, stat.kind):
             setattr(bucket, stat.kind, stat.count)

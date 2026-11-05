@@ -90,7 +90,7 @@ def test_email_is_matched_case_insensitively_and_sent_to_the_account(client, db,
     make_user(db, "a@example.com")
     request_reset(client, "A@Example.COM")
     assert mail.sent[0].to == ["a@example.com"]
-    assert "Reset your Loupebox password" == mail.sent[0].subject
+    assert mail.sent[0].subject == "Reset your Loupebox password"
 
 
 def test_disabled_accounts_get_nothing(client, db, mail):
@@ -155,13 +155,19 @@ def test_request_rate_limits(client, db, mail):
     codes = [request_reset(client).status_code for _ in range(settings.password_reset_email_limit + 1)]
     assert codes[-1] == 429 and set(codes[:-1]) == {202}
     # The limit is per address, applied whether or not the account exists.
-    codes = [request_reset(client, "ghost@example.com").status_code for _ in range(settings.password_reset_email_limit + 1)]
+    codes = [
+        request_reset(client, "ghost@example.com").status_code
+        for _ in range(settings.password_reset_email_limit + 1)
+    ]
     assert codes[-1] == 429
 
 
 def test_ip_rate_limit(client, db, mail, monkeypatch):
     monkeypatch.setattr(settings, "password_reset_email_limit", 100)
-    codes = [request_reset(client, f"u{i}@example.com").status_code for i in range(settings.password_reset_ip_limit + 1)]
+    codes = [
+        request_reset(client, f"u{i}@example.com").status_code
+        for i in range(settings.password_reset_ip_limit + 1)
+    ]
     assert codes[-1] == 429
 
 

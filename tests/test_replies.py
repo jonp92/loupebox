@@ -48,7 +48,9 @@ def test_reply_is_emailed_to_the_submitter_and_recorded(client, db, setup, mail)
     assert db.scalar(select(FeedbackReply.message_id)) == "m-1"
     thread = client.get(url(site, item), headers=h).json()
     assert thread["available"] is True
-    assert [(i["body"], i["author_name"]) for i in thread["items"]] == [("Thanks, fixing it now.", "ed@example.com")]
+    assert [(i["body"], i["author_name"]) for i in thread["items"]] == [
+        ("Thanks, fixing it now.", "ed@example.com")
+    ]
 
 
 def test_reply_text_is_escaped_in_html(client, setup, mail):
@@ -107,8 +109,14 @@ def test_failed_send_is_recorded_with_the_reason(client, setup, mail):
     mail.results = [SendResult.failed("smtp 550: recipient refused")]
     r = reply(client, site, item, h)
     assert r.status_code == 201
-    assert (r.json()["status"], r.json()["retryable"], r.json()["error"]) == ("failed", False, "smtp 550: recipient refused")
-    assert client.post(url(site, item, f"/{r.json()['id']}/retry"), headers=h).status_code == 409  # rejected for good
+    assert (r.json()["status"], r.json()["retryable"], r.json()["error"]) == (
+        "failed",
+        False,
+        "smtp 550: recipient refused",
+    )
+    assert (
+        client.post(url(site, item, f"/{r.json()['id']}/retry"), headers=h).status_code == 409
+    )  # rejected for good
 
 
 def test_temporary_failure_can_be_retried_by_another_editor(client, db, setup, mail):
@@ -121,7 +129,9 @@ def test_temporary_failure_can_be_retried_by_another_editor(client, db, setup, m
     assert r.status_code == 200 and r.json()["status"] == "sent" and r.json()["error"] is None
     assert r.json()["id"] == first["id"] and r.json()["author_name"] == "ed2@example.com"
     assert mail.sent[-1].reply_to == "ed2@example.com" and len(mail.sent) == 2
-    assert client.post(url(site, item, f"/{first['id']}/retry"), headers=h2).status_code == 409  # already sent
+    assert (
+        client.post(url(site, item, f"/{first['id']}/retry"), headers=h2).status_code == 409
+    )  # already sent
 
 
 def test_retry_of_unknown_reply_is_404(client, setup):
@@ -174,9 +184,15 @@ def test_replies_go_when_the_feedback_is_deleted(client, db, setup):
 
 def test_replied_event_goes_to_webhook_channels_only_and_carries_no_text(client, db, setup, mail):
     site, h, item = setup
-    hook = make_channel(db, site, provider="webhook", extra_recipients=[], events=["feedback.created", "feedback.replied"])
-    make_channel(db, site, events=["feedback.replied"])  # an email channel: the team is not mailed about its own replies
-    make_channel(db, site, provider="webhook", extra_recipients=[], events=["feedback.created"])  # not subscribed
+    hook = make_channel(
+        db, site, provider="webhook", extra_recipients=[], events=["feedback.created", "feedback.replied"]
+    )
+    make_channel(
+        db, site, events=["feedback.replied"]
+    )  # an email channel: the team is not mailed about its own replies
+    make_channel(
+        db, site, provider="webhook", extra_recipients=[], events=["feedback.created"]
+    )  # not subscribed
     mail.results = [SendResult.failed("nope")]
     reply(client, site, item, h)  # a failed send is not an event
     assert db.scalar(select(NotificationOutbox)) is None
@@ -184,4 +200,9 @@ def test_replied_event_goes_to_webhook_channels_only_and_carries_no_text(client,
     reply_id = reply(client, site, item, h, body=body).json()["id"]
     (row,) = db.scalars(select(NotificationOutbox))
     assert row.channel_id == hook.id and row.event_type == "feedback.replied"
-    assert row.payload == {"type": "feedback.replied", "feedback_id": str(item.id), "reply_id": reply_id, "length": len(body)}
+    assert row.payload == {
+        "type": "feedback.replied",
+        "feedback_id": str(item.id),
+        "reply_id": reply_id,
+        "length": len(body),
+    }

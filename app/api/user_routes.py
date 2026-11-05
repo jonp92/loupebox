@@ -27,13 +27,30 @@ def _audit_user_update(db: Session, actor: User, user: User, before: dict, *, pa
     who = user.email
     if "is_superadmin" in diff:
         promoted = user.is_superadmin
-        audit(db, actor, "user.promote" if promoted else "user.demote",
-              f"Made {who} a superadmin" if promoted else f"Removed superadmin from {who}", **target)
+        audit(
+            db,
+            actor,
+            "user.promote" if promoted else "user.demote",
+            f"Made {who} a superadmin" if promoted else f"Removed superadmin from {who}",
+            **target,
+        )
     if "is_active" in diff:
-        audit(db, actor, "user.enable" if user.is_active else "user.disable",
-              f"{'Enabled' if user.is_active else 'Disabled'} {who}", **target)
+        audit(
+            db,
+            actor,
+            "user.enable" if user.is_active else "user.disable",
+            f"{'Enabled' if user.is_active else 'Disabled'} {who}",
+            **target,
+        )
     if password_reset:
-        audit(db, actor, "user.password_reset", f"Set a new password for {who}", **target, details={"password": "changed"})
+        audit(
+            db,
+            actor,
+            "user.password_reset",
+            f"Set a new password for {who}",
+            **target,
+            details={"password": "changed"},
+        )
     profile = {k: v for k, v in diff.items() if k not in ("is_superadmin", "is_active")}
     if profile:
         audit(db, actor, "user.update", f"Updated {who}: {', '.join(profile)}", **target, details=profile)
@@ -58,14 +75,19 @@ def create_user(
     )
     db.add(user)
     audit(
-        db, actor, "user.create", f"Created user {user.email}" + (" as superadmin" if user.is_superadmin else ""),
-        target_type="user", target_id=user.id, details={"email": user.email, "is_superadmin": user.is_superadmin},
+        db,
+        actor,
+        "user.create",
+        f"Created user {user.email}" + (" as superadmin" if user.is_superadmin else ""),
+        target_type="user",
+        target_id=user.id,
+        details={"email": user.email, "is_superadmin": user.is_superadmin},
     )
     try:
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status.HTTP_409_CONFLICT, "Email already registered")
+        raise HTTPException(status.HTTP_409_CONFLICT, "Email already registered") from None
     return UserOut.model_validate(user)
 
 
@@ -106,7 +128,7 @@ def update_user(
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status.HTTP_409_CONFLICT, "Email already registered")
+        raise HTTPException(status.HTTP_409_CONFLICT, "Email already registered") from None
     return UserOut.model_validate(user)
 
 
@@ -126,7 +148,14 @@ def set_user_avatar(
     db: Session = Depends(get_db),
 ) -> UserOut:
     user = _get_user(db, user_id)
-    audit(db, actor, "user.avatar_set", f"Changed the avatar of {user.email}", target_type="user", target_id=user.id)
+    audit(
+        db,
+        actor,
+        "user.avatar_set",
+        f"Changed the avatar of {user.email}",
+        target_type="user",
+        target_id=user.id,
+    )
     store_avatar(db, user, raw, content_type)
     return UserOut.model_validate(user)
 
@@ -136,7 +165,14 @@ def delete_user_avatar(
     user_id: uuid.UUID, actor: User = Depends(require_superadmin), db: Session = Depends(get_db)
 ) -> UserOut:
     user = _get_user(db, user_id)
-    audit(db, actor, "user.avatar_clear", f"Removed the avatar of {user.email}", target_type="user", target_id=user.id)
+    audit(
+        db,
+        actor,
+        "user.avatar_clear",
+        f"Removed the avatar of {user.email}",
+        target_type="user",
+        target_id=user.id,
+    )
     clear_avatar(db, user)
     return UserOut.model_validate(user)
 
@@ -156,7 +192,13 @@ def reset_user_totp(
         .where(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None))
         .values(revoked_at=datetime.now(UTC))
     )
-    audit(db, actor, "user.totp_reset", f"Turned off two-factor authentication for {user.email}",
-          target_type="user", target_id=user.id)
+    audit(
+        db,
+        actor,
+        "user.totp_reset",
+        f"Turned off two-factor authentication for {user.email}",
+        target_type="user",
+        target_id=user.id,
+    )
     db.commit()
     return UserOut.model_validate(user)

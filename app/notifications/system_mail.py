@@ -55,24 +55,38 @@ def password_reset_message(token: str) -> tuple[str, str, str]:
     link = reset_link(token)
     minutes = settings.password_reset_minutes
     lead = "Someone asked to reset the password for your Loupebox account."
-    note = f"The link works once and expires in {minutes} minutes. If this wasn't you, ignore this email: your password stays as it is."
+    note = (
+        f"The link works once and expires in {minutes} minutes. "
+        "If this wasn't you, ignore this email: your password stays as it is."
+    )
     text = f"{lead}\n\nChoose a new password: {link}\n\n{note}"
-    body = f'<p {_P}>{escape(lead)}</p><p {_P}>{escape(note)}</p>'
+    body = f"<p {_P}>{escape(lead)}</p><p {_P}>{escape(note)}</p>"
     html = render(
-        heading="Reset your password", preheader=lead, body=body, link=link,
-        site="Account security", button_label="Choose a new password", footer=_FOOTER,
+        heading="Reset your password",
+        preheader=lead,
+        body=body,
+        link=link,
+        site="Account security",
+        button_label="Choose a new password",
+        footer=_FOOTER,
     )
     return "Reset your Loupebox password", text, html
 
 
 def password_changed_message() -> tuple[str, str, str]:
     lead = "The password for your Loupebox account was just changed, and you were signed out everywhere."
-    note = "If you did this, there is nothing more to do. If not, ask a superadmin to reset your password and review your account."
+    note = (
+        "If you did this, there is nothing more to do. "
+        "If not, ask a superadmin to reset your password and review your account."
+    )
     text = f"{lead}\n\n{note}"
     html = render(
-        heading="Your password was changed", preheader=lead,
-        body=f'<p {_P}>{escape(lead)}</p><p {_P}>{escape(note)}</p>',
-        link=None, site="Account security", footer=_FOOTER,
+        heading="Your password was changed",
+        preheader=lead,
+        body=f"<p {_P}>{escape(lead)}</p><p {_P}>{escape(note)}</p>",
+        link=None,
+        site="Account security",
+        footer=_FOOTER,
     )
     return "Your Loupebox password was changed", text, html
 
@@ -87,8 +101,12 @@ def reply_message(site: str, body: str, original: str, replier: str) -> tuple[st
     footer = f"You get this because you sent feedback on {site}. Reply to this email to answer {replier}."
     text = f"{body}\n\n--\nYour feedback:\n{original}\n\n{footer}"
     html = render(
-        heading=f"A reply from {site}", preheader=body[:120], link=None, site=site, footer=footer,
-        body=f'<p {_P}>{_html_text(body)}</p>'
+        heading=f"A reply from {site}",
+        preheader=body[:120],
+        link=None,
+        site=site,
+        footer=footer,
+        body=f"<p {_P}>{_html_text(body)}</p>"
         f'<p class="muted" style="margin:20px 0 0;color:#5a6b82;font-size:13px">Your feedback:</p>'
         + quote(_html_text(original)),
     )

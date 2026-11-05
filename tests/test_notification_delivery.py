@@ -276,8 +276,11 @@ def test_purge_removes_only_old_finished_rows(db, fake):
     channel = make_channel(db, site)
     old = utcnow() - timedelta(days=settings.notify_retention_days + 1)
     rows = queue(db, channel, n=5)
-    for row, status in zip(rows, [OutboxStatus.sent, OutboxStatus.failed, OutboxStatus.pending,
-                                  OutboxStatus.held, OutboxStatus.sent]):
+    for row, status in zip(
+        rows,
+        [OutboxStatus.sent, OutboxStatus.failed, OutboxStatus.pending, OutboxStatus.held, OutboxStatus.sent],
+        strict=True,
+    ):
         row.status = status
         row.created_at = old
     rows[4].created_at = utcnow()  # recent sent row stays

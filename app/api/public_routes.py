@@ -99,7 +99,10 @@ def get_challenge(site: Site = Depends(resolve_site_for_challenge)) -> dict[str,
     verifier = get_verifier(site.challenge_mode)
     if site.challenge_mode == OFF or verifier is None:
         return {"mode": OFF}
-    return {"mode": site.challenge_mode, **verifier.issue(site, verifier.ConfigModel.model_validate(site.challenge_config))}
+    return {
+        "mode": site.challenge_mode,
+        **verifier.issue(site, verifier.ConfigModel.model_validate(site.challenge_config)),
+    }
 
 
 @router.post("/feedback", status_code=status.HTTP_201_CREATED)

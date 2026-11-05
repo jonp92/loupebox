@@ -42,10 +42,14 @@ def _check_can_send(db: Session, item: Feedback, access: SiteAccess) -> None:
     if system_mail.mail_provider() is None:
         raise HTTPException(status.HTTP_409_CONFLICT, "No mail provider is configured on the server")
     sent = db.scalar(
-        select(func.count(FeedbackReply.id)).where(FeedbackReply.feedback_id == item.id, FeedbackReply.status == "sent")
+        select(func.count(FeedbackReply.id)).where(
+            FeedbackReply.feedback_id == item.id, FeedbackReply.status == "sent"
+        )
     )
     if sent >= settings.reply_max_per_item:
-        raise HTTPException(status.HTTP_409_CONFLICT, f"At most {settings.reply_max_per_item} replies per item")
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, f"At most {settings.reply_max_per_item} replies per item"
+        )
     enforce(f"reply:{access.site.id}", settings.reply_site_hourly_limit, 3600)
 
 
@@ -54,15 +58,24 @@ def _deliver(db: Session, access: SiteAccess, item: Feedback, reply: FeedbackRep
     subject, text, html = system_mail.reply_message(
         access.site.name, reply.body, item.message, _author_name(db, access.user)
     )
-    result = system_mail.send_system_email(item.email, subject, text, html, "feedback.reply", reply_to=access.user.email)
+    result = system_mail.send_system_email(
+        item.email, subject, text, html, "feedback.reply", reply_to=access.user.email
+    )
     reply.status = "sent" if result.status == "sent" else "failed"
     reply.retryable = result.status == "retry"
     reply.error = (result.error or "")[:ERROR_MAX] or None
     reply.message_id = result.message_id
     # Ids, outcome and length only: neither the reply text nor the address goes in the log.
-    audit(db, access.user, "feedback.reply", f"Replied to a feedback item on {access.site.name}",
-          target_type="feedback", target_id=item.id, site=access.site,
-          details={"reply_id": str(reply.id), "status": reply.status, "length": len(reply.body)})
+    audit(
+        db,
+        access.user,
+        "feedback.reply",
+        f"Replied to a feedback item on {access.site.name}",
+        target_type="feedback",
+        target_id=item.id,
+        site=access.site,
+        details={"reply_id": str(reply.id), "status": reply.status, "length": len(reply.body)},
+    )
     if reply.status == "sent":
         enqueue_reply_sent(db, item, reply)
 
@@ -80,7 +93,9 @@ def list_replies(
         .where(FeedbackReply.feedback_id == item.id)
         .order_by(FeedbackReply.created_at)
     )
-    return ReplyThread(available=system_mail.mail_provider() is not None, items=[_out(r, name) for r, name in rows])
+    return ReplyThread(
+        available=system_mail.mail_provider() is not None, items=[_out(r, name) for r, name in rows]
+    )
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -108,7 +123,9 @@ def retry_reply(
     db: Session = Depends(get_db),
 ) -> ReplyOut:
     item = _get(db, access.site.id, feedback_id)
-    reply = db.scalar(select(FeedbackReply).where(FeedbackReply.id == reply_id, FeedbackReply.feedback_id == item.id))
+    reply = db.scalar(
+        select(FeedbackReply).where(FeedbackReply.id == reply_id, FeedbackReply.feedback_id == item.id)
+    )
     if reply is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Reply not found")
     if reply.status != "failed" or not reply.retryable:

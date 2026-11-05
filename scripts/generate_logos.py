@@ -52,28 +52,46 @@ def derive(art: str) -> dict[str, str]:
 
 
 def derive_wordmarks() -> dict[str, str]:
-    """Transparent, cropped app wordmarks (brand/loupebox-wordmark-app-{light,dark}.svg), keyed by output name."""
+    """Transparent, cropped app wordmarks (brand/loupebox-wordmark-app-{light,dark}.svg), keyed by
+    output name."""
     out = {}
     for variant in ("light", "dark"):
         art = (PUBLIC / "brand" / f"loupebox-wordmark-neon-{variant}.svg").read_text()
         if WORDMARK_VIEWBOX[0] not in art:
             raise SystemExit(f"loupebox-wordmark-neon-{variant}.svg no longer has the expected viewBox")
-        out[f"brand/loupebox-wordmark-app-{variant}.svg"] = art.replace(WORDMARK_BACKGROUND, "").replace(*WORDMARK_VIEWBOX)
+        out[f"brand/loupebox-wordmark-app-{variant}.svg"] = art.replace(WORDMARK_BACKGROUND, "").replace(
+            *WORDMARK_VIEWBOX
+        )
     return out
 
 
 def main() -> int:
     if not shutil.which("rsvg-convert"):
-        print("rsvg-convert not found. Install librsvg (brew install librsvg / apt install librsvg2-bin).", file=sys.stderr)
+        print(
+            "rsvg-convert not found. Install librsvg (brew install librsvg / apt install librsvg2-bin).",
+            file=sys.stderr,
+        )
         return 1
     generated = [(derive(ART.read_text()), f"brand/{ART.name}"), (derive_wordmarks(), "the brand wordmarks")]
     for svgs, source in generated:
         for name, svg in svgs.items():
-            (PUBLIC / name).write_text(svg.replace("\n", "\n" + NOTE.format(source), 1))  # the note goes under the <svg> line
+            (PUBLIC / name).write_text(
+                svg.replace("\n", "\n" + NOTE.format(source), 1)
+            )  # the note goes under the <svg> line
             print(f"{name:24} generated")
     for name, source, size in PNGS:
         subprocess.run(
-            ["rsvg-convert", "-w", str(size), "-h", str(size), str(PUBLIC / source), "-o", str(PUBLIC / name)], check=True
+            [
+                "rsvg-convert",
+                "-w",
+                str(size),
+                "-h",
+                str(size),
+                str(PUBLIC / source),
+                "-o",
+                str(PUBLIC / name),
+            ],
+            check=True,
         )
         print(f"{name:24} {size}x{size}  from {source}")
     return 0

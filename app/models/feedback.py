@@ -58,7 +58,9 @@ class FeedbackTag(Base):
 
     __tablename__ = "feedback_tags"
 
-    feedback_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("feedback.id", ondelete="CASCADE"), primary_key=True)
+    feedback_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("feedback.id", ondelete="CASCADE"), primary_key=True
+    )
     tag: Mapped[str] = mapped_column(String(32), primary_key=True, index=True)
 
 
@@ -69,7 +71,9 @@ class FeedbackNote(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     feedback_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("feedback.id", ondelete="CASCADE"), index=True)
-    author_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), default=None)
+    author_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), default=None
+    )
     body: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
@@ -85,7 +89,9 @@ class FeedbackReply(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     feedback_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("feedback.id", ondelete="CASCADE"), index=True)
-    author_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), default=None)
+    author_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), default=None
+    )
     direction: Mapped[str] = mapped_column(String(8), default="outbound")  # outbound | inbound
     source: Mapped[str] = mapped_column(String(8), default="ui")  # ui | email
     body: Mapped[str] = mapped_column(Text)
@@ -99,7 +105,10 @@ class FeedbackReply(Base):
 
 # Counted in the same query as the item, so lists can show "3 notes" without opening each one.
 Feedback.note_count = column_property(
-    select(func.count(FeedbackNote.id)).where(FeedbackNote.feedback_id == Feedback.id).correlate_except(FeedbackNote).scalar_subquery(),
+    select(func.count(FeedbackNote.id))
+    .where(FeedbackNote.feedback_id == Feedback.id)
+    .correlate_except(FeedbackNote)
+    .scalar_subquery(),
     deferred=False,
 )
 
@@ -119,5 +128,6 @@ def user_name():
 
 
 Feedback.assignee_name = column_property(
-    select(user_name()).where(User.id == Feedback.assignee_id).correlate_except(User).scalar_subquery(), deferred=False
+    select(user_name()).where(User.id == Feedback.assignee_id).correlate_except(User).scalar_subquery(),
+    deferred=False,
 )
