@@ -9,6 +9,7 @@ change between releases; breaking changes are called out below.
 ### Added
 - Documentation site at loupebox.dev, built with Zensical from `docs/` and published with GitHub Pages. It has
   install, using, alerts, security and reference pages with screenshots.
+- The docs site has a favicon and runs the Loupebox widget, so visitors can send feedback from any page.
 
 ### Changed
 - The README is now short and points to the docs site. The old one is kept as `README.old`.
