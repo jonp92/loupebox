@@ -11,7 +11,8 @@ services:
       POSTGRES_DB: ganymede
     # Localhost only: the other containers reach it over the compose network.
     ports: ["127.0.0.1:${DB_PORT:-5432}:5432"]
-    volumes: [pgdata:/var/lib/postgresql/data]
+    # DB_DATA_DIR=./pgdata in .env keeps the data in a folder instead (see the backups docs).
+    volumes: ["${DB_DATA_DIR:-pgdata}:/var/lib/postgresql/data"]
     restart: unless-stopped
     healthcheck:
       # -h forces TCP. Without it pg_isready uses the unix socket, which the temporary server
