@@ -26,7 +26,9 @@ commits you already made: `git rebase --signoff master` and force-push your bran
 ## Development
 
 See the README for setup. Before opening a PR run `pytest`, `ruff check .`, and
-`cd web && npm run build && npm test`. Run all three before opening a PR.
+`cd web && npm run build && npm test`. Run all three before opening a PR. CI also runs
+`cd web && npm run check:contrast`, which fails if a color pair in the admin or widget themes drops below
+WCAG AA; change a color token and run it first.
 
 ## Releasing (maintainers)
 

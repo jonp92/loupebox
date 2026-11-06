@@ -15,6 +15,7 @@ change between releases; breaking changes are called out below.
   leave the default port out of the Origin header. The port is now dropped when saving, and migration `0014`
   fixes origins already stored.
 - The daily feedback limit can no longer be overshot by submissions arriving at the same moment.
+- The light theme's selected-row background is a touch lighter so the accent text on it meets 4.5:1 contrast.
 
 ## [0.1.0-alpha.10] - 2026-11-06
 
