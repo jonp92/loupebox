@@ -1,5 +1,5 @@
-# Weekly version updates. Minor and patch bumps are grouped into one PR per ecosystem;
-# majors and security fixes arrive on their own, except the npm react and vite groups, which take every bump.
+# Weekly version updates. Minor and patch bumps are grouped into one PR per ecosystem; majors and security
+# fixes arrive on their own, except GitHub Actions and the npm react and vite groups, which take every bump.
 version: 2
 updates:
   - package-ecosystem: pip  # updates requirements*.in and the pip-compile lock files
@@ -20,7 +20,7 @@ updates:
     directory: /
     schedule: { interval: weekly }
     groups:
-      actions: { update-types: [minor, patch] }
+      actions: { patterns: ["*"] }  # action majors are mostly runtime bumps; review them in one PR
 
   - package-ecosystem: docker
     directories: [/, /web]
