@@ -398,6 +398,14 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 .fb.compact .message { margin: .4rem 0; }
 .fb.compact .message a { color: inherit; text-decoration: none; }
 .fb.compact .message a:hover { text-decoration: underline; }
+/* The whole card opens the item: the message link's ::after covers it (one real link, so new-tab clicks and screen
+   readers still work). The controls on the card sit above that layer. */
+.fb.compact { position: relative; }
+.fb.compact .message a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.fb.compact header input, .fb.compact button, .fb.compact .assignee, .fb.compact .note-count { position: relative; z-index: 1; }
+.fb.compact:hover { border-top-color: var(--accent); border-right-color: var(--accent); border-bottom-color: var(--accent); }
+.fb.compact .message a:focus-visible { outline: none; }
+.fb.compact:has(.message a:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 .fb.compact .tags { margin: .3rem 0 0; }
 .fb-badges { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
 .list-head { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin: 1rem 0 0; }

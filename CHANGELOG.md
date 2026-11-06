@@ -18,6 +18,18 @@ change between releases; breaking changes are called out below.
   row, phones get one compact card per user, and **New user** opens the form above the list.
 - Feedback cards on phones are tighter: two-line message preview and less padding.
 
+### Fixed
+- The whole feedback card now opens the item, not just the message text. The checkbox, ⋯ menu, assignee and
+  notes count still do their own thing, and Cmd/Ctrl-click or middle-click opens the item in a new tab.
+
+### Security
+- Docker installs made from the quickstart ran in development mode: `env.example` set `ENVIRONMENT=development`
+  for running the API on the host, and docker compose read it too. That published the API docs at
+  `/v1/api/docs` and skipped the production checks. The line is gone from the template. **If you installed with
+  the quickstart, delete `ENVIRONMENT=development` from your `.env`** and run `docker compose up -d`. Check
+  first that `JWT_SECRET` and the three `*_ENCRYPTION_KEY` settings are filled in (`setup.sh` does this),
+  because production refuses to start without them.
+
 ## [0.1.0-alpha.8] - 2026-11-05
 
 ### Upgrading
