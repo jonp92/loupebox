@@ -41,8 +41,8 @@ auth = {"authorization": f"Bearer {token}"}
 site = DATA["sites"][0]
 sid = site["id"]
 call("sites", "/sites", headers=auth)
-call("list", f"/sites/{sid}/feedback?page_size=25", headers=auth)
-call("list filtered", f"/sites/{sid}/feedback?status=read&page_size=25", headers=auth)
+call("list", f"/sites/{sid}/feedback?limit=25", headers=auth)
+call("list filtered", f"/sites/{sid}/feedback?status=read&limit=25", headers=auth)
 call("search common", f"/sites/{sid}/feedback?q=checkout", headers=auth)
 call("search rare", f"/sites/{sid}/feedback?q=zyxwvu", headers=auth)
 call("counts", f"/sites/{sid}/feedback/counts", headers=auth)

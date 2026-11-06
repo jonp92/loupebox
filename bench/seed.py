@@ -41,6 +41,7 @@ WORDS = (  # noqa: SIM905 (one string reads better than a list of 100 words)
 ).split()
 # Search terms with known frequency, for the search scenario: ~5%, ~0.5%, ~0.01% of rows.
 NEEDLES = [("checkout", 0.05), ("invoice", 0.005), ("zyxwvu", 0.0001)]
+ISSUE_TYPES = ["bug", "idea", "question", "praise"]
 TAGS = [f"tag{i:02d}" for i in range(20)]
 STATUS = ["new"] * 50 + ["read"] * 30 + ["archived"] * 15 + ["spam"] * 5
 AGENTS = ["Mozilla/5.0 (Macintosh)", "Mozilla/5.0 (iPhone)", "Mozilla/5.0 (Windows NT 10.0)", "curl/8"]
@@ -109,13 +110,14 @@ def main() -> None:
                 site = rng.choices(sites, weights)[0]["id"]
                 msg = message(rng)
                 email = f"user{rng.randrange(100_000)}@example.com" if rng.random() < 0.4 else None
+                meta = json.dumps({"browser": "bench", "issue_type": rng.choice(ISSUE_TYPES)})
                 created = now - timedelta(seconds=rng.randrange(365 * 86400))
                 digest = hashlib.sha256(f"{site}\n{msg.lower()}\n{email or ''}".encode()).hexdigest()
                 fb.append(
                     (
                         fid, site, msg, rng.choice([None, 1, 2, 3, 4, 5]),
                         f"Visitor {rng.randrange(1000)}" if email else None, email,
-                        f"https://site.example.com/p/{rng.randrange(500)}", '{"browser": "bench"}',
+                        f"https://site.example.com/p/{rng.randrange(500)}", meta,
                         rng.choice(STATUS), digest, secrets.token_hex(16), rng.choice(AGENTS), created,
                     )
                 )  # fmt: skip
