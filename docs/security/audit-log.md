@@ -14,6 +14,7 @@ Superadmins can open **Audit** in the top bar to see who changed what, when, and
 * Feedback: deletions (single and bulk), assignment, tag and note-deletion changes, replies, CSV exports.
 * Accounts: people changing their own password or two-factor settings, resetting a password by email, and
   signing in with a recovery code.
+* Privacy: exports and erasures of personal data (counts only), and each retention sweep (made by `system`).
 
 ## What is not recorded
 

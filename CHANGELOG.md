@@ -7,6 +7,13 @@ change between releases; breaking changes are called out below.
 ## [Unreleased]
 
 ### Added
+- Per-site retention: a site's admins can delete feedback after a number of days and/or remove submitters'
+  email addresses after a number of days (migration `0018`). The worker applies it hourly, in batches, and
+  clears the matching sent and failed alert copies too. Off by default. **API:** `retention_delete_days` and
+  `retention_strip_email_days` on `PATCH /sites/{id}`.
+- Site admins can export (JSON, with replies and notes) or erase the personal data held for one email
+  address, from the site's Settings page. **API:** `POST /sites/{id}/privacy/lookup|export|erase`. The address
+  travels in the body, and the audit log records counts only.
 - The System page's Status tab lists the latest failed notifications of the last 24 hours (site, channel,
   attempts and the provider's error), only when there are some. Errors are shortened and URLs are reduced to
   their host, so webhook tokens stay out of view.

@@ -25,7 +25,16 @@ from app.schemas.site import (
 
 router = APIRouter(prefix="/sites", tags=["sites"])
 
-_SITE_FIELDS = ("name", "allowed_origins", "is_active", "daily_limit", "challenge_mode", "challenge_config")
+_RETENTION = ("retention_delete_days", "retention_strip_email_days")
+_SITE_FIELDS = (
+    "name",
+    "allowed_origins",
+    "is_active",
+    "daily_limit",
+    "challenge_mode",
+    "challenge_config",
+    *_RETENTION,
+)
 
 
 def _profile(u: User) -> dict:
@@ -128,9 +137,12 @@ def update_site(
     changes = body.model_dump(exclude_unset=True)
     _apply_challenge(access.site, changes.pop("challenge_mode", None), changes.pop("challenge_config", None))
     for field, value in changes.items():
-        if value is None:
+        if value is None and field not in _RETENTION:  # for these, null means "keep forever"
             continue
         setattr(access.site, field, value)
+    delete_days, strip_days = access.site.retention_delete_days, access.site.retention_strip_email_days
+    if delete_days and strip_days and strip_days > delete_days:
+        raise HTTPException(422, "Addresses cannot be kept longer than the submissions they belong to")
     diff = changed(before, access.site)
     if diff:
         audit(

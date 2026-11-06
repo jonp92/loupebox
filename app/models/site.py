@@ -30,6 +30,9 @@ class Site(Base):
     # Public-ingest challenge: "off" or the key of a registered app.challenges verifier.
     challenge_mode: Mapped[str] = mapped_column(String(24), default="off", server_default="off")
     challenge_config: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    # Per-site retention, run by the worker. None keeps the data; days are counted from submission.
+    retention_delete_days: Mapped[int | None] = mapped_column(Integer, default=None)
+    retention_strip_email_days: Mapped[int | None] = mapped_column(Integer, default=None)
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
 
     memberships: Mapped[list["Membership"]] = relationship(

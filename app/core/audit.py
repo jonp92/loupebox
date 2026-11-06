@@ -19,6 +19,7 @@ from app.models import AuditEvent, Site, User
 
 # One-line summaries are cut here so a long name can't make the row overflow its column.
 _SUMMARY_MAX = 300
+SYSTEM_ACTOR = "system"  # the worker's retention sweep has no user behind it
 
 
 def _plain(value: Any) -> Any:
@@ -49,7 +50,7 @@ def changed(before: dict[str, Any], obj: object, redact: Iterable[str] = ()) -> 
 
 def audit(
     db: Session,
-    actor: User,
+    actor: User | None,
     action: str,
     summary: str,
     *,
@@ -60,8 +61,8 @@ def audit(
 ) -> None:
     db.add(
         AuditEvent(
-            actor_id=actor.id,
-            actor_email=actor.email,
+            actor_id=actor.id if actor else None,
+            actor_email=actor.email if actor else SYSTEM_ACTOR,
             action=action,
             target_type=target_type,
             target_id=str(target_id),

@@ -41,7 +41,7 @@ The third part is the logger name. It tells you which part of Loupebox wrote the
 
 | Logger | What it reports |
 |---|---|
-| `loupebox.worker` | The worker starting and stopping, the hourly clean-up (`purged 12 finished outbox rows`, expired challenge markers, audit events past retention), and `worker pass failed` with a stack trace when a cycle crashes. The worker keeps running and tries again. |
+| `loupebox.worker` | The worker starting and stopping, the hourly clean-up (`purged 12 finished outbox rows`, expired challenge markers, audit events past retention, `retention removed 11 feedback items or addresses`), and `worker pass failed` with a stack trace when a cycle crashes. The worker keeps running and tries again. |
 | `loupebox.notifications` | `provider brevo raised` and a stack trace: a notification provider failed in an unexpected way. The alert is retried. An ordinary refusal, such as a rejected address or a webhook that returns an error, is not logged. It is kept with the alert and shown under **Recent failures**. |
 | `loupebox.system_mail` | `mail provider smtp raised`: the same, for password reset and other system email. |
 | `loupebox.password_reset` | `password reset email for user 12 was not sent`, followed by the reason. The user is identified by number only. |

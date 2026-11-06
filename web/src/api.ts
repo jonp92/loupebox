@@ -37,6 +37,8 @@ export interface Site {
   daily_limit: number;
   challenge_mode: string; // "off" or a verifier key
   challenge_config: Record<string, unknown>;
+  retention_delete_days: number | null; // null: keep forever
+  retention_strip_email_days: number | null;
   my_role: Role | null;
 }
 export interface DashboardSite extends Site {
@@ -304,8 +306,8 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 /** Fetch a file with the session's credentials and hand it to the browser as a download. */
-export async function download(path: string, fallbackName: string) {
-  const res = await request(path, {});
+export async function download(path: string, fallbackName: string, init: RequestInit = {}) {
+  const res = await request(path, init);
   const name = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? fallbackName;
   const url = URL.createObjectURL(await res.blob());
   const a = document.createElement("a");
