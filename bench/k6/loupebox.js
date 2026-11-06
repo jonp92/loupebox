@@ -14,6 +14,7 @@
 // Sites are picked with the same skew as the seeded data (site 1 busiest), except ingest_hot.
 import http from "k6/http";
 import { check } from "k6";
+import exec from "k6/execution";
 
 const BASE = (__ENV.BASE_URL || "http://127.0.0.1:18000") + "/v1/api";
 const data = JSON.parse(open("../out/sites.json"));
@@ -31,6 +32,12 @@ const pickSite = () => {
   return sites[cumulative.findIndex((c) => c >= r)];
 };
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
+
+// Every request is tagged with the load step it belongs to, so each rate gets its own numbers.
+const STEPS = num("STEPS", 6);
+const STEP_MS = num("STEP_SECONDS", 30) * 1000;
+const step = () => String(Math.min(STEPS - 1, Math.floor((Date.now() - exec.scenario.startTime) / STEP_MS)));
+const TIMEOUT = "10s"; // an overloaded server fails fast instead of holding a connection for a minute
 
 const stages = () =>
   Array.from({ length: num("STEPS", 6) }, (_, i) => ({
@@ -82,6 +89,11 @@ export const options = {
   thresholds: Object.fromEntries([
     ["http_req_failed", ["rate<0.01"]],
     ...SCENARIOS[SCENARIO].names.map((name) => [`http_req_duration{name:${name}}`, ["max>=0"]]),
+    ...Array.from({ length: STEPS }, (_, i) => [
+      [`http_reqs{step:${i}}`, ["count>=0"]],
+      [`http_req_failed{step:${i}}`, ["rate>=0"]],
+      ...SCENARIOS[SCENARIO].names.map((name) => [`http_req_duration{name:${name},step:${i}}`, ["max>=0"]]),
+    ]).flat(),
   ]),
   summaryTrendStats: ["avg", "med", "p(90)", "p(95)", "p(99)", "max"],
 };
@@ -95,7 +107,7 @@ export function setup() {
 }
 
 const read = (auth, path, name) => {
-  const res = http.get(`${BASE}${path}`, { headers: auth, tags: { name } });
+  const res = http.get(`${BASE}${path}`, { headers: auth, tags: { name, step: step() }, timeout: TIMEOUT });
   check(res, { [`${name} 200`]: (r) => r.status === 200 });
   return res;
 };
@@ -107,7 +119,8 @@ const ingest = (site) => {
     JSON.stringify({ message: `bench ${unique} the checkout page is slow and the button is confusing` }),
     {
       headers: { "content-type": "application/json", "x-api-key": site.key, origin: site.origin },
-      tags: { name: "ingest" },
+      tags: { name: "ingest", step: step() },
+      timeout: TIMEOUT,
     },
   );
   check(res, { "ingest 201": (r) => r.status === 201 });
