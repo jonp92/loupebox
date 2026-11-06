@@ -66,6 +66,22 @@ setting, and `setup.sh` fills in the secrets for you.
 | `LOGIN_FAILURE_LIMIT`, `LOGIN_FAILURE_WINDOW_SECONDS` | 10 wrong passwords per email per 15 minutes, from any IP. A successful sign-in or password reset clears them. |
 | `MFA_HOURLY_LIMIT` | 20 two-factor attempts per hour |
 
+## Busy servers
+
+The API keeps a small pool of database connections and handles only as many requests at once as the pool can
+serve. During a burst the extra requests wait a moment; if no slot frees up they get a `503` with a
+`Retry-After` header, and the API keeps working. These settings change that:
+
+| Setting | Default | What it does |
+|---|---|---|
+| `DB_POOL_SIZE`, `DB_MAX_OVERFLOW` | 5 and 10 | Database connections one API container may open (15 at most). |
+| `DB_POOL_TIMEOUT` | 30 | Seconds a request waits for a free connection before it fails. |
+| `MAX_CONCURRENT_REQUESTS` | `0` | Requests handled at once. `0` means pool size plus overflow. |
+| `REQUEST_QUEUE_SECONDS` | 2 | How long an extra request waits for a slot before the `503`. |
+
+Each API container opens its own connections, so add them up if you run several. Postgres allows 100
+connections by default.
+
 ## Changing settings in the app
 
 The **Status** tab shows whether the database, worker, outbox and Redis (if used) are healthy. If the worker

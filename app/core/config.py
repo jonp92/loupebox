@@ -26,6 +26,15 @@ class Settings(BaseSettings):
     # and everything else to the web UI with no path rewriting.
     api_prefix: str = "/v1/api"
     database_url: str = "postgresql+psycopg://ganymede:ganymede@localhost:5432/ganymede"
+    # Database connections one API process may open (pool size plus overflow) and how many seconds a request
+    # waits for a free one before it fails.
+    db_pool_size: int = 5
+    db_max_overflow: int = 10
+    db_pool_timeout: int = 30
+    # Requests handled at once; 0 means as many as the database pool allows (pool size plus overflow). The
+    # rest wait up to request_queue_seconds, then get a 503, so a burst slows the API down, not stops it.
+    max_concurrent_requests: int = 0
+    request_queue_seconds: int = 2
 
     # Auth for the admin UI
     jwt_secret: str = _INSECURE_SECRET

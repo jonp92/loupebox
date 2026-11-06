@@ -25,7 +25,7 @@ from app.api import (
 from app.challenges.registry import load_verifiers
 from app.core import runtime_settings
 from app.core.config import settings
-from app.core.middleware import BodySizeLimitMiddleware, DynamicCORSMiddleware
+from app.core.middleware import BodySizeLimitMiddleware, ConcurrencyLimitMiddleware, DynamicCORSMiddleware
 from app.db.session import get_sessionmaker
 from app.notifications.registry import load_providers
 
@@ -71,7 +71,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Added first = innermost, so 413s from the size limit still get CORS headers.
+# Added first = innermost, so 413s and 503s still get CORS headers, and oversized bodies never take a slot.
+app.add_middleware(
+    ConcurrencyLimitMiddleware,
+    limit=settings.max_concurrent_requests or settings.db_pool_size + settings.db_max_overflow,
+    wait_seconds=settings.request_queue_seconds,
+    exempt=frozenset({f"{prefix}/health"}),
+)
 app.add_middleware(
     BodySizeLimitMiddleware,
     max_bytes=settings.max_body_bytes,

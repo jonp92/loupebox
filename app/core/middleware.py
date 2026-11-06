@@ -1,3 +1,6 @@
+import asyncio
+
+from starlette.concurrency import run_in_threadpool
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
@@ -24,7 +27,13 @@ class DynamicCORSMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         public = request.url.path in PUBLIC_PATHS
-        allowed = public_origins.contains(origin) if public else origin in settings.admin_origins
+        # The origin list reloads from the database now and then. Off the event loop, so a busy pool can't
+        # freeze the whole server.
+        allowed = (
+            await run_in_threadpool(public_origins.contains, origin)
+            if public
+            else origin in settings.admin_origins
+        )
 
         if request.method == "OPTIONS" and "access-control-request-method" in request.headers:
             if not allowed:
@@ -105,3 +114,34 @@ class BodySizeLimitMiddleware:
         except _BodyTooLarge:
             if not started:
                 await too_large(scope, receive, send)
+
+
+class ConcurrencyLimitMiddleware:
+    """Lets at most `limit` requests run at once; the others wait here, holding no thread and no database
+    connection, and get a 503 if no slot frees up within `wait_seconds`.
+
+    A request takes a database connection in its first step and keeps it across thread hops. Without a limit,
+    a burst fills every thread with requests waiting for a connection while the requests that hold the
+    connections wait for a thread, and nothing moves until the pool times out. With `limit` at or below the
+    pool size, every request that runs can get a connection."""
+
+    def __init__(self, app: ASGIApp, limit: int, wait_seconds: float, exempt: frozenset[str]) -> None:
+        self.app = app
+        self.slots = asyncio.Semaphore(limit)
+        self.wait_seconds = wait_seconds
+        self.exempt = exempt  # paths that never queue, such as the health check
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http" or scope["path"] in self.exempt:
+            await self.app(scope, receive, send)
+            return
+        try:
+            await asyncio.wait_for(self.slots.acquire(), self.wait_seconds)
+        except TimeoutError:
+            busy = JSONResponse({"detail": "Busy, try again shortly"}, 503, headers={"Retry-After": "5"})
+            await busy(scope, receive, send)
+            return
+        try:
+            await self.app(scope, receive, send)
+        finally:
+            self.slots.release()

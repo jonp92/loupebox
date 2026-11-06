@@ -29,6 +29,12 @@ change between releases; breaking changes are called out below.
   already did. **API:** `POST /auth/me/totp/enable` now requires `password`.
 
 ### Fixed
+- A burst of requests could leave the API unresponsive for many minutes: requests waiting for a database
+  connection filled every worker thread, and the requests holding the connections could not finish. The API
+  now handles only as many requests at once as its database pool can serve, and the rest wait briefly or get
+  a `503` with `Retry-After`. Also, the list of allowed origins no longer reloads on the server's event loop,
+  where a full pool could freeze the whole server. New settings: `DB_POOL_SIZE`, `DB_MAX_OVERFLOW`,
+  `DB_POOL_TIMEOUT`, `MAX_CONCURRENT_REQUESTS`, `REQUEST_QUEUE_SECONDS`.
 - An allowed origin saved with its default port (`https://example.com:443`) never matched, because browsers
   leave the default port out of the Origin header. The port is now dropped when saving, and migration `0014`
   fixes origins already stored.
