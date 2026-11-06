@@ -6,6 +6,14 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+### Added
+- Compact view for the feedback list on wide screens: two short lines per item with the message cut to one line,
+  aligned columns and 50 items per page. Switch between Comfortable and Compact above the list; the choice is
+  kept in this browser.
+
+### Changed
+- Feedback cards on phones are tighter: two-line message preview and less padding.
+
 ## [0.1.0-alpha.8] - 2026-11-05
 
 ### Upgrading
