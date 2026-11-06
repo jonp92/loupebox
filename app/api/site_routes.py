@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import SiteAccess, get_current_user, require_superadmin, site_access
 from app.challenges.registry import OFF, all_verifiers, get_verifier
+from app.core.attachments import delete_files, keys_for
 from app.core.audit import audit, changed, snapshot
 from app.core.config import settings
 from app.core.origins import public_origins
@@ -33,6 +34,7 @@ _SITE_FIELDS = (
     "daily_limit",
     "challenge_mode",
     "challenge_config",
+    "attachments_enabled",
     *_RETENTION,
 )
 
@@ -58,6 +60,8 @@ def _unassign(db: Session, site: Site, user_id: uuid.UUID) -> None:
 def _out(site: Site, role: Role | None) -> SiteOut:
     out = SiteOut.model_validate(site)
     out.my_role = role
+    out.attachment_max_count = settings.attachment_max_count
+    out.attachment_max_bytes = settings.attachment_max_bytes
     return out
 
 
@@ -204,8 +208,10 @@ def delete_site(
         target_id=site.id,
         site=site,
     )
+    files = keys_for(db, Feedback.site_id == site.id)
     db.delete(site)
     db.commit()
+    delete_files(files)
     public_origins.invalidate()
 
 

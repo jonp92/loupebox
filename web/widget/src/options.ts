@@ -60,6 +60,8 @@ export interface WidgetOptions {
   strings?: Partial<Strings>;
   /** Milliseconds before the panel closes after a successful send (default 2500, 0 keeps it open). */
   closeDelay?: number;
+  /** Offer image upload when the site accepts images (default true). */
+  images?: boolean;
   /** Last look at what will be sent. Return a changed payload, or `false` to cancel. */
   beforeSubmit?: (payload: SubmitPayload) => SubmitPayload | false | Promise<SubmitPayload | false>;
 }
@@ -102,6 +104,7 @@ export interface ResolvedOptions {
   zIndex: number | undefined;
   strings: Strings;
   closeDelay: number;
+  images: boolean;
   beforeSubmit: WidgetOptions["beforeSubmit"];
 }
 
@@ -115,7 +118,7 @@ export const defaultIssueTypes: IssueType[] = [
 const KNOWN = new Set<string>([
   "url", "key", "mode", "target", "position", "launcher", "issueTypes", "defaultIssueType", "requireIssueType",
   "fields", "extraFields", "metadata", "pageUrl", "theme", "colors", "radius", "fontFamily", "zIndex", "strings",
-  "closeDelay", "beforeSubmit",
+  "closeDelay", "images", "beforeSubmit",
 ]);
 const ID = /^[a-z0-9_-]{1,32}$/;
 const COLOR_NAMES: ColorName[] = ["accent", "accentText", "background", "text", "muted", "border"];
@@ -248,6 +251,7 @@ export function normalizeOptions(input: WidgetOptions): ResolvedOptions {
     zIndex: typeof input.zIndex === "number" ? input.zIndex : undefined,
     strings,
     closeDelay,
+    images: input.images ?? true,
     beforeSubmit: input.beforeSubmit,
   };
 }

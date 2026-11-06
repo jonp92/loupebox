@@ -1,5 +1,5 @@
 #!/bin/sh
-# Backs up the database and .env into one dated file, and keeps only the newest few.
+# Backs up the database, the images sent with feedback and .env into one dated file, and keeps only the newest few.
 # Usage, from the folder that holds docker-compose.yml: ./scripts/backup.sh [folder] (checkout) or sh backup.sh [folder] (release).
 # The folder defaults to ./backups. BACKUP_KEEP (default 14) sets how many backups to keep; 0 keeps them all.
 # Restore with restore.sh.
@@ -17,10 +17,12 @@ trap 'rm -rf "$tmp"' EXIT
 # Custom format is compressed, and pg_restore can load it into a fresh database.
 docker compose exec -T db pg_dump -U ganymede -Fc ganymede > "$tmp/db.dump"
 cp .env "$tmp/env"
+# The images live in a volume the API container mounts. Streamed out of it, so the volume's name does not matter.
+docker compose exec -T api sh -c 'tar -cf - -C "$ATTACHMENTS_DIR" .' > "$tmp/attachments.tar"
 
 # Written under a temporary name first, so a failed run never looks like a good backup.
 out="$dir/loupebox-$(date -u +%Y-%m-%dT%H%M%SZ).tar"
-tar -cf "$out.part" -C "$tmp" db.dump env
+tar -cf "$out.part" -C "$tmp" db.dump attachments.tar env
 mv "$out.part" "$out"
 echo "Wrote $out"
 

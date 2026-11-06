@@ -1,4 +1,5 @@
 import { solveProofOfWork } from "./challenge";
+import type { ImageLimits } from "./images";
 import { MAX_METADATA_KEYS, type MetadataValue } from "./options";
 import { VERSION } from "./version";
 
@@ -15,6 +16,8 @@ export interface FeedbackInput {
   pageUrl?: string;
   /** Honeypot value, passed through untouched (empty for humans). */
   website?: string;
+  /** Pictures to attach. Only for sites that accept images (see `limits()`); otherwise the server refuses them. */
+  images?: (Blob | File)[];
 }
 
 export type SubmitResult =
@@ -64,16 +67,17 @@ export function createClient(options: ClientOptions) {
   const base = options.url.replace(/\/+$/, "");
   const doFetch = options.fetch ?? ((...args: Parameters<typeof fetch>) => fetch(...args));
 
-  async function request(path: string, body?: unknown): Promise<Response> {
+  async function request(path: string, body?: unknown, method = "POST"): Promise<Response> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), options.timeout ?? 20_000);
     try {
       return await doFetch(`${base}${path}`, {
-        method: "POST",
+        method,
         mode: "cors",
         credentials: "omit", // anonymous endpoint: no cookies, no Authorization
-        headers: { "Content-Type": "application/json", "X-API-Key": options.key },
-        body: body === undefined ? undefined : JSON.stringify(body),
+        // A FormData body sets its own Content-Type (with the multipart boundary).
+        headers: { ...(body instanceof FormData ? {} : { "Content-Type": "application/json" }), "X-API-Key": options.key },
+        body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
         signal: controller.signal,
       });
     } finally {
@@ -95,7 +99,7 @@ export function createClient(options: ClientOptions) {
 
   async function send(input: FeedbackInput, proof: string | undefined): Promise<Response> {
     const pageUrl = input.pageUrl ?? defaultPageUrl();
-    return request("/feedback", {
+    const payload = {
       message: input.message,
       ...(input.rating ? { rating: input.rating } : {}),
       ...(input.name ? { name: input.name } : {}),
@@ -104,10 +108,27 @@ export function createClient(options: ClientOptions) {
       metadata: metadataFor(input),
       website: input.website ?? "",
       ...(proof ? { challenge: proof } : {}),
-    });
+    };
+    if (!input.images?.length) return request("/feedback", payload);
+    const form = new FormData();
+    form.append("payload", JSON.stringify(payload));
+    input.images.forEach((image, i) => form.append("images", image, (image as File).name || `image-${i + 1}`));
+    return request("/feedback/with-images", form);
   }
 
   return {
+    /** What the site accepts besides text. `null` when images are off, or the server does not know (an older one). */
+    async limits(): Promise<ImageLimits | null> {
+      try {
+        const res = await request("/feedback/config", undefined, "GET");
+        if (!res.ok) return null;
+        const a = ((await readJson(res)) as { attachments?: Record<string, unknown> }).attachments;
+        if (!a?.enabled) return null;
+        return { maxCount: Number(a.max_count) || 0, maxBytes: Number(a.max_bytes) || 0, maxEdge: Number(a.max_edge) || 2048 };
+      } catch {
+        return null;
+      }
+    },
     /** Send one piece of feedback. Never throws: failures come back as `{ ok: false, reason }`. */
     async submit(input: FeedbackInput): Promise<SubmitResult> {
       try {
@@ -147,7 +168,7 @@ function failure(res: Response, body: unknown): Exclude<SubmitResult, { ok: true
     const detail = (body as { detail?: unknown }).detail;
     if (Array.isArray(detail)) {
       for (const item of detail as { loc?: unknown[]; msg?: string }[]) {
-        const raw = String(item.loc?.[item.loc.length - 1] ?? "");
+        const raw = item.loc?.includes("images") ? "images" : String(item.loc?.[item.loc.length - 1] ?? "");
         if (raw && raw !== "body") fields[FIELD_NAMES[raw] ?? raw] ??= String(item.msg ?? "").replace(/^Value error, /, "");
       }
     }

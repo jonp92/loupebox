@@ -43,6 +43,7 @@ the rest, including how to put it on the internet.
 * Roles per site, optional two-factor sign-in and an audit log.
 * Per-site retention, and export or erase of personal data.
 * Spam checks that need no CAPTCHA.
+* Screenshots and other images with feedback, opt-in per site.
 * An admin app that works on phones.
 
 ## Project

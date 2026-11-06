@@ -4,6 +4,7 @@ import { api, json, type Feedback, type Site, type Status } from "../api";
 import { useAuth } from "../auth";
 import { useConfirm } from "../confirm";
 import { useToast } from "../toast";
+import { Attachments } from "../attachments";
 import { Replies } from "../replies";
 import { FeedbackBadges, Notes, Tags, below, safeHref, useAssigneePicker } from "../triage";
 
@@ -54,6 +55,7 @@ export default function FeedbackDetail({ site }: { site: Site }) {
             {[item.name, item.email].filter(Boolean).join(" · ")}
             {href && <> · <a href={href} target="_blank" rel="noopener noreferrer">{href}</a></>}
           </p>
+          {item.attachment_count > 0 && <Attachments siteId={site.id} item={item} canDelete={canDelete} onChange={load} />}
           {Object.keys(item.metadata).length > 0 && <pre>{JSON.stringify(item.metadata, null, 2)}</pre>}
           <div className="tags-row">
             <Tags item={item} canEdit={canEdit} onChange={(tags) => patch({ tags })} />

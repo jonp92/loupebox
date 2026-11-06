@@ -26,6 +26,7 @@ export default function Settings({ site, onChange }: { site: Site; onChange: (s:
         allowed_origins: String(d.get("origins")).split(/[\s,]+/).filter(Boolean),
         daily_limit: Number(d.get("daily_limit")),
         is_active: d.get("is_active") === "on",
+        attachments_enabled: d.get("attachments_enabled") === "on",
       })),
       "Settings saved",
     );
@@ -73,6 +74,11 @@ export default function Settings({ site, onChange }: { site: Site; onChange: (s:
   });
 </script>`;
 
+  // The script tag alone starts the widget. It looks for the API next to the script, so say where it is only when it isn't.
+  const apiNextToWidget = API_PREFIX === "/v1/api" && `${API_URL}${API_PREFIX}` === `${location.origin}${API_PREFIX}`;
+  const tagSnippet = `<script type="module" src="${location.origin}/widget/v1/loupebox.js"
+  data-key="${site.public_key}"${apiNextToWidget ? "" : `\n  data-url="${API_URL}${API_PREFIX}"`}></script>`;
+
   const verifier = verifiers.find((v) => v.key === mode);
   const chalSnippet = `// Fetch a challenge, solve it, and send the proof with the submission.
 // crypto.subtle needs HTTPS (or localhost); see https://loupebox.dev/collect/own-form/ for a fallback.
@@ -109,6 +115,12 @@ await fetch(API + "/feedback", {
           </a>
           .
         </p>
+        <h3 className="section-title">With a script tag only</h3>
+        <pre>{tagSnippet}</pre>
+        <div className="row-actions">
+          <button onClick={() => toast.attempt(navigator.clipboard.writeText(tagSnippet), "Snippet copied")}>Copy snippet</button>
+        </div>
+        <h3 className="section-title">With JavaScript, for every option</h3>
         <pre>{widgetSnippet}</pre>
         <div className="row-actions">
           <button onClick={() => toast.attempt(navigator.clipboard.writeText(widgetSnippet), "Snippet copied")}>Copy snippet</button>
@@ -156,6 +168,11 @@ await fetch(API + "/feedback", {
         </label>
         <label>Daily submission limit<input name="daily_limit" type="number" min={1} defaultValue={site.daily_limit} /></label>
         <label className="inline"><input name="is_active" type="checkbox" defaultChecked={site.is_active} /> Accepting feedback</label>
+        <label className="inline"><input name="attachments_enabled" type="checkbox" defaultChecked={site.attachments_enabled} aria-describedby="attach-hint" /> Accept images with feedback</label>
+        <p id="attach-hint" className="muted hint">
+          Visitors can attach up to {site.attachment_max_count} images (PNG, JPEG or WebP, {Math.round(site.attachment_max_bytes / 1048576)} MB each).
+          They are re-encoded, stored on this server and visible to everyone with access to this site. The widget offers it automatically.
+        </p>
         <button className="primary">Save changes</button>
       </form>
       <Privacy site={site} onChange={onChange} />

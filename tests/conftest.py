@@ -62,6 +62,12 @@ def _isolated_from_dotenv(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _attachments_in_tmp(tmp_path, monkeypatch):
+    """Uploaded images never touch the developer's real ./data folder."""
+    monkeypatch.setattr(settings, "attachments_dir", str(tmp_path / "attachments"))
+
+
+@pytest.fixture(autouse=True)
 def _clean_state():
     Base.metadata.drop_all(get_engine())
     Base.metadata.create_all(get_engine())

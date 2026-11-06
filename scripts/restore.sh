@@ -1,5 +1,6 @@
 #!/bin/sh
-# Restores a backup made by backup.sh. Replaces the whole database; puts back .env only if there is none.
+# Restores a backup made by backup.sh. Replaces the whole database and the images (when the backup has them);
+# puts back .env only if there is none.
 # Usage, from the folder that holds docker-compose.yml: ./scripts/restore.sh [-y] FILE (checkout) or sh restore.sh [-y] FILE (release).
 # -y skips the confirmation. Afterwards the stack starts and migrations bring the database up to the
 # version you run; to roll back, set LOUPEBOX_VERSION in .env first.
@@ -14,6 +15,8 @@ file=${1:?usage: restore.sh [-y] FILE}
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 tar -xf "$file" -C "$tmp" db.dump env
+# Backups made before images existed have no attachments.tar; their images folder is left as it is.
+tar -xf "$file" -C "$tmp" attachments.tar 2>/dev/null || true
 
 envdiff=
 if [ -f .env ] && ! cmp -s "$tmp/env" .env; then
@@ -23,7 +26,7 @@ if [ -f .env ] && ! cmp -s "$tmp/env" .env; then
 fi
 
 if [ -z "$yes" ]; then
-  printf 'This replaces everything in the Loupebox database with %s. Type "yes" to go on: ' "$file"
+  printf 'This replaces everything in the Loupebox database and the stored images with %s. Type "yes" to go on: ' "$file"
   read -r answer || true
   [ "$answer" = yes ] || { echo "Stopped; nothing was changed." >&2; exit 1; }
 fi
@@ -41,5 +44,9 @@ docker compose up -d --wait db
 docker compose exec -T db dropdb -U ganymede --if-exists --force ganymede
 docker compose exec -T db createdb -U ganymede ganymede
 docker compose exec -T db pg_restore -U ganymede -d ganymede --exit-on-error < "$tmp/db.dump"
+if [ -f "$tmp/attachments.tar" ]; then
+  # A throwaway container with the volume mounted, as the app user so the files belong to it.
+  docker compose run --rm --no-deps -T api sh -c 'find "$ATTACHMENTS_DIR" -mindepth 1 -delete && tar -xf - -C "$ATTACHMENTS_DIR"' < "$tmp/attachments.tar"
+fi
 docker compose up -d
 echo "Restored $file."

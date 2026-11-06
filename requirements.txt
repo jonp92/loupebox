@@ -60,6 +60,8 @@ markupsafe==3.0.4
     # via mako
 opentelemetry-api==1.45.2
     # via fastapi
+pillow==13.0.0
+    # via -r requirements.in
 psycopg==3.3.8
     # via -r requirements.in
 psycopg-binary==3.3.8
@@ -80,6 +82,8 @@ python-dotenv==1.2.4
     # via
     #   pydantic-settings
     #   uvicorn
+python-multipart==0.0.33
+    # via -r requirements.in
 pyyaml==6.0.3
     # via uvicorn
 redis==8.1.0

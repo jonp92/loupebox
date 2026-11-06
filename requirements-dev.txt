@@ -95,6 +95,8 @@ packaging==26.3
     #   build
     #   pytest
     #   wheel
+pillow==13.0.0
+    # via -r requirements.txt
 pip-tools==7.6.2
     # via -r requirements-dev.in
 pluggy==1.7.0
@@ -132,6 +134,8 @@ python-dotenv==1.2.4
     # via
     #   -r requirements.txt
     #   pydantic-settings
+python-multipart==0.0.33
+    # via -r requirements.txt
 pyyaml==6.0.3
     # via -r requirements.txt
 redis==8.1.0

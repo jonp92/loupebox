@@ -19,7 +19,12 @@ export function teardownDom() {
 export function mockFetch(handler) {
   const calls = [];
   const fn = async (url, init = {}) => {
-    const call = { url: String(url), init, body: init.body ? JSON.parse(init.body) : undefined };
+    const call = {
+      url: String(url),
+      init,
+      body: typeof init.body === "string" ? JSON.parse(init.body) : undefined,
+      form: init.body instanceof FormData ? init.body : undefined, // a submission with images
+    };
     calls.push(call);
     const out = await handler(call, calls.length);
     if (out instanceof Response) return out;

@@ -349,6 +349,12 @@ export default function FeedbackList({ site }: { site: Site }) {
             {assigneeChip(f)}
             {f.tags.map((t) => <span key={t} className="tag static">{t}</span>)}
             {f.reply_count > 0 && <span className="muted" title={`Replied ${f.reply_count} time${f.reply_count === 1 ? "" : "s"}`}>↩ Replied</span>}
+            {f.attachment_count > 0 && (
+              <a className="note-count" href={`/sites/${site.id}/feedback/${f.id}`} onClick={openOnPlainClick(f.id)}
+                title={`${f.attachment_count} image${f.attachment_count === 1 ? "" : "s"}`}>
+                <span aria-hidden="true">📎</span> {f.attachment_count}<span className="sr-only"> image{f.attachment_count === 1 ? "" : "s"}</span>
+              </a>
+            )}
             {f.note_count > 0 && (
               <a className="note-count" href={`/sites/${site.id}/feedback/${f.id}`} onClick={openOnPlainClick(f.id)}
                 title={`${f.note_count} internal note${f.note_count === 1 ? "" : "s"}`}>💬 {f.note_count}</a>

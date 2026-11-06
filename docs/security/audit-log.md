@@ -11,7 +11,8 @@ Superadmins can open **Audit** in the top bar to see who changed what, when, and
 * Sites: created, changed, key rotated, deleted.
 * Members: added, role changed, removed.
 * Notification channels: created, changed, deleted. Webhook secret changes.
-* Feedback: deletions (single and bulk), assignment, tag and note-deletion changes, replies, CSV exports.
+* Feedback: deletions (single and bulk), image deletions, assignment, tag and note-deletion changes, replies,
+  CSV exports.
 * Accounts: people changing their own password or two-factor settings, resetting a password by email, and
   signing in with a recovery code.
 * Privacy: exports and erasures of personal data (counts only), and each retention sweep (made by `system`).

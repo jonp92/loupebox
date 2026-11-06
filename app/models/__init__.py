@@ -3,6 +3,7 @@ from app.models.challenge import UsedChallenge
 from app.models.feedback import (
     NOT_SPAM,
     Feedback,
+    FeedbackAttachment,
     FeedbackNote,
     FeedbackReply,
     FeedbackStatus,
@@ -22,6 +23,7 @@ __all__ = [
     "AppSetting",
     "AuditEvent",
     "Feedback",
+    "FeedbackAttachment",
     "FeedbackNote",
     "FeedbackReply",
     "FeedbackStatus",

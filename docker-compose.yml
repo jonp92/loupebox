@@ -67,6 +67,10 @@ services:
       NOTIFY_HOURLY_CAP: ${NOTIFY_HOURLY_CAP:-5}
       NOTIFY_RETENTION_DAYS: ${NOTIFY_RETENTION_DAYS:-30}
       AUDIT_RETENTION_DAYS: ${AUDIT_RETENTION_DAYS:-365}
+      # Images sent with feedback (a site turns them on in its settings). The API and the worker share one volume.
+      ATTACHMENT_MAX_COUNT: ${ATTACHMENT_MAX_COUNT:-3}
+      ATTACHMENT_MAX_BYTES: ${ATTACHMENT_MAX_BYTES:-5242880}
+      ATTACHMENT_MAX_EDGE: ${ATTACHMENT_MAX_EDGE:-2048}
     depends_on:
       db:
         condition: service_healthy
@@ -75,6 +79,7 @@ services:
   api:
     image: ghcr.io/jonp92/loupebox-api:${LOUPEBOX_VERSION:-latest}
     environment: *api-env
+    volumes: ["attachments:/data/attachments"]
     # Localhost only: put a reverse proxy (Caddy) in front for anything public.
     ports: ["127.0.0.1:${API_PORT:-8000}:8000"]
     depends_on:
@@ -94,6 +99,7 @@ services:
     image: ghcr.io/jonp92/loupebox-api:${LOUPEBOX_VERSION:-latest}
     command: ["python", "-m", "app.worker"]
     environment: *api-env
+    volumes: ["attachments:/data/attachments"]  # deletes images with their feedback (retention) and sweeps strays
     # The image's HEALTHCHECK probes the API port, which the worker doesn't serve.
     healthcheck:
       disable: true
@@ -115,3 +121,4 @@ services:
 
 volumes:
   pgdata:
+  attachments:

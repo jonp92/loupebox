@@ -84,6 +84,18 @@ class FeedbackOut(BaseModel):
     tags: list[str]
     note_count: int
     reply_count: int
+    attachment_count: int
+
+
+class AttachmentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    content_type: str
+    size: int
+    width: int
+    height: int
+    created_at: datetime
 
 
 class FeedbackPage(BaseModel):

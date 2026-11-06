@@ -13,6 +13,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import SiteAccess, feedback_or_404, site_access
+from app.core.attachments import delete_files, keys_for
 from app.core.audit import audit
 from app.core.cache import menus
 from app.core.config import settings
@@ -405,6 +406,7 @@ def bulk_feedback(
             site=access.site,
             details={"count": len(items), "ids": sorted(str(i.id) for i in items)},
         )
+        files = keys_for(db, Feedback.id.in_([i.id for i in items]))
         for item in items:
             db.delete(item)
     elif body.action == "set_status":
@@ -438,6 +440,8 @@ def bulk_feedback(
             {"count": len(items), "tag": body.tag, "ids": _ids(items)},
         )
     db.commit()
+    if body.action == "delete":
+        delete_files(files)
     menus.invalidate(access.site.id)
     return BulkResult(affected=len(items), skipped=len(ids) - len(items))
 
@@ -588,6 +592,8 @@ def delete_feedback(
         site=access.site,
         details={"status": item.status.value},
     )
+    files = keys_for(db, Feedback.id == item.id)
     db.delete(item)
     db.commit()
+    delete_files(files)
     menus.invalidate(access.site.id)

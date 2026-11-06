@@ -15,7 +15,10 @@ COPY migrations migrations
 COPY scripts scripts
 COPY app app
 
-RUN useradd --system --uid 10001 --no-create-home app
+# Images sent with feedback. A named volume mounted here starts out owned by the app user.
+ENV ATTACHMENTS_DIR=/data/attachments
+RUN useradd --system --uid 10001 --no-create-home app \
+    && mkdir -p "$ATTACHMENTS_DIR" && chown app "$ATTACHMENTS_DIR"
 USER app
 
 EXPOSE 8000

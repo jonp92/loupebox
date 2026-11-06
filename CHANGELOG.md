@@ -7,6 +7,20 @@ change between releases; breaking changes are called out below.
 ## [Unreleased]
 
 ### Added
+- Images with feedback, opt-in per site (Settings → "Accept images with feedback", migration `0019`). The widget
+  gets an Add image button and takes pasted or dropped images; large ones are scaled down in the browser. The
+  server accepts PNG, JPEG and WebP only, decodes and re-encodes every image (EXIF and anything hidden in the
+  file is dropped, large pictures are scaled to 2048 px), and refuses the whole submission if one image is bad.
+  Limits: 3 images, 5 MB each (`ATTACHMENT_MAX_COUNT`, `ATTACHMENT_MAX_BYTES`, `ATTACHMENT_MAX_EDGE`).
+  Files go through a storage backend (`STORAGE_BACKEND=local`, folder `ATTACHMENTS_DIR`; a volume in the Docker
+  setup); more backends can be added. Images are served only to signed-in members of the site, shown as a
+  thumbnail grid with a full-size viewer on the item page, and counted on the list. Admins can delete one image.
+  They are deleted with their feedback (single, bulk, retention, erase, site delete), and a daily sweep removes
+  stray files. **API:** `GET /feedback/config`, `POST /feedback/with-images` (multipart; the JSON endpoint is
+  unchanged), `GET|DELETE /sites/{id}/feedback/{id}/attachments[/{id}]`, `attachments_enabled` on sites,
+  `attachment_count` on feedback. `backup.sh` and `restore.sh` now include the image files.
+- The widget starts from a script tag alone: `<script type="module" src=".../loupebox.js" data-key="pk_...">`,
+  with `data-` attributes for the common options and no inline script. Capabilities `images` and `auto-init`.
 - Per-site retention: a site's admins can delete feedback after a number of days and/or remove submitters'
   email addresses after a number of days (migration `0018`). The worker applies it hourly, in batches, and
   clears the matching sent and failed alert copies too. Off by default. **API:** `retention_delete_days` and

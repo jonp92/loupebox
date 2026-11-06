@@ -15,4 +15,6 @@ export const capabilities: readonly string[] = [
   "challenge-pow",
   "events",
   "headless-client",
+  "images",
+  "auto-init",
 ];
