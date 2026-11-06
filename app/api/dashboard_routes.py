@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.db.session import get_db
-from app.models import Feedback, FeedbackStatus, Membership, Role, Site, User
+from app.models import NOT_SPAM, Feedback, FeedbackStatus, Membership, Role, Site, User
 from app.models.user import utcnow
 from app.schemas.dashboard import Dashboard, DashboardItem, DashboardSite
 from app.schemas.feedback import FeedbackOut
@@ -51,7 +51,7 @@ def dashboard(
         db.scalar(
             select(func.count())
             .select_from(Feedback)
-            .where(Feedback.site_id.in_(site_ids), Feedback.status != FeedbackStatus.spam)
+            .where(Feedback.site_id.in_(site_ids), Feedback.status.in_(NOT_SPAM))
         )
         if site_ids
         else 0

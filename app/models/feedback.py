@@ -17,10 +17,15 @@ class FeedbackStatus(str, enum.Enum):
     spam = "spam"
 
 
+# What the default list, counts and menus show: everything except quarantined spam.
+NOT_SPAM = [s for s in FeedbackStatus if s is not FeedbackStatus.spam]
+
+
 class Feedback(Base):
     __tablename__ = "feedback"
     __table_args__ = (
         Index("ix_feedback_site_created", "site_id", "created_at"),
+        Index("ix_feedback_site_status_created", "site_id", "status", "created_at"),
         Index("ix_feedback_site_dedupe", "site_id", "content_hash"),
     )
 

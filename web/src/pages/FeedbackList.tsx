@@ -29,6 +29,7 @@ export default function FeedbackList({ site }: { site: Site }) {
   const navigate = useNavigate();
   const [items, setItems] = useState<Feedback[]>([]);
   const [total, setTotal] = useState(0);
+  const [totalCapped, setTotalCapped] = useState(false); // more than `total` match
   const [loading, setLoading] = useState(true); // a list request is in flight
   const latest = useRef(0); // only the newest request ends the loading state
   const [offset, setOffset] = useState(0);
@@ -82,10 +83,11 @@ export default function FeedbackList({ site }: { site: Site }) {
     params.set("offset", String(offset));
     const mine = ++latest.current;
     setLoading(true);
-    api<{ items: Feedback[]; total: number }>(`/sites/${site.id}/feedback?${params}`)
+    api<{ items: Feedback[]; total: number; total_capped?: boolean }>(`/sites/${site.id}/feedback?${params}`)
       .then((r) => {
         setItems(r.items);
         setTotal(r.total);
+        setTotalCapped(Boolean(r.total_capped));
         setSelected(new Set()); // a new page or filter never keeps a hidden selection
         setError("");
       })
@@ -369,8 +371,8 @@ export default function FeedbackList({ site }: { site: Site }) {
       {picker.node}
       {!(loading && items.length === 0) && <div className="toolbar">
         <button disabled={offset === 0} onClick={() => setOffset(offset - pageSize)}>Previous</button>
-        <span className="muted">{total === 0 ? 0 : offset + 1}–{Math.min(offset + pageSize, total)} of {total}</span>
-        <button disabled={offset + pageSize >= total} onClick={() => setOffset(offset + pageSize)}>Next</button>
+        <span className="muted">{total === 0 ? 0 : offset + 1}–{Math.min(offset + pageSize, total)} of {total.toLocaleString()}{totalCapped && "+"}</span>
+        <button disabled={!totalCapped && offset + pageSize >= total} onClick={() => setOffset(offset + pageSize)}>Next</button>
       </div>}
     </>
   );
