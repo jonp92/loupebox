@@ -210,7 +210,7 @@ def test_superadmin_can_reset_totp(client, db):
     make_user(db, "root@example.com", superadmin=True)
     root = login(client, "root@example.com")
 
-    users = {u["email"]: u for u in client.get("/users", headers=root).json()}
+    users = {u["email"]: u for u in client.get("/users", headers=root).json()["items"]}
     assert (
         users["user@example.com"]["totp_enabled"] is True
         and users["root@example.com"]["totp_enabled"] is False

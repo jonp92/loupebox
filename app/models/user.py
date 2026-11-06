@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, LargeBinary, String
+from sqlalchemy import BigInteger, Boolean, ColumnElement, DateTime, ForeignKey, LargeBinary, String, or_
 from sqlalchemy.orm import Mapped, deferred, mapped_column, relationship
 
 from app.core.config import settings
@@ -49,6 +49,12 @@ class User(Base):
     memberships: Mapped[list["Membership"]] = relationship(  # noqa: F821
         back_populates="user", cascade="all, delete-orphan"
     )
+
+
+def user_matches(q: str) -> ColumnElement[bool]:
+    """SQL: the user's email, first or last name contains `q`. Wildcards in `q` match literally."""
+    q = q.strip()
+    return or_(*(c.icontains(q, autoescape=True) for c in (User.email, User.first_name, User.last_name)))
 
 
 class RefreshToken(Base):

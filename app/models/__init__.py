@@ -5,7 +5,7 @@ from app.models.notification import NotificationChannel, NotificationOutbox, Out
 from app.models.setting import AppSetting
 from app.models.site import ROLE_RANK, Membership, Role, Site
 from app.models.stats import SiteStat, StatKind
-from app.models.user import PasswordResetToken, RecoveryCode, RefreshToken, User
+from app.models.user import PasswordResetToken, RecoveryCode, RefreshToken, User, user_matches
 
 __all__ = [
     "ROLE_RANK",
@@ -29,5 +29,6 @@ __all__ = [
     "StatKind",
     "UsedChallenge",
     "User",
+    "user_matches",
     "user_name",
 ]

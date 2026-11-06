@@ -91,7 +91,7 @@ def test_lists_expose_avatar_url_not_data(client, db):
         members[0]["avatar_url"].startswith(f"{settings.api_prefix}/avatars/") and "avatar" not in members[0]
     )
     rh = login(client, "root@example.com")
-    users = client.get("/users", headers=rh).json()
+    users = client.get("/users", headers=rh).json()["items"]
     assert {u["email"]: bool(u["avatar_url"]) for u in users} == {
         "boss@example.com": True,
         "root@example.com": False,

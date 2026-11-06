@@ -154,3 +154,25 @@ def test_superadmin_can_promote_and_demote_others_but_not_self(client, db):
         is False
     )
     assert client.patch(f"/users/{root.id}", json={"is_superadmin": False}, headers=h).status_code == 400
+
+
+def test_user_list_pages_and_searches(client, db):
+    make_user(db, "root@example.com", superadmin=True)
+    for i in range(5):
+        make_user(db, f"user{i}@example.com")
+    grace = make_user(db, "gh@example.org")
+    grace.first_name, grace.last_name = "Grace", "Hopper"
+    db.commit()
+    h = login(client, "root@example.com")
+
+    page = client.get("/users", params={"limit": 2, "offset": 2}, headers=h).json()
+    assert page["total"] == 7 and [u["email"] for u in page["items"]] == [
+        "user0@example.com",
+        "user1@example.com",
+    ]
+    found = client.get("/users", params={"q": " hopp "}, headers=h).json()
+    assert found["total"] == 1 and found["items"][0]["email"] == "gh@example.org"
+    assert (
+        client.get("/users", params={"q": "%"}, headers=h).json()["total"] == 0
+    )  # wildcards match literally
+    assert client.get("/users", params={"limit": 201}, headers=h).status_code == 422
