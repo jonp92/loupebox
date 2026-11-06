@@ -1,6 +1,9 @@
+import asyncio
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI
+from fastapi.concurrency import run_in_threadpool
 
 from app.api import (
     audit_routes,
@@ -30,11 +33,31 @@ load_providers()  # the admin API lists providers and sends test messages
 load_verifiers()  # public ingest enforces each site's challenge mode
 
 
-@asynccontextmanager
-async def lifespan(_: FastAPI):
+SETTINGS_RELOAD_SECONDS = 30
+log = logging.getLogger("loupebox.settings")
+
+
+def _load_settings() -> None:
     with get_sessionmaker()() as db:
         runtime_settings.load(db)  # settings saved in the admin UI win over env
+
+
+async def _reload_settings() -> None:
+    """Pick up settings saved through another API replica (this one applies its own saves at once)."""
+    while True:
+        await asyncio.sleep(SETTINGS_RELOAD_SECONDS)
+        try:
+            await run_in_threadpool(_load_settings)
+        except Exception:
+            log.exception("reloading saved settings failed")
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    _load_settings()
+    reload = asyncio.create_task(_reload_settings())
     yield
+    reload.cancel()
 
 
 # Interactive docs only outside production, so a deployed instance doesn't advertise its schema.

@@ -9,3 +9,4 @@ argon2-cffi
 email-validator
 httpx
 cryptography
+redis

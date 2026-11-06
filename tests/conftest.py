@@ -3,6 +3,8 @@ import os
 # Must be set before the app (and its settings) are imported.
 # Set TEST_DATABASE_URL to run the suite on Postgres. It DROPS ALL TABLES in that database.
 os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL", "sqlite://")
+# Set TEST_REDIS_URL to run the suite's rate limits on Redis. It DELETES the limiter's keys there.
+os.environ["REDIS_URL"] = os.environ.get("TEST_REDIS_URL", "")
 os.environ["JWT_SECRET"] = "test-secret-test-secret-test-secret-123"
 os.environ["ADMIN_ORIGINS"] = '["http://admin.test"]'
 

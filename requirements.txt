@@ -19,6 +19,8 @@ argon2-cffi==25.1.0
     # via -r requirements.in
 argon2-cffi-bindings==26.1.0
     # via argon2-cffi
+async-timeout==5.0.1
+    # via redis
 certifi==2026.10.23
     # via
     #   httpcore
@@ -80,6 +82,8 @@ python-dotenv==1.2.4
     #   uvicorn
 pyyaml==6.0.3
     # via uvicorn
+redis==8.1.0
+    # via -r requirements.in
 sqlalchemy==2.1.8
     # via
     #   -r requirements.in
