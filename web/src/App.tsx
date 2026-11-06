@@ -10,6 +10,7 @@ import { ForgotPassword, ResetPassword } from "./pages/ResetPassword";
 import SiteDetail from "./pages/SiteDetail";
 import Dashboard from "./pages/Dashboard";
 import Sites from "./pages/Sites";
+import SystemSettings from "./pages/SystemSettings";
 import Users from "./pages/Users";
 import { useTheme } from "./theme";
 
@@ -90,6 +91,7 @@ function Layout() {
           <NavLink to="/sites">Sites</NavLink>
           {me.is_superadmin && <NavLink to="/users">Users</NavLink>}
           {me.is_superadmin && <NavLink to="/audit">Audit</NavLink>}
+          {me.is_superadmin && <NavLink to="/system">System</NavLink>}
         </nav>
         <div className="spacer" />
         <ThemeToggle />
@@ -115,6 +117,7 @@ export default function App() {
           <Route path="sites/:siteId/*" element={<SiteDetail />} />
           <Route path="users" element={<Users />} />
           <Route path="audit" element={<Audit />} />
+          <Route path="system" element={<SystemSettings />} />
           <Route path="profile" element={<Profile />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
