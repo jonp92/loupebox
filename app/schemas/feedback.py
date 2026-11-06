@@ -89,6 +89,7 @@ class FeedbackOut(BaseModel):
 class FeedbackPage(BaseModel):
     items: list[FeedbackOut]
     total: int
+    total_capped: bool = False  # true: there are more than `total` matches
 
 
 MAX_TAGS = 10

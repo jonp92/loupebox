@@ -17,6 +17,7 @@ from app.core.audit import audit
 from app.core.config import settings
 from app.db.session import get_db, get_sessionmaker
 from app.models import (
+    NOT_SPAM,
     Feedback,
     FeedbackNote,
     FeedbackStatus,
@@ -43,6 +44,7 @@ from app.schemas.feedback import (
 )
 
 router = APIRouter(prefix="/sites/{site_id}/feedback", tags=["feedback"])
+TOTAL_CAP = 10_000  # the list stops counting here
 
 
 _ISSUE_TYPE = r"^[a-z0-9_-]{1,32}$"  # what the widget's badges send as metadata.issue_type
@@ -101,7 +103,7 @@ def _where(site_id: uuid.UUID, f: Filters) -> list:
         where.append(Feedback.status == f.status)
     else:
         # Spam stays out of the default view; ask for status=spam to see it.
-        where.append(Feedback.status != FeedbackStatus.spam)
+        where.append(Feedback.status.in_(NOT_SPAM))
     if f.rating:
         where.append(Feedback.rating == f.rating)
     if f.has_email is not None:
@@ -160,11 +162,20 @@ def list_feedback(
     offset: int = Query(default=0, ge=0),
 ) -> FeedbackPage:
     where = _where(access.site.id, f)
-    total = db.scalar(select(func.count()).select_from(Feedback).where(*where)) or 0
+    # Counting every match costs as much as the site is big. Stop at the cap (or the end of the page being
+    # viewed, if that is further) and say so; the UI shows "10,000+".
+    cap = max(TOTAL_CAP, offset + limit)
+    counted = db.scalar(
+        select(func.count()).select_from(select(Feedback.id).where(*where).limit(cap + 1).subquery())
+    )
     rows = db.scalars(
         select(Feedback).where(*where).order_by(Feedback.created_at.desc()).limit(limit).offset(offset)
     )
-    return FeedbackPage(items=[FeedbackOut.model_validate(r) for r in rows], total=total)
+    return FeedbackPage(
+        items=[FeedbackOut.model_validate(r) for r in rows],
+        total=min(counted, cap),
+        total_capped=counted > cap,
+    )
 
 
 CSV_COLUMNS = (
@@ -259,7 +270,7 @@ def issue_types(
         select(_issue_type_col, func.count())
         .where(
             Feedback.site_id == access.site.id,
-            Feedback.status != FeedbackStatus.spam,
+            Feedback.status.in_(NOT_SPAM),
             _issue_type_col.is_not(None),
         )
         .group_by(_issue_type_col)
