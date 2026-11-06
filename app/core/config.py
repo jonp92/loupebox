@@ -5,6 +5,7 @@ from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _INSECURE_SECRET = "dev-insecure-change-me"
+_ENCRYPTION_KEYS = ("totp_encryption_key", "webhook_encryption_key", "settings_encryption_key")
 
 
 # The single source of the release version; the image build copies it next to app/.
@@ -93,8 +94,8 @@ class Settings(BaseSettings):
     # Audit log (admin actions). Events older than this are purged by the worker; 0 keeps them forever.
     audit_retention_days: int = 365
 
-    # Secrets the server must read back are encrypted at rest, one key per purpose (any string). Each
-    # falls back to JWT_SECRET, but then rotating JWT_SECRET makes them unreadable: set them separately.
+    # Secrets the server must read back are encrypted at rest, one key per purpose (any string). Required in
+    # production. Elsewhere each falls back to JWT_SECRET, and rotating that would make them unreadable.
     totp_encryption_key: str = ""  # two-factor seeds
     webhook_encryption_key: str = ""  # webhook signing secrets
     settings_encryption_key: str = ""  # provider secrets set in the admin UI (System settings)
@@ -130,11 +131,17 @@ class Settings(BaseSettings):
         return f"{self.api_prefix}/auth"
 
     @model_validator(mode="after")
-    def _check_production_secret(self) -> "Settings":
-        if self.environment == "production" and (
-            self.jwt_secret == _INSECURE_SECRET or len(self.jwt_secret) < 32
-        ):
+    def _check_production_secrets(self) -> "Settings":
+        if self.environment != "production":
+            return self
+        if self.jwt_secret == _INSECURE_SECRET or len(self.jwt_secret) < 32:
             raise ValueError("JWT_SECRET must be set to a random value of 32+ chars in production")
+        missing = [name.upper() for name in _ENCRYPTION_KEYS if not getattr(self, name)]
+        if missing:
+            raise ValueError(
+                f"{', '.join(missing)} must be set in production. Generate each with "
+                '`python -c "import secrets; print(secrets.token_urlsafe(48))"` and keep it.'
+            )
         return self
 
 
