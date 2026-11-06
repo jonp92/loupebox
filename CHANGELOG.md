@@ -6,6 +6,15 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+## [0.1.0-alpha.8] - 2026-11-05
+
+### Upgrading
+- **Production now refuses to start without `TOTP_ENCRYPTION_KEY`, `WEBHOOK_ENCRYPTION_KEY` and
+  `SETTINGS_ENCRYPTION_KEY`.** Installs made with an older `setup.sh` must add `SETTINGS_ENCRYPTION_KEY` to `.env`
+  (any random string, for example `openssl rand -base64 48`). If `TOTP_ENCRYPTION_KEY` or `WEBHOOK_ENCRYPTION_KEY`
+  was empty, set it to your current `JWT_SECRET`, so existing two-factor and webhook secrets stay readable.
+- Migration `0013` adds the `app_settings` table. The `migrate` service applies it on `docker compose up -d`.
+
 ### Added
 - System settings page for superadmins (`/system`, `GET`/`PATCH /settings`): change email, notification,
   rate-limit, sign-in and retention settings without a restart. Saved values win over `.env` and every change is
@@ -147,6 +156,7 @@ First public alpha.
 - Not load tested; capacity numbers are estimates.
 - The database role and name stay `ganymede` (the project's former name) so existing volumes keep working.
 
+[0.1.0-alpha.8]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.8
 [0.1.0-alpha.7]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.7
 [0.1.0-alpha.6]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.6
 [0.1.0-alpha.5]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.5
