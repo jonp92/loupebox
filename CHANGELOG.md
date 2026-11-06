@@ -7,6 +7,8 @@ change between releases; breaking changes are called out below.
 ## [Unreleased]
 
 ### Added
+- The System page's Status tab has a "Finish setting up" list: email provider, admin UI address, worker
+  running, a site, a notification channel. It disappears once everything is done.
 - The System page is split into tabs (Status, Email & notifications, Public form, Accounts & limits), each at
   its own address under `/system/`.
 - The System page's Status tab shows instance health: the database, whether the worker is running (it now

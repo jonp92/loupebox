@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api, type HealthStatus, type InstanceHealth } from "../api";
 import { ago } from "../triage";
 
@@ -21,6 +22,15 @@ function Check({ title, status, children }: { title: string; status: HealthStatu
 }
 
 const seen = (iso: string) => (ago(iso) === "now" ? "just now" : `${ago(iso)} ago`);
+// What each checklist item asks for, and where to do it.
+const STEPS: Record<InstanceHealth["checklist"][number]["id"], { label: string; to?: string }> = {
+  mail: { label: "Set up an email provider", to: "/system/email" },
+  public_url: { label: "Set the admin UI address", to: "/system/email" },
+  worker: { label: "Start the worker (python -m app.worker)" },
+  site: { label: "Create a site", to: "/sites" },
+  channel: { label: "Add a notification channel to a site", to: "/sites" },
+};
+
 const wait = (s: number) => (s < 90 ? `${s}s` : `${Math.round(s / 60)}m`);
 
 /** Is the database up, is the worker beating, is the outbox draining. Refreshes itself while visible. */
@@ -46,25 +56,36 @@ export default function SystemHealth() {
       {error && <p className="error" role="alert">{error}</p>}
       {health && worker && outbox && (
         <div className="stats">
-          <Check title="Database" status={health.database}>Answering queries.</Check>
+          <Check title="Database" status={health.database}>Connected</Check>
           <Check title="Worker" status={worker.status}>
             {worker.last_beat_at
-              ? `Last seen ${seen(worker.last_beat_at)}${worker.live ? `, ${worker.live} running` : ""}.`
-              : <>Never seen. Nothing is sent without <code>python -m app.worker</code>.</>}
+              ? `Last seen ${seen(worker.last_beat_at)}${worker.live ? `, ${worker.live} running` : ""}`
+              : "Never seen"}
           </Check>
           <Check title="Outbox" status={outbox.status}>
             {outbox.pending} waiting
-            {outbox.oldest_due_seconds != null && `, oldest ${wait(outbox.oldest_due_seconds)}`}.{" "}
-            {outbox.held} held, {outbox.failed_24h} failed in 24 h.
+            {outbox.oldest_due_seconds != null && ` (oldest ${wait(outbox.oldest_due_seconds)})`},{" "}
+            {outbox.held} held, {outbox.failed_24h} failed in 24 h
           </Check>
           {health.redis && (
             <Check title="Redis" status={health.redis}>
-              {health.redis === "ok"
-                ? "Rate limits are shared between API containers."
-                : "Unreachable. Each API container limits on its own until it is back."}
+              {health.redis === "ok" ? "Connected" : "Unreachable, rate limits are per API container"}
             </Check>
           )}
         </div>
+      )}
+      {health && health.checklist.some((i) => !i.done) && (
+        <>
+          <h3 id="checklist-title">Finish setting up</h3>
+          <ul className="checklist" aria-labelledby="checklist-title">
+            {health.checklist.map(({ id, done }) => (
+              <li key={id}>
+                <span className={`badge ${done ? "read" : "pending"}`}>{done ? "Done" : "To do"}</span>
+                {!done && STEPS[id].to ? <Link to={STEPS[id].to}>{STEPS[id].label}</Link> : <span>{STEPS[id].label}</span>}
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </section>
   );

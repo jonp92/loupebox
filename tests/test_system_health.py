@@ -4,7 +4,7 @@ import pytest
 
 from app.core import health
 from app.core.rate_limit import MemoryLimiter, RedisLimiter
-from app.models import NotificationOutbox, OutboxStatus, Role, WorkerHeartbeat
+from app.models import NotificationChannel, NotificationOutbox, OutboxStatus, Role, WorkerHeartbeat
 from app.models.user import utcnow
 from tests.conftest import add_member, login, make_site, make_user
 
@@ -82,3 +82,26 @@ def test_redis_is_reported_only_when_configured(client, h, monkeypatch):
     for up, expected in ((True, "ok"), (False, "warn")):
         monkeypatch.setattr(RedisLimiter, "ping", lambda self, up=up: up)
         assert client.get("/system/health", headers=h).json()["redis"] == expected
+
+
+def test_checklist_follows_the_install(client, h, db, monkeypatch):
+    def items():
+        return {i["id"]: i["done"] for i in client.get("/system/health", headers=h).json()["checklist"]}
+
+    monkeypatch.setattr(health, "mail_provider", lambda: None)
+    monkeypatch.setattr(health.settings, "public_url", "")
+    assert items() == dict.fromkeys(["mail", "public_url", "worker", "site", "channel"], False)
+
+    monkeypatch.setattr(health, "mail_provider", lambda: object())
+    monkeypatch.setattr(health.settings, "public_url", "https://feedback.example.com")
+    health.beat(db, utcnow())
+    site = make_site(db)
+    assert items() == {"mail": True, "public_url": True, "worker": True, "site": True, "channel": False}
+
+    off = NotificationChannel(site_id=site.id, provider="webhook", name="Off", enabled=False)
+    db.add(off)
+    db.commit()
+    assert items()["channel"] is False  # a disabled channel doesn't count
+    off.enabled = True
+    db.commit()
+    assert items()["channel"] is True

@@ -168,6 +168,7 @@ export interface InstanceHealth {
     oldest_due_seconds: number | null;
   };
   redis: HealthStatus | null; // null: not configured
+  checklist: { id: "mail" | "public_url" | "worker" | "site" | "channel"; done: boolean }[];
 }
 
 export interface DayStats {

@@ -8,9 +8,11 @@ from pydantic import BaseModel
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.rate_limit import RedisLimiter, limiter
-from app.models import NotificationOutbox, OutboxStatus, WorkerHeartbeat
+from app.models import NotificationChannel, NotificationOutbox, OutboxStatus, Site, WorkerHeartbeat
 from app.models.user import utcnow
+from app.notifications.system_mail import mail_provider
 
 HEARTBEAT_EVERY = 30  # seconds between beats from one worker
 WORKER_STALE = timedelta(minutes=3)  # a pass can be slow while a provider times out
@@ -33,11 +35,17 @@ class OutboxHealth(BaseModel):
     oldest_due_seconds: int | None  # how long the longest-waiting due row has been waiting
 
 
+class ChecklistItem(BaseModel):
+    id: Literal["mail", "public_url", "worker", "site", "channel"]
+    done: bool
+
+
 class Health(BaseModel):
     database: Status
     worker: WorkerHealth
     outbox: OutboxHealth
     redis: Status | None  # None: no REDIS_URL, limits are per process by design
+    checklist: list[ChecklistItem]
 
 
 def beat(db: Session, now: datetime) -> None:
@@ -91,4 +99,19 @@ def check(db: Session, now: datetime | None = None) -> Health:
     redis = None
     if isinstance(limiter, RedisLimiter):
         redis = "ok" if limiter.ping() else "warn"  # down means per-process limits, not an outage
-    return Health(database="ok", worker=worker, outbox=outbox, redis=redis)
+    return Health(
+        database="ok", worker=worker, outbox=outbox, redis=redis, checklist=checklist(db, bool(live))
+    )
+
+
+def checklist(db: Session, worker_live: bool) -> list[ChecklistItem]:
+    """What a new install still needs, in the order to do it."""
+    done = {
+        "mail": mail_provider() is not None,
+        "public_url": bool(settings.public_url),
+        "worker": worker_live,
+        "site": db.scalar(select(Site.id).limit(1)) is not None,
+        "channel": db.scalar(select(NotificationChannel.id).where(NotificationChannel.enabled).limit(1))
+        is not None,
+    }
+    return [ChecklistItem(id=key, done=value) for key, value in done.items()]
