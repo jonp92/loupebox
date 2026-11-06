@@ -97,6 +97,7 @@ class Settings(BaseSettings):
     # falls back to JWT_SECRET, but then rotating JWT_SECRET makes them unreadable: set them separately.
     totp_encryption_key: str = ""  # two-factor seeds
     webhook_encryption_key: str = ""  # webhook signing secrets
+    settings_encryption_key: str = ""  # provider secrets set in the admin UI (System settings)
     totp_issuer: str = "Loupebox"
     mfa_token_minutes: int = 5  # how long the password step stays valid while the code is entered
     mfa_hourly_limit: int = (

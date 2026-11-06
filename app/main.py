@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import APIRouter, FastAPI
 
 from app.api import (
@@ -11,18 +13,29 @@ from app.api import (
     password_reset_routes,
     public_routes,
     reply_routes,
+    settings_routes,
     site_routes,
     stats_routes,
     user_routes,
 )
 from app.challenges.registry import load_verifiers
+from app.core import runtime_settings
 from app.core.config import settings
 from app.core.middleware import BodySizeLimitMiddleware, DynamicCORSMiddleware
+from app.db.session import get_sessionmaker
 from app.notifications.registry import load_providers
 
 prefix = settings.api_prefix
 load_providers()  # the admin API lists providers and sends test messages
 load_verifiers()  # public ingest enforces each site's challenge mode
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    with get_sessionmaker()() as db:
+        runtime_settings.load(db)  # settings saved in the admin UI win over env
+    yield
+
 
 # Interactive docs only outside production, so a deployed instance doesn't advertise its schema.
 _docs = settings.environment != "production"
@@ -31,6 +44,7 @@ app = FastAPI(
     docs_url=f"{prefix}/docs" if _docs else None,
     redoc_url=f"{prefix}/redoc" if _docs else None,
     openapi_url=f"{prefix}/openapi.json" if _docs else None,
+    lifespan=lifespan,
 )
 
 # Added first = innermost, so 413s from the size limit still get CORS headers.
@@ -56,6 +70,7 @@ for module in (
     notification_routes,
     stats_routes,
     dashboard_routes,
+    settings_routes,
 ):
     api.include_router(module.router)
 app.include_router(api)

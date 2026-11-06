@@ -5,6 +5,7 @@ import signal
 import time
 
 from app.challenges.replay import purge_expired
+from app.core import runtime_settings
 from app.core.audit import purge_expired as purge_audit
 from app.core.config import settings
 from app.db.session import get_sessionmaker
@@ -33,6 +34,7 @@ def run() -> None:
     while not _stop:
         try:
             with get_sessionmaker()() as db:
+                runtime_settings.load(db)  # pick up changes made in the admin UI
                 handled = process_due(db)
                 if time.monotonic() - last_purge >= PURGE_EVERY:
                     last_purge = time.monotonic()
