@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Navigate } from "react-router-dom";
+import { NavLink, Navigate, useParams } from "react-router-dom";
 import { api, json, type SystemSetting } from "../api";
 import { useAuth } from "../auth";
+import { ScrollTabs } from "../components";
 import { useConfirm } from "../confirm";
 import { useToast } from "../toast";
 
@@ -9,6 +10,14 @@ type Draft = Record<string, string | boolean>;
 
 const envName = (key: string) => key.toUpperCase();
 const shown = (v: unknown) => (Array.isArray(v) ? v.join(", ") : v === "" || v == null ? "(empty)" : String(v));
+
+/** Tabs in display order: URL segment, label and the setting groups each one shows. */
+const TABS = [
+  { path: "status", label: "Status", groups: ["Server"] },
+  { path: "email", label: "Email & notifications", groups: ["Email", "Notifications"] },
+  { path: "form", label: "Public form", groups: ["Public feedback form"] },
+  { path: "accounts", label: "Accounts & limits", groups: ["Sign-in and accounts", "Replies and data"] },
+] as const;
 
 function byGroup(items: SystemSetting[]): [string, SystemSetting[]][] {
   const groups = new Map<string, SystemSetting[]>();
@@ -88,11 +97,14 @@ export default function SystemSettings() {
   const [items, setItems] = useState<SystemSetting[] | null>(null);
   const [draft, setDraftState] = useState<Draft>({});
   const [error, setError] = useState("");
+  const { tab: tabPath } = useParams();
   useEffect(() => {
     api<SystemSetting[]>("/settings").then(setItems).catch((e) => setError(e.message));
   }, []);
 
   if (!me?.is_superadmin) return <Navigate to="/" replace />;
+  const tab = TABS.find((t) => t.path === tabPath);
+  if (!tab) return <Navigate to={`/system/${TABS[0].path}`} replace />;
 
   const setDraft = (key: string, v: string | boolean) => setDraftState((d) => ({ ...d, [key]: v }));
 
@@ -133,7 +145,10 @@ export default function SystemSettings() {
       </p>
       {error && <p className="error" role="alert">{error}</p>}
       {!items && !error && <p className="muted">Loading…</p>}
-      {items && byGroup(items).map(([group, fields]) =>
+      <ScrollTabs>
+        {TABS.map((t) => <NavLink key={t.path} to={`/system/${t.path}`}>{t.label}</NavLink>)}
+      </ScrollTabs>
+      {items && byGroup(items).filter(([group]) => (tab.groups as readonly string[]).includes(group)).map(([group, fields]) =>
         fields.some((s) => s.editable) ? (
           <form key={group} className="card system-settings" onSubmit={(e) => submit(e, fields)} aria-labelledby={`group-${group}`}>
             <h2 id={`group-${group}`}>{group}</h2>
