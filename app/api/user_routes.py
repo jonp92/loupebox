@@ -1,17 +1,17 @@
 import uuid
-from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.avatar_routes import clear_avatar, raw_body, store_avatar
 from app.api.deps import require_superadmin
+from app.core.accounts import clear_totp, revoke_sessions
 from app.core.audit import audit, changed, snapshot
 from app.core.security import hash_password
 from app.db.session import get_db
-from app.models import RecoveryCode, RefreshToken, User, user_matches
+from app.models import User, user_matches
 from app.schemas.auth import UserCreate, UserOut, UserPage, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(require_superadmin)])
@@ -127,12 +127,7 @@ def update_user(
         user.password_hash = hash_password(body.password)
     _audit_user_update(db, actor, user, before, password_reset=body.password is not None)
     if body.password is not None or body.is_active is False:
-        # Force re-login everywhere.
-        db.execute(
-            update(RefreshToken)
-            .where(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None))
-            .values(revoked_at=datetime.now(UTC))
-        )
+        revoke_sessions(db, user.id)  # force re-login everywhere
     try:
         db.commit()
     except IntegrityError:
@@ -165,7 +160,8 @@ def set_user_avatar(
         target_type="user",
         target_id=user.id,
     )
-    store_avatar(db, user, raw, content_type)
+    store_avatar(user, raw, content_type)
+    db.commit()
     return UserOut.model_validate(user)
 
 
@@ -182,7 +178,8 @@ def delete_user_avatar(
         target_type="user",
         target_id=user.id,
     )
-    clear_avatar(db, user)
+    clear_avatar(user)
+    db.commit()
     return UserOut.model_validate(user)
 
 
@@ -194,13 +191,8 @@ def reset_user_totp(
     user = _get_user(db, user_id)
     if not user.totp_enabled:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "TOTP is not enabled for this user")
-    user.totp_secret = user.totp_enabled_at = user.totp_last_step = None
-    db.execute(delete(RecoveryCode).where(RecoveryCode.user_id == user.id))
-    db.execute(
-        update(RefreshToken)
-        .where(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None))
-        .values(revoked_at=datetime.now(UTC))
-    )
+    clear_totp(db, user)
+    revoke_sessions(db, user.id)
     audit(
         db,
         actor,

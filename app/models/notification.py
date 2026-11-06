@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import JSON, Boolean, Enum, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -35,8 +35,8 @@ class NotificationChannel(Base):
     extra_recipients: Mapped[list[str]] = mapped_column(JSON, default=list)
     # Signing secret for providers that sign (webhooks), encrypted with app.core.crypto.
     secret: Mapped[str | None] = mapped_column(String(255), default=None)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(default=utcnow, onupdate=utcnow)
 
     @property
     def has_secret(self) -> bool:
@@ -59,11 +59,11 @@ class NotificationOutbox(Base):
         Enum(OutboxStatus, native_enum=False, length=16), default=OutboxStatus.pending
     )
     attempts: Mapped[int] = mapped_column(Integer, default=0)
-    next_attempt_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    next_attempt_at: Mapped[datetime] = mapped_column(default=utcnow)
     last_error: Mapped[str | None] = mapped_column(Text, default=None)
     # Set on rows covered by a summary email: the id of the row that anchors it. A summary counts
     # as one send against the hourly cap however many rows it covers.
     summary_id: Mapped[uuid.UUID | None] = mapped_column(default=None)
     provider_message_id: Mapped[str | None] = mapped_column(String(128), default=None)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+    sent_at: Mapped[datetime | None] = mapped_column(default=None)

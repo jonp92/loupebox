@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Enum, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -30,7 +30,7 @@ class Site(Base):
     # Public-ingest challenge: "off" or the key of a registered app.challenges verifier.
     challenge_mode: Mapped[str] = mapped_column(String(24), default="off", server_default="off")
     challenge_config: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
 
     memberships: Mapped[list["Membership"]] = relationship(
         back_populates="site", cascade="all, delete-orphan"

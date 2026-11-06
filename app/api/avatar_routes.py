@@ -40,8 +40,8 @@ async def raw_body(request: Request) -> bytes:
     return await request.body()
 
 
-def store_avatar(db: Session, user: User, raw: bytes, content_type: str | None) -> None:
-    """Validate a raw image upload and save it as the user's avatar."""
+def store_avatar(user: User, raw: bytes, content_type: str | None) -> None:
+    """Validate a raw image upload and set it as the user's avatar. The caller commits."""
     declared = (content_type or "").split(";")[0].strip().lower()
     if declared not in ("image/png", "image/jpeg", "image/webp"):
         raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "Avatar must be PNG, JPEG or WebP")
@@ -52,11 +52,7 @@ def store_avatar(db: Session, user: User, raw: bytes, content_type: str | None) 
     user.avatar_data = raw
     user.avatar_type = declared
     user.avatar_updated_at = datetime.now(UTC)
-    db.commit()
 
 
-def clear_avatar(db: Session, user: User) -> None:
-    user.avatar_data = None
-    user.avatar_type = None
-    user.avatar_updated_at = None
-    db.commit()
+def clear_avatar(user: User) -> None:
+    user.avatar_data = user.avatar_type = user.avatar_updated_at = None
