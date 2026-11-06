@@ -130,6 +130,11 @@ main { max-width: 900px; margin: 1.5rem auto 1rem; padding: 0 1rem; }
 
 /* surfaces */
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem 1.25rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.skeleton { display: block; max-width: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--surface-2) 30%, var(--border) 50%, var(--surface-2) 70%) 100% 0 / 300% 100%; animation: skeleton-shimmer 1.4s ease-in-out infinite; }
+@keyframes skeleton-shimmer { to { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+.ph { display: flex; flex-direction: column; gap: .6rem; }
+.is-refreshing { opacity: .6; transition: opacity .15s; }
 .empty-state { text-align: center; color: var(--muted); padding: 2.5rem 1rem; border: 1px dashed var(--border); border-radius: var(--radius); }
 
 /* forms */

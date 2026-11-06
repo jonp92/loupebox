@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, json, type Dashboard as DashboardData } from "../api";
+import { Bar, Placeholder } from "../Skeleton";
 import { useToast } from "../toast";
 
 export default function Dashboard() {
@@ -24,6 +25,13 @@ export default function Dashboard() {
     <>
       <div className="page-head"><h1>Dashboard</h1></div>
       {error && <p className="error">{error}</p>}
+      {!data && !error && (
+        <Placeholder label="Loading the dashboard">
+          <div className="stats">
+            {[0, 1, 2, 3].map((i) => <div key={i} className="stat"><Bar w="3rem" h="1.75rem" /><Bar w="7rem" h=".8rem" /></div>)}
+          </div>
+        </Placeholder>
+      )}
       {data && (
         <div className="stats">
           <div className="stat"><strong>{data.new_total}</strong><span className="muted">Unread</span></div>
