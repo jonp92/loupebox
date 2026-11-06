@@ -25,6 +25,12 @@ change between releases; breaking changes are called out below.
 - Settings saved on the System page reach other API containers within 30 seconds.
 
 ### Changed
+- Searching feedback on Postgres uses trigram indexes (migration `0017`, extension `pg_trgm`). On a benchmark
+  database of 1.1 million items, a search for a rare word on the largest site (237,000 items) dropped from about
+  150 ms to under 1 ms per query. At 10 searches per second the 95th percentile stayed under 190 ms; without the
+  indexes it was 3.8 s at 7 per second, with failures from 9. Building the indexes took about 35 seconds there
+  and added 225 MB to a 548 MB table, and new feedback waits while they build. If the database does not allow
+  the extension, the migration prints a warning and continues: search works as before, only slower on big sites.
 - Turning on two-factor authentication asks for your password as well as the first code, as turning it off
   already did. **API:** `POST /auth/me/totp/enable` now requires `password`.
 
