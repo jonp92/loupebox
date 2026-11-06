@@ -4,9 +4,9 @@
     DATABASE_URL=postgresql+psycopg://bench:bench@127.0.0.1:55433/bench alembic upgrade head
     DATABASE_URL=... python -m bench.seed --rows 1000000 --sites 50
 
-Refuses anything but a database called "bench" on localhost, and refuses a database that already has
-sites (reset with `docker compose -f bench/docker-compose.yml down -v`). Writes bench/out/sites.json
-with the ids and public keys the load scripts need.
+Refuses anything but a database called "bench" on localhost (or the compose service "db"), and refuses
+a database that already has sites (reset with `docker compose -f bench/docker-compose.yml down -v`).
+Writes bench/out/sites.json with the ids and public keys the load scripts need.
 """
 
 import argparse
@@ -50,7 +50,8 @@ AGENTS = ["Mozilla/5.0 (Macintosh)", "Mozilla/5.0 (iPhone)", "Mozilla/5.0 (Windo
 def connect_info(url: str) -> str:
     """Return the psycopg DSN after checking this is the throwaway database."""
     u = urlparse(url.replace("+psycopg", ""))
-    if u.hostname not in ("localhost", "127.0.0.1") or u.path != "/bench":
+    # "db" is the compose service name, reachable only from inside the bench compose network.
+    if u.hostname not in ("localhost", "127.0.0.1", "db") or u.path != "/bench":
         sys.exit(f"Refusing to seed {u.hostname}{u.path}: only a local database named bench.")
     return url.replace("+psycopg", "")
 
