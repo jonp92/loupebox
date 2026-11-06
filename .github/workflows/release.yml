@@ -44,7 +44,7 @@ jobs:
           - {image: loupebox-api, context: ., cache: api}
           - {image: loupebox-web, context: web, cache: web}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Tag must match the VERSION file
         run: test "$GITHUB_REF_NAME" = "v$(cat VERSION)" || { echo "tag $GITHUB_REF_NAME != v$(cat VERSION)"; exit 1; }
       - uses: docker/setup-qemu-action@v4
@@ -81,7 +81,7 @@ jobs:
     needs: images
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Notes from CHANGELOG.md
         run: |
           v="${GITHUB_REF_NAME#v}"
