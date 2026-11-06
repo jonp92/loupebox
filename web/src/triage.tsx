@@ -112,7 +112,7 @@ const LONG_PRESS_MS = 500;
 /** Handlers that open a menu on right-click or a long touch press, plus `openAt` for a visible "⋯" button. */
 export function useContextMenu() {
   const [menu, setMenu] = useState<{ at: Point; items: MenuItem[] } | null>(null);
-  const timer = useRef<number>();
+  const timer = useRef<number>(undefined);
   const fired = useRef(false);
   const cancel = () => window.clearTimeout(timer.current);
   const bind = (items: () => MenuItem[]) => ({
