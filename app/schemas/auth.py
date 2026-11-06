@@ -107,6 +107,11 @@ class UserOut(BaseModel):
     totp_enabled: bool
 
 
+class UserPage(BaseModel):
+    items: list[UserOut]
+    total: int
+
+
 class UserUpdate(BaseModel):
     first_name: str | None = Field(default=None, min_length=1, max_length=100)
     last_name: str | None = Field(default=None, min_length=1, max_length=100)

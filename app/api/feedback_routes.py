@@ -25,6 +25,7 @@ from app.models import (
     Membership,
     Role,
     User,
+    user_matches,
     user_name,
 )
 from app.schemas.feedback import (
@@ -321,14 +322,7 @@ def assignees(
     member list, which can be long."""
     stmt = _assignable(access.site.id)
     if q.strip():
-        stmt = stmt.where(
-            or_(
-                *(
-                    c.icontains(q.strip(), autoescape=True)
-                    for c in (User.email, User.first_name, User.last_name)
-                )
-            )
-        )
+        stmt = stmt.where(user_matches(q))
     rows = db.execute(
         stmt.with_only_columns(User.id, User.email, user_name()).order_by(User.email).limit(limit)
     )

@@ -7,7 +7,8 @@ site. Everyone else gets access to a site through a role on that site. A person 
 different sites.
 
 Superadmins manage accounts on the **Users** page and server settings on the **System** page (see
-[Settings](../reference/configuration.md#changing-settings-in-the-app)). Only they can change names and email addresses. People
+[Settings](../reference/configuration.md#changing-settings-in-the-app)). Only they can change names and email
+addresses. The Users page shows 50 people at a time and has a search box for names and emails. People
 change their own password and picture under **Profile and password**. Uploads are cropped to 256 by 256
 pixels, and the file is limited to 64 KB.
 

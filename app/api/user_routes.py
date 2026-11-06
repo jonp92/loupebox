@@ -1,8 +1,8 @@
 import uuid
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
-from sqlalchemy import delete, select, update
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -11,8 +11,8 @@ from app.api.deps import require_superadmin
 from app.core.audit import audit, changed, snapshot
 from app.core.security import hash_password
 from app.db.session import get_db
-from app.models import RecoveryCode, RefreshToken, User
-from app.schemas.auth import UserCreate, UserOut, UserUpdate
+from app.models import RecoveryCode, RefreshToken, User, user_matches
+from app.schemas.auth import UserCreate, UserOut, UserPage, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(require_superadmin)])
 
@@ -57,8 +57,17 @@ def _audit_user_update(db: Session, actor: User, user: User, before: dict, *, pa
 
 
 @router.get("")
-def list_users(db: Session = Depends(get_db)) -> list[UserOut]:
-    return [UserOut.model_validate(u) for u in db.scalars(select(User).order_by(User.email))]
+def list_users(
+    db: Session = Depends(get_db),
+    q: str = Query(default="", max_length=100),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+) -> UserPage:
+    """One page of users by email, optionally only those whose name or email contains `q`."""
+    where = [user_matches(q)] if q.strip() else []
+    total = db.scalar(select(func.count()).select_from(User).where(*where)) or 0
+    rows = db.scalars(select(User).where(*where).order_by(User.email).limit(limit).offset(offset))
+    return UserPage(items=[UserOut.model_validate(u) for u in rows], total=total)
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
