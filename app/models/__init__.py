@@ -6,6 +6,7 @@ from app.models.setting import AppSetting
 from app.models.site import ROLE_RANK, Membership, Role, Site
 from app.models.stats import SiteStat, StatKind
 from app.models.user import PasswordResetToken, RecoveryCode, RefreshToken, User, user_matches
+from app.models.worker import WorkerHeartbeat
 
 __all__ = [
     "ROLE_RANK",
@@ -29,6 +30,7 @@ __all__ = [
     "StatKind",
     "UsedChallenge",
     "User",
+    "WorkerHeartbeat",
     "user_matches",
     "user_name",
 ]

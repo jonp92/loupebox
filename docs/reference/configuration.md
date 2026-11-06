@@ -68,6 +68,9 @@ setting, and `setup.sh` fills in the secrets for you.
 
 ## Changing settings in the app
 
+The **Status** tab shows whether the database, worker, outbox and Redis (if used) are healthy. If the worker
+shows as down, nothing is sent: start `python -m app.worker`.
+
 Superadmins can change email, notification, rate-limit, sign-in and retention settings on the **System** page.
 A value saved there:
 

@@ -3,6 +3,7 @@ import { NavLink, Navigate, useParams } from "react-router-dom";
 import { api, json, type SystemSetting } from "../api";
 import { useAuth } from "../auth";
 import { ScrollTabs } from "../components";
+import SystemHealth from "./SystemHealth";
 import { useConfirm } from "../confirm";
 import { useToast } from "../toast";
 
@@ -148,6 +149,7 @@ export default function SystemSettings() {
       <ScrollTabs>
         {TABS.map((t) => <NavLink key={t.path} to={`/system/${t.path}`}>{t.label}</NavLink>)}
       </ScrollTabs>
+      {tab.path === "status" && <SystemHealth />}
       {items && byGroup(items).filter(([group]) => (tab.groups as readonly string[]).includes(group)).map(([group, fields]) =>
         fields.some((s) => s.editable) ? (
           <form key={group} className="card system-settings" onSubmit={(e) => submit(e, fields)} aria-labelledby={`group-${group}`}>
