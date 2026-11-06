@@ -11,8 +11,8 @@ Check these before you use Loupebox in production.
   `COOKIE_SAMESITE=none`. Using one domain for both avoids this.
 * Behind a reverse proxy, set `TRUST_PROXY=true`, and make sure the proxy replaces the
   `X-Forwarded-For` header and nobody can reach the API port directly.
-* Run **one** API container. Rate limits are kept in the API's memory, so with two copies each visitor
-  gets double the limit. See [Known limits](../reference/limitations.md).
+* Run **one** API container, or set `REDIS_URL` first. See
+  [More than one API container](#more-than-one-api-container).
 * Run the **worker**. Without it no alerts are sent.
 * Set up [email](../notifications/index.md) so people get alerts and can reset passwords.
 * Back up the database on a schedule, and test a restore once. See [Backups](backups-upgrades.md).
@@ -23,3 +23,18 @@ Check these before you use Loupebox in production.
 The site key is in your web page, and a script can fake the browser's origin header. Loupebox limits the
 damage with rate limits, daily quotas, a hidden honeypot field and a spam quarantine. If you still get
 junk, turn on a challenge for the site. See [Spam and bots](../collect/spam-and-bots.md).
+
+## More than one API container
+
+Rate limits are kept in the API's memory by default. With two API containers each one counts separately, so
+visitors get double the limit. To run more than one, keep the counts in Redis:
+
+1. Start the Redis service that comes with the compose file: `docker compose --profile redis up -d`.
+2. Add `REDIS_URL=redis://redis:6379/0` to `.env` and restart the API.
+
+Redis only holds rate-limit counters, so it needs no volume or backup. The keys are hashed, so it never
+stores email or IP addresses. If Redis goes down, each API container keeps counting in its own memory and
+tries Redis again a few seconds later.
+
+Settings saved on the System page reach the other API containers within 30 seconds. One worker is enough,
+but more are safe on Postgres.

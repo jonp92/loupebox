@@ -1,6 +1,10 @@
+import time
+
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import select
 
+from app import main
 from app.core import runtime_settings
 from app.core.config import settings
 from app.db.session import get_sessionmaker
@@ -94,6 +98,18 @@ def test_other_processes_pick_up_saved_settings(client, h):
     assert settings.notify_max_recipients == 20
     with get_sessionmaker()() as db:
         runtime_settings.load(db)
+    assert settings.notify_max_recipients == 3
+
+
+def test_api_replicas_reload_saved_settings(db, monkeypatch):
+    """Another API replica's save reaches this one without a restart."""
+    monkeypatch.setattr(main, "SETTINGS_RELOAD_SECONDS", 0.01)
+    with TestClient(main.app):
+        db.add(AppSetting(key="notify_max_recipients", value=3, updated_by="x"))
+        db.commit()
+        deadline = time.monotonic() + 2
+        while settings.notify_max_recipients != 3 and time.monotonic() < deadline:
+            time.sleep(0.02)
     assert settings.notify_max_recipients == 3
 
 

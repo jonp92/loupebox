@@ -6,6 +6,12 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+### Added
+- You can run more than one API container. Set `REDIS_URL` and the rate limits are shared through Redis
+  instead of each container counting on its own. The compose file has an optional `redis` service
+  (`--profile redis`). Without `REDIS_URL` nothing changes.
+- Settings saved on the System page reach other API containers within 30 seconds.
+
 ### Changed
 - Turning on two-factor authentication asks for your password as well as the first code, as turning it off
   already did. **API:** `POST /auth/me/totp/enable` now requires `password`.

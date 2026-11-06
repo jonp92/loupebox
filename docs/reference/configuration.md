@@ -37,6 +37,7 @@ setting, and `setup.sh` fills in the secrets for you.
 | `COOKIE_SECURE` | Set `true` when the admin app uses HTTPS. |
 | `COOKIE_SAMESITE` | `lax` by default. Use `none` only if the app and API are on different sites. |
 | `TRUST_PROXY` | Set `true` behind a reverse proxy so rate limits see real visitor addresses. |
+| `REDIS_URL` | Empty by default. Set it, for example to `redis://redis:6379/0`, to run more than one API container. See [More than one API container](../install/production.md#more-than-one-api-container). |
 
 ## Email and alerts
 
@@ -72,7 +73,8 @@ A value saved there:
 
 * **wins over `.env`**. Editing `.env` does not change a setting that was saved on the System page. Each field
   says where its value comes from, and **Reset** goes back to the `.env` value.
-* **takes effect without a restart**, in the API at once and in the worker within one poll interval.
+* **takes effect without a restart**: at once in the API container that saved it, within 30 seconds in any
+  other API containers, and in the worker within one poll interval.
 * **is recorded in the audit log** with its old and new value.
 
 The SMTP password and the Brevo API key can be set there but never read back: they are stored encrypted with

@@ -52,6 +52,8 @@ services:
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       COOKIE_SAMESITE: ${COOKIE_SAMESITE:-lax}
       TRUST_PROXY: ${TRUST_PROXY:-false}
+      # Shared rate limits, needed for more than one API container, e.g. redis://redis:6379/0.
+      REDIS_URL: ${REDIS_URL:-}
       # Notifications: the API uses these for the providers list and test-send, the worker for real sends.
       BREVO_API_KEY: ${BREVO_API_KEY:-}
       SMTP_HOST: ${SMTP_HOST:-}
@@ -78,6 +80,13 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+    restart: unless-stopped
+
+  # Optional: `docker compose --profile redis up -d` and REDIS_URL=redis://redis:6379/0 in .env.
+  # It only holds rate-limit counters, so it needs no volume or backup.
+  redis:
+    image: redis:7-alpine
+    profiles: [redis]
     restart: unless-stopped
 
   # Drains the notification outbox (emails). Several replicas are safe on Postgres (SKIP LOCKED).

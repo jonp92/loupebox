@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     # Only honour X-Forwarded-For when running behind a trusted reverse proxy.
     trust_proxy: bool = False
 
+    # Shared rate limits for more than one API replica, e.g. redis://redis:6379/0. Empty: in-process.
+    redis_url: str = ""
+
     # Public ingest hardening
     max_body_bytes: int = 16_384
     public_require_origin: bool = True

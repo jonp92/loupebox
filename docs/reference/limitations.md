@@ -2,8 +2,8 @@
 
 Loupebox is alpha software. These are the limits to know about today.
 
-* **Run one API container.** Rate limits live in the API's memory. With more than one copy, each copy counts
-  separately and visitors get a multiple of the limit. Moving the limits to Redis is planned.
+* **More than one API container needs Redis.** Rate limits live in the API's memory unless `REDIS_URL` is
+  set. See [More than one API container](../install/production.md#more-than-one-api-container).
 * **Replies are one way.** Loupebox sends replies by email but does not read the answers. Replies from the
   person go to the editor's own inbox.
 * **It has not been load tested.** It is meant for small sites and tools. Benchmarks are planned.

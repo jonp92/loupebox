@@ -4,8 +4,8 @@
 saved; everything else stays env-only. Making another setting editable is one entry (or one flag) here.
 
 An override in `app_settings` wins over the env value. It is applied onto the shared `settings` object, so
-code keeps reading `settings.<name>` and needs no change. The API applies a change as soon as it is saved
-(it runs as one process, see rate_limit.py) and the worker reloads on every pass.
+code keeps reading `settings.<name>` and needs no change. The API process that saves a change applies it at
+once, other API replicas reload every 30 seconds (app/main.py) and the worker reloads on every pass.
 
 Secrets are write-only: stored encrypted with SETTINGS_ENCRYPTION_KEY and only ever reported as set or not.
 """
