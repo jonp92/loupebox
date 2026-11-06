@@ -23,6 +23,11 @@ change between releases; breaking changes are called out below.
   no longer shows a light border around it in the tab bar. The docs site uses the same favicon.
 - The app header and login wordmark is an SVG with a 176px-high PNG fallback.
 
+### Security
+- The add-member picker no longer lets a site admin list every user on the instance. It suggests people
+  who share one of the admin's sites; anyone else is found only by their full email address. Superadmins still
+  search everyone.
+
 ## [0.1.0-alpha.7] - 2026-11-04
 
 ### Added

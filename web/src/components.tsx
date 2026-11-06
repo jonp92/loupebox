@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
+import { useAuth } from "./auth";
 import { useOnline } from "./online";
 import { api, avatarSrc, displayName, type ConfigSchema, type JsonSchemaProp, type Profile } from "./api";
 
@@ -78,6 +79,7 @@ export function UserPicker({ siteId, value, onSelect }: {
   const [searched, setSearched] = useState(false);
   const listId = useId();
   const box = useRef<HTMLDivElement>(null);
+  const searchesEveryone = useAuth().me?.is_superadmin;
 
   useEffect(() => setText(value), [value]);
 
@@ -140,6 +142,7 @@ export function UserPicker({ siteId, value, onSelect }: {
         aria-expanded={open}
         aria-controls={listId}
         aria-autocomplete="list"
+        aria-label="User to add"
         placeholder="Search by name or email…"
         autoComplete="off"
         value={text}
@@ -165,7 +168,11 @@ export function UserPicker({ siteId, value, onSelect }: {
               </span>
             </li>
           ))}
-          {options.length === 0 && <li className="empty">No matching users</li>}
+          {options.length === 0 && (
+            <li className="empty">
+              {searchesEveryone ? "No matching users" : "No match among people on your sites. For anyone else, type their full email."}
+            </li>
+          )}
         </ul>
       )}
     </div>
