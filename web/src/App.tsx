@@ -117,7 +117,7 @@ export default function App() {
           <Route path="sites/:siteId/*" element={<SiteDetail />} />
           <Route path="users" element={<Users />} />
           <Route path="audit" element={<Audit />} />
-          <Route path="system" element={<SystemSettings />} />
+          <Route path="system/:tab?" element={<SystemSettings />} />
           <Route path="profile" element={<Profile />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
