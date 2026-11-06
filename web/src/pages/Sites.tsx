@@ -3,6 +3,7 @@ import { Link, Navigate } from "react-router-dom";
 import { api, json, type Dashboard } from "../api";
 import { soleSiteId, useAuth } from "../auth";
 import { useToast } from "../toast";
+import { Bar, Placeholder } from "../Skeleton";
 
 export default function Sites() {
   const { me } = useAuth();
@@ -31,6 +32,13 @@ export default function Sites() {
     <>
       <div className="page-head"><h1>Sites</h1></div>
       {error && <p className="error">{error}</p>}
+      {!data && !error && (
+        <Placeholder label="Loading sites">
+          <ul className="list">
+            {[0, 1, 2].map((i) => <li key={i} className="ph"><Bar w="10rem" /><Bar w="16rem" h=".8rem" /></li>)}
+          </ul>
+        </Placeholder>
+      )}
       {sites?.length === 0 && <p className="empty-state">You don't have access to any sites yet. Ask an admin to add you.</p>}
       <ul className="list">
         {sites?.map((s) => (

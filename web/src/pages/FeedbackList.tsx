@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { api, download, json, type Feedback, type Site, type Status } from "../api";
 import { useAuth } from "../auth";
 import { useConfirm } from "../confirm";
 import { useToast } from "../toast";
+import { Bar, Placeholder } from "../Skeleton";
 import {
   FeedbackBadges, TAG_PATTERN, ago, below, label, personName, recentAssignees, slug, useAssigneePicker, useContextMenu, type MenuItem,
 } from "../triage";
@@ -28,6 +29,8 @@ export default function FeedbackList({ site }: { site: Site }) {
   const navigate = useNavigate();
   const [items, setItems] = useState<Feedback[]>([]);
   const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true); // a list request is in flight
+  const latest = useRef(0); // only the newest request ends the loading state
   const [offset, setOffset] = useState(0);
   const [search] = useSearchParams(); // ?status= pre-selects the filter, e.g. from the dashboard
   const [status, setStatus] = useState(() => STATUSES.find((s) => s === search.get("status")) ?? "");
@@ -42,7 +45,7 @@ export default function FeedbackList({ site }: { site: Site }) {
   const [tag, setTag] = useState("");
   const picker = useAssigneePicker(site.id);
   const [assigneeLabel, setAssigneeLabel] = useState(""); // who a per-person filter is for
-  const [counts, setCounts] = useState({ mine: 0, unassigned: 0 });
+  const [counts, setCounts] = useState<{ mine: number; unassigned: number } | null>(null); // null until loaded
   const ctx = useContextMenu();
   const [siteTags, setSiteTags] = useState<{ tag: string; count: number }[]>([]);
   const [bulkTag, setBulkTag] = useState("");
@@ -77,6 +80,8 @@ export default function FeedbackList({ site }: { site: Site }) {
     const params = filterParams();
     params.set("limit", String(pageSize));
     params.set("offset", String(offset));
+    const mine = ++latest.current;
+    setLoading(true);
     api<{ items: Feedback[]; total: number }>(`/sites/${site.id}/feedback?${params}`)
       .then((r) => {
         setItems(r.items);
@@ -84,8 +89,9 @@ export default function FeedbackList({ site }: { site: Site }) {
         setSelected(new Set()); // a new page or filter never keeps a hidden selection
         setError("");
       })
-      .catch((e) => setError(e.message));
-    api<typeof counts>(`/sites/${site.id}/feedback/counts`).then(setCounts, () => undefined);
+      .catch((e) => setError(e.message))
+      .finally(() => mine === latest.current && setLoading(false));
+    api<{ mine: number; unassigned: number }>(`/sites/${site.id}/feedback/counts`).then(setCounts, () => undefined);
   }, [site.id, offset, pageSize, filterParams]);
   useEffect(load, [load]);
   // The kinds of feedback visitors have tagged (from the widget's badges), for the filter.
@@ -236,8 +242,8 @@ export default function FeedbackList({ site }: { site: Site }) {
       <div className="list-head">
         <div className="quick-tabs" role="group" aria-label="Whose feedback">
           {quickTab("", "All")}
-          {me && canBeAssigned && quickTab(me.id, "Assigned to me", counts.mine)}
-          {quickTab("none", "Unassigned", counts.unassigned)}
+          {me && canBeAssigned && quickTab(me.id, "Assigned to me", counts?.mine)}
+          {quickTab("none", "Unassigned", counts?.unassigned)}
         </div>
         <div className="density" role="radiogroup" aria-label="List density">
           {(["comfortable", "compact"] as const).map((d) => (
@@ -312,7 +318,16 @@ export default function FeedbackList({ site }: { site: Site }) {
       )}
       <datalist id="site-tags">{siteTags.map((t) => <option key={t.tag} value={t.tag} />)}</datalist>
       {error && <p className="error">{error}</p>}
-      {items.length === 0 && !error && <p className="empty-state">No feedback found.</p>}
+      {items.length === 0 && !error && (loading ? (
+        <Placeholder label="Loading feedback">
+          {[70, 85, 60, 78, 65].map((w, i) => (
+            <div key={i} className="card ph"><Bar w="7rem" h=".8rem" /><Bar w={`${w}%`} /></div>
+          ))}
+        </Placeholder>
+      ) : (
+        <p className="empty-state">No feedback found.</p>
+      ))}
+      <div className={loading ? "is-refreshing" : undefined} aria-busy={loading && items.length > 0}>
       {items.map((f) => (
         <article key={f.id} className={`card fb compact ${f.status}${density === "compact" ? " dense" : ""}`} {...ctx.bind(() => menuFor(f))}>
           <header>
@@ -335,6 +350,7 @@ export default function FeedbackList({ site }: { site: Site }) {
           </div>
         </article>
       ))}
+      </div>
       {canEdit && selected.size > 0 && (
         <div className="bulk-bar" role="toolbar" aria-label="Actions for the selected feedback">
           <strong>{selected.size} selected</strong>
@@ -351,11 +367,11 @@ export default function FeedbackList({ site }: { site: Site }) {
       )}
       {ctx.node}
       {picker.node}
-      <div className="toolbar">
+      {!(loading && items.length === 0) && <div className="toolbar">
         <button disabled={offset === 0} onClick={() => setOffset(offset - pageSize)}>Previous</button>
         <span className="muted">{total === 0 ? 0 : offset + 1}–{Math.min(offset + pageSize, total)} of {total}</span>
         <button disabled={offset + pageSize >= total} onClick={() => setOffset(offset + pageSize)}>Next</button>
-      </div>
+      </div>}
     </>
   );
 }
