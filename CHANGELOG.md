@@ -7,6 +7,9 @@ change between releases; breaking changes are called out below.
 ## [Unreleased]
 
 ### Added
+- The System page's Status tab lists the latest failed notifications of the last 24 hours (site, channel,
+  attempts and the provider's error), only when there are some. Errors are shortened and URLs are reduced to
+  their host, so webhook tokens stay out of view.
 - The System page's Email tab has a "Send test to me" button for each email provider, so you can check a
   provider works before relying on it. **API:** `POST /system/test-email` (superadmin only).
 - The System page's Status tab has a "Finish setting up" list: email provider, admin UI address, worker

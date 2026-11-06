@@ -1,5 +1,6 @@
 """Instance health for the System status panel, and the worker's heartbeat."""
 
+import re
 import socket
 from datetime import datetime, timedelta
 from typing import Literal
@@ -17,8 +18,19 @@ from app.notifications.system_mail import mail_provider
 HEARTBEAT_EVERY = 30  # seconds between beats from one worker
 WORKER_STALE = timedelta(minutes=3)  # a pass can be slow while a provider times out
 HEARTBEAT_KEEP = timedelta(days=1)  # rows from hostnames that no longer exist
+FAILURE_WINDOW = timedelta(hours=24)
 
 Status = Literal["ok", "warn", "error"]
+
+FAILURES_SHOWN = 10
+ERROR_SHOWN = 200
+# Webhook URLs carry tokens in the path, query or userinfo, and library errors echo them back: keep
+# only scheme and host.
+_URL = re.compile(r"(https?://)(?:[^/\s@\"'<>]*@)?([^/\s\"'<>]+)[^\s\"'<>]*")
+
+
+def safe_error(error: str | None) -> str:
+    return _URL.sub(r"\1\2", error or "")[:ERROR_SHOWN]
 
 
 class WorkerHealth(BaseModel):
@@ -27,12 +39,22 @@ class WorkerHealth(BaseModel):
     live: int  # workers that beat recently
 
 
+class Failure(BaseModel):
+    site: str
+    channel: str | None  # None once the channel was deleted
+    provider: str | None
+    queued_at: datetime
+    attempts: int
+    error: str  # shortened, URLs reduced to their host
+
+
 class OutboxHealth(BaseModel):
     status: Status
     pending: int
     held: int
     failed_24h: int
     oldest_due_seconds: int | None  # how long the longest-waiting due row has been waiting
+    recent_failures: list[Failure]
 
 
 class ChecklistItem(BaseModel):
@@ -79,7 +101,7 @@ def check(db: Session, now: datetime | None = None) -> Health:
     failed = db.scalar(
         select(func.count()).where(
             NotificationOutbox.status == OutboxStatus.failed,
-            NotificationOutbox.created_at >= now - timedelta(hours=24),
+            NotificationOutbox.created_at >= now - FAILURE_WINDOW,
         )
     )
     oldest = db.scalar(
@@ -95,6 +117,7 @@ def check(db: Session, now: datetime | None = None) -> Health:
         held=counts.get(OutboxStatus.held, 0),
         failed_24h=failed,
         oldest_due_seconds=waited,
+        recent_failures=recent_failures(db, now),
     )
     redis = None
     if isinstance(limiter, RedisLimiter):
@@ -115,3 +138,29 @@ def checklist(db: Session, worker_live: bool) -> list[ChecklistItem]:
         is not None,
     }
     return [ChecklistItem(id=key, done=value) for key, value in done.items()]
+
+
+def recent_failures(db: Session, now: datetime) -> list[Failure]:
+    """The latest failed notifications of the last 24 hours, newest first."""
+    rows = db.execute(
+        select(NotificationOutbox, Site.name, NotificationChannel.name, NotificationChannel.provider)
+        .join(Site, Site.id == NotificationOutbox.site_id)
+        .outerjoin(NotificationChannel, NotificationChannel.id == NotificationOutbox.channel_id)
+        .where(
+            NotificationOutbox.status == OutboxStatus.failed,
+            NotificationOutbox.created_at >= now - FAILURE_WINDOW,
+        )
+        .order_by(NotificationOutbox.created_at.desc())
+        .limit(FAILURES_SHOWN)
+    )
+    return [
+        Failure(
+            site=site,
+            channel=channel,
+            provider=provider,
+            queued_at=row.created_at,
+            attempts=row.attempts,
+            error=safe_error(row.last_error),
+        )
+        for row, site, channel, provider in rows
+    ]
