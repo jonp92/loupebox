@@ -12,7 +12,7 @@
   --accent: #007a94;
   --accent-hover: #00647a;
   --accent-fill: var(--accent); --accent-fill-hover: var(--accent-hover); /* button fill; dark overrides with a deeper cyan */
-  --accent-soft: #e6f6fa;
+  --accent-soft: #e9f7fa;
   --login-glow: #96e3f2;
   --glow: transparent; /* neon glow is dark-only */
   --on-accent: #ffffff;

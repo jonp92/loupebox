@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build && npm run build:widget",
     "preview": "vite preview",
+    "check:contrast": "node scripts/check-contrast.mjs",
     "build:widget": "tsc -p tsconfig.widget.json --noEmit false && vite build -c vite.widget.config.ts",
     "test": "npm run build:widget && node --test \"widget/test/*.test.mjs\""
   },
