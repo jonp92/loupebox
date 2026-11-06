@@ -41,7 +41,7 @@ disabled in the UI until the key and sender are both set.
 1. In the UI, open a site → **Notifications**, add a Brevo channel, and click **Test**. The test email
    goes only to you.
 2. Submit feedback to the site and watch the **deliveries** list: a row moves from pending to sent.
-3. `docker compose logs -f worker` shows what the worker is doing.
+3. `docker compose logs -f worker` shows what the worker is doing. See [Where to find logs](../reference/logs.md).
 
 ## Troubleshooting
 
