@@ -9,7 +9,11 @@ import {
   FeedbackBadges, TAG_PATTERN, ago, below, label, personName, recentAssignees, slug, useAssigneePicker, useContextMenu, type MenuItem,
 } from "../triage";
 
+/** A count that may have stopped at the server's cap: "10,000+". */
+const fmtCount = (n: number, capped: boolean) => `${n.toLocaleString()}${capped ? "+" : ""}`;
+
 type Density = "comfortable" | "compact";
+type QuickCounts = { mine: number; mine_capped?: boolean; unassigned: number; unassigned_capped?: boolean };
 const PAGE_SIZE: Record<Density, number> = { comfortable: 25, compact: 50 };
 const DENSITY_KEY = "loupebox.feedback-density";
 /** The list density chosen in this browser. Compact rows only apply on wide screens (see styles.css). */
@@ -46,7 +50,7 @@ export default function FeedbackList({ site }: { site: Site }) {
   const [tag, setTag] = useState("");
   const picker = useAssigneePicker(site.id);
   const [assigneeLabel, setAssigneeLabel] = useState(""); // who a per-person filter is for
-  const [counts, setCounts] = useState<{ mine: number; unassigned: number } | null>(null); // null until loaded
+  const [counts, setCounts] = useState<QuickCounts | null>(null); // null until loaded
   const ctx = useContextMenu();
   const [siteTags, setSiteTags] = useState<{ tag: string; count: number }[]>([]);
   const [bulkTag, setBulkTag] = useState("");
@@ -93,7 +97,7 @@ export default function FeedbackList({ site }: { site: Site }) {
       })
       .catch((e) => setError(e.message))
       .finally(() => mine === latest.current && setLoading(false));
-    api<{ mine: number; unassigned: number }>(`/sites/${site.id}/feedback/counts`).then(setCounts, () => undefined);
+    api<QuickCounts>(`/sites/${site.id}/feedback/counts`).then(setCounts, () => undefined);
   }, [site.id, offset, pageSize, filterParams]);
   useEffect(load, [load]);
   // The kinds of feedback visitors have tagged (from the widget's badges), for the filter.
@@ -196,9 +200,9 @@ export default function FeedbackList({ site }: { site: Site }) {
     e.preventDefault();
     open(id);
   };
-  const quickTab = (value: string, text: string, count?: number) => (
+  const quickTab = (value: string, text: string, count?: string | null) => (
     <button key={text} aria-pressed={assignee === value} onClick={() => { setAssignee(value); setOffset(0); }}>
-      {text}{count !== undefined && <span className="count">{count}</span>}
+      {text}{count != null && <span className="count">{count}</span>}
     </button>
   );
   /** What the right-click / long-press menu and the ⋯ button offer for one item. */
@@ -244,8 +248,8 @@ export default function FeedbackList({ site }: { site: Site }) {
       <div className="list-head">
         <div className="quick-tabs" role="group" aria-label="Whose feedback">
           {quickTab("", "All")}
-          {me && canBeAssigned && quickTab(me.id, "Assigned to me", counts?.mine)}
-          {quickTab("none", "Unassigned", counts?.unassigned)}
+          {me && canBeAssigned && quickTab(me.id, "Assigned to me", counts && fmtCount(counts.mine, Boolean(counts.mine_capped)))}
+          {quickTab("none", "Unassigned", counts && fmtCount(counts.unassigned, Boolean(counts.unassigned_capped)))}
         </div>
         <div className="density" role="radiogroup" aria-label="List density">
           {(["comfortable", "compact"] as const).map((d) => (
@@ -371,7 +375,7 @@ export default function FeedbackList({ site }: { site: Site }) {
       {picker.node}
       {!(loading && items.length === 0) && <div className="toolbar">
         <button disabled={offset === 0} onClick={() => setOffset(offset - pageSize)}>Previous</button>
-        <span className="muted">{total === 0 ? 0 : offset + 1}–{Math.min(offset + pageSize, total)} of {total.toLocaleString()}{totalCapped && "+"}</span>
+        <span className="muted">{total === 0 ? 0 : offset + 1}–{Math.min(offset + pageSize, total)} of {fmtCount(total, totalCapped)}</span>
         <button disabled={!totalCapped && offset + pageSize >= total} onClick={() => setOffset(offset + pageSize)}>Next</button>
       </div>}
     </>

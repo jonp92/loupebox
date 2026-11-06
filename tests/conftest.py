@@ -12,6 +12,7 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
+from app.api.feedback_routes import menus
 from app.core import runtime_settings
 from app.core.config import settings
 from app.core.origins import public_origins
@@ -65,6 +66,7 @@ def _clean_state():
     Base.metadata.drop_all(get_engine())
     Base.metadata.create_all(get_engine())
     limiter.reset()
+    menus.clear()
     public_origins.invalidate()
     yield
     runtime_settings.reset()  # overrides saved through the API live on the shared settings object

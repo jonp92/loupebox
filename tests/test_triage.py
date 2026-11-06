@@ -269,7 +269,12 @@ def test_quick_counts_exclude_spam_and_other_users(client, db, setup):
     patch(client, site, item, h, assignee_id=me)
     patch(client, site, theirs, h, assignee_id=_member(db, site, "o@example.com", Role.editor))
     patch(client, site, spam, h, assignee_id=me)
-    assert client.get(f"/sites/{site.id}/feedback/counts", headers=h).json() == {"mine": 1, "unassigned": 0}
+    assert client.get(f"/sites/{site.id}/feedback/counts", headers=h).json() == {
+        "mine": 1,
+        "unassigned": 0,
+        "mine_capped": False,
+        "unassigned_capped": False,
+    }
 
 
 def test_dashboard_lists_my_open_assignments(client, db, setup):

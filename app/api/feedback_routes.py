@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import SiteAccess, feedback_or_404, site_access
 from app.core.audit import audit
+from app.core.cache import TTLCache
 from app.core.config import settings
 from app.db.session import get_db, get_sessionmaker
 from app.models import (
@@ -44,7 +45,16 @@ from app.schemas.feedback import (
 )
 
 router = APIRouter(prefix="/sites/{site_id}/feedback", tags=["feedback"])
-TOTAL_CAP = 10_000  # the list stops counting here
+TOTAL_CAP = 10_000  # the list and the quick tabs stop counting here
+menus = TTLCache(30)  # the filter menus' tag and issue-type counts, per site
+
+
+def _capped_count(db: Session, where: list, cap: int) -> tuple[int, bool]:
+    """How many rows match, counting at most `cap`; the flag says there are more. Counting every match costs
+    as much as the site is big."""
+    matches = select(Feedback.id).where(*where).limit(cap + 1).subquery()
+    counted = db.scalar(select(func.count()).select_from(matches))
+    return min(counted, cap), counted > cap
 
 
 _ISSUE_TYPE = r"^[a-z0-9_-]{1,32}$"  # what the widget's badges send as metadata.issue_type
@@ -162,20 +172,12 @@ def list_feedback(
     offset: int = Query(default=0, ge=0),
 ) -> FeedbackPage:
     where = _where(access.site.id, f)
-    # Counting every match costs as much as the site is big. Stop at the cap (or the end of the page being
-    # viewed, if that is further) and say so; the UI shows "10,000+".
-    cap = max(TOTAL_CAP, offset + limit)
-    counted = db.scalar(
-        select(func.count()).select_from(select(Feedback.id).where(*where).limit(cap + 1).subquery())
-    )
+    # Stop counting at the cap, or at the end of the page being viewed if that is further.
+    total, capped = _capped_count(db, where, max(TOTAL_CAP, offset + limit))
     rows = db.scalars(
         select(Feedback).where(*where).order_by(Feedback.created_at.desc()).limit(limit).offset(offset)
     )
-    return FeedbackPage(
-        items=[FeedbackOut.model_validate(r) for r in rows],
-        total=min(counted, cap),
-        total_capped=counted > cap,
-    )
+    return FeedbackPage(items=[FeedbackOut.model_validate(r) for r in rows], total=total, total_capped=capped)
 
 
 CSV_COLUMNS = (
@@ -265,33 +267,43 @@ def _csv_rows(site_id: uuid.UUID, where: list) -> Iterator[str]:
 def issue_types(
     access: SiteAccess = Depends(site_access(Role.viewer)), db: Session = Depends(get_db)
 ) -> list[dict]:
-    """The issue types visitors have sent (from the widget's badges) with how many, for the list filter."""
-    rows = db.execute(
-        select(_issue_type_col, func.count())
-        .where(
-            Feedback.site_id == access.site.id,
-            Feedback.status.in_(NOT_SPAM),
-            _issue_type_col.is_not(None),
+    """The issue types visitors have sent (from the widget's badges) with how many, for the list filter.
+    Cached for 30 s: counting them reads the whole site."""
+
+    def compute() -> list[dict]:
+        rows = db.execute(
+            select(_issue_type_col, func.count())
+            .where(
+                Feedback.site_id == access.site.id,
+                Feedback.status.in_(NOT_SPAM),
+                _issue_type_col.is_not(None),
+            )
+            .group_by(_issue_type_col)
+            .order_by(func.count().desc())
         )
-        .group_by(_issue_type_col)
-        .order_by(func.count().desc())
-    )
-    return [{"id": value, "count": count} for value, count in rows if re.match(_ISSUE_TYPE, value or "")]
+        return [{"id": value, "count": count} for value, count in rows if re.match(_ISSUE_TYPE, value or "")]
+
+    return menus.get((access.site.id, "issue_types"), compute)
 
 
 @router.get("/tags")
 def tags(
     access: SiteAccess = Depends(site_access(Role.viewer)), db: Session = Depends(get_db)
 ) -> list[TagCount]:
-    """The site's tags with how many items carry each, for the list filter and the tag picker."""
-    rows = db.execute(
-        select(FeedbackTag.tag, func.count())
-        .join(Feedback, Feedback.id == FeedbackTag.feedback_id)
-        .where(Feedback.site_id == access.site.id)
-        .group_by(FeedbackTag.tag)
-        .order_by(func.count().desc(), FeedbackTag.tag)
-    )
-    return [TagCount(tag=tag, count=count) for tag, count in rows]
+    """The site's tags with how many items carry each, for the list filter and the tag picker.
+    Cached for 30 s, and dropped when tags change here: counting them reads the whole site."""
+
+    def compute() -> list[TagCount]:
+        rows = db.execute(
+            select(FeedbackTag.tag, func.count())
+            .join(Feedback, Feedback.id == FeedbackTag.feedback_id)
+            .where(Feedback.site_id == access.site.id)
+            .group_by(FeedbackTag.tag)
+            .order_by(func.count().desc(), FeedbackTag.tag)
+        )
+        return [TagCount(tag=tag, count=count) for tag, count in rows]
+
+    return menus.get((access.site.id, "tags"), compute)
 
 
 @router.get("/counts")
@@ -300,16 +312,13 @@ def counts(
 ) -> QuickCounts:
     """Sizes of the list's quick tabs: what is assigned to the caller and what is nobody's (spam excluded)."""
 
-    def count(*where) -> int:
-        return (
-            db.scalar(
-                select(func.count()).select_from(Feedback).where(*_where(access.site.id, Filters()), *where)
-            )
-            or 0
-        )
+    def count(*where) -> tuple[int, bool]:
+        return _capped_count(db, [*_where(access.site.id, Filters()), *where], TOTAL_CAP)
 
+    mine, mine_capped = count(Feedback.assignee_id == access.user.id)
+    unassigned, unassigned_capped = count(Feedback.assignee_id.is_(None))
     return QuickCounts(
-        mine=count(Feedback.assignee_id == access.user.id), unassigned=count(Feedback.assignee_id.is_(None))
+        mine=mine, mine_capped=mine_capped, unassigned=unassigned, unassigned_capped=unassigned_capped
     )
 
 
@@ -430,6 +439,7 @@ def bulk_feedback(
             {"count": len(items), "tag": body.tag, "ids": _ids(items)},
         )
     db.commit()
+    menus.invalidate(access.site.id)
     return BulkResult(affected=len(items), skipped=len(ids) - len(items))
 
 
@@ -496,6 +506,7 @@ def update_feedback(
         )
         _set_tags(item, body.tags)
     db.commit()
+    menus.invalidate(access.site.id)
     return FeedbackOut.model_validate(item)
 
 
@@ -580,3 +591,4 @@ def delete_feedback(
     )
     db.delete(item)
     db.commit()
+    menus.invalidate(access.site.id)

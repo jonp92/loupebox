@@ -230,6 +230,8 @@ class TagCount(BaseModel):
 class QuickCounts(BaseModel):
     mine: int
     unassigned: int
+    mine_capped: bool = False  # true: there are more than `mine`
+    unassigned_capped: bool = False
 
 
 class Assignee(BaseModel):
