@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.security import decode_access_token
 from app.db.session import get_db
 from app.models import ROLE_RANK, Feedback, Membership, Role, Site, User
+from app.notifications.base import NotificationProvider
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -27,6 +28,11 @@ def get_current_user(
     if user is None or not user.is_active:
         raise unauthorized
     return user
+
+
+def require_configured(provider: NotificationProvider) -> None:
+    if not provider.is_configured():
+        raise HTTPException(status.HTTP_409_CONFLICT, f"{provider.label} is not configured on the server")
 
 
 def require_superadmin(user: User = Depends(get_current_user)) -> User:

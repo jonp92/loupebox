@@ -10,6 +10,7 @@ import {
 } from "../api";
 import { SchemaFields } from "../components";
 import { useConfirm } from "../confirm";
+import { sendTest } from "../testSend";
 import { useToast } from "../toast";
 
 const ROLES: Role[] = ["viewer", "editor", "admin"];
@@ -166,17 +167,8 @@ export default function Notifications({ site }: { site: Site }) {
 
   async function test(c: Channel) {
     setTesting(c.id);
-    try {
-      const r = await api<{ status: string; error: string | null; to: string | null }>(
-        `/sites/${site.id}/notifications/${c.id}/test`, { method: "POST" },
-      );
-      const text = r.status === "sent" ? (r.to ? `Test sent to ${r.to}` : "Test delivered") : `Test ${r.status}: ${r.error ?? "unknown error"}`;
-      (r.status === "sent" ? toast.success : toast.error)(text);
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setTesting(null);
-    }
+    await sendTest(`/sites/${site.id}/notifications/${c.id}/test`, toast);
+    setTesting(null);
   }
 
   async function rotate(c: Channel) {

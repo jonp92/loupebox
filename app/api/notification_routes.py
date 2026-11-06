@@ -7,7 +7,7 @@ from pydantic import ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import SiteAccess, get_current_user, site_access
+from app.api.deps import SiteAccess, get_current_user, require_configured, site_access
 from app.core import crypto
 from app.core.audit import audit, changed, snapshot
 from app.core.rate_limit import enforce
@@ -62,11 +62,6 @@ def _validated_config(provider: NotificationProvider, config: dict) -> dict:
     return model.model_dump(mode="json")
 
 
-def _require_configured(provider: NotificationProvider) -> None:
-    if not provider.is_configured():
-        raise HTTPException(status.HTTP_409_CONFLICT, f"{provider.label} is not configured on the server")
-
-
 def _channel(db: Session, access: SiteAccess, channel_id: uuid.UUID) -> NotificationChannel:
     channel = db.get(NotificationChannel, channel_id)
     if channel is None or channel.site_id != access.site.id:
@@ -118,7 +113,7 @@ def create_channel(
     provider = _provider(body.provider)
     config = _validated_config(provider, body.config)
     if body.enabled:
-        _require_configured(provider)
+        require_configured(provider)
     count = db.scalar(
         select(func.count())
         .select_from(NotificationChannel)
@@ -173,7 +168,7 @@ def update_channel(
     if "config" in changes:
         changes["config"] = _validated_config(provider, changes["config"])
     if changes.get("enabled", channel.enabled):
-        _require_configured(provider)
+        require_configured(provider)
     before = snapshot(channel, _CHANNEL_FIELDS)
     for field, value in changes.items():
         setattr(channel, field, value)
@@ -250,7 +245,7 @@ def send_test(
     """Send one message straight through the provider, only to the caller. Not queued or capped."""
     channel = _channel(db, access, channel_id)
     provider = _provider(channel.provider)
-    _require_configured(provider)
+    require_configured(provider)
     config = provider.ConfigModel.model_validate(channel.config)
     enforce(f"notif-test:{access.user.id}", TEST_LIMIT, TEST_WINDOW)
 
