@@ -15,7 +15,14 @@ def get_engine() -> Engine:
         # In-memory SQLite (tests) needs one shared connection across threads.
         return create_engine(url, connect_args={"check_same_thread": False}, poolclass=StaticPool)
     # UTC session so date() bucketing of timestamps matches the UTC day used everywhere else.
-    return create_engine(url, pool_pre_ping=True, connect_args={"options": "-c timezone=utc"})
+    return create_engine(
+        url,
+        pool_pre_ping=True,
+        pool_size=settings.db_pool_size,
+        max_overflow=settings.db_max_overflow,
+        pool_timeout=settings.db_pool_timeout,
+        connect_args={"options": "-c timezone=utc"},
+    )
 
 
 @lru_cache

@@ -73,6 +73,7 @@ Total body must be ≤16 KB.
 | `413` | Body too large | Shouldn't happen; cap `message` at 5000 |
 | `422` | Validation failed; `detail` is a list of `{loc, msg}` | Show the field error if you can map `loc`; otherwise generic |
 | `429` | Rate limited or daily cap reached; `Retry-After` header (seconds) on rate limits | "Too many submissions, try again later." Don't auto-retry in a loop. |
+| `503` `{"detail":"Busy, try again shortly"}` | The server is overloaded; `Retry-After` header (seconds) | "Try again in a moment." You may retry once after the delay. |
 | network/CORS error | Preflight rejected (origin not allowed) or server unreachable | Generic error; see debugging below |
 
 Server limits (defaults): 10 submissions per IP per minute, 120 per key per minute, plus a daily
