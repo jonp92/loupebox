@@ -9,13 +9,15 @@ Users can set up a code from an authenticator app (any app that supports TOTP, R
 ## Turn it on
 
 1. Open your profile and start the setup. You see a QR code and the same key as text.
-2. Scan it with your app and enter the current code to confirm. It only takes effect after this.
+2. Scan it with your app, then enter the current code and your password to confirm. It only takes effect
+   after this.
 3. Save the 10 recovery codes. They are shown once, and each works once. Only their hashes are stored.
 
 Signing in then takes two steps: your password, then a code. A code can only be used once. Attempts are
 rate limited (`LOGIN_ACCOUNT_LIMIT` per minute and `MFA_HOURLY_LIMIT` per hour).
 
-To turn it off or make new recovery codes you need your password and a current code. Turning it on or off
+Turning it on, turning it off and making new recovery codes all need your password, so someone who gets
+hold of a signed-in session can't lock you out. Turning it off or making new codes also needs a current code. Turning it on or off
 signs out your other sessions.
 
 ## Keep the encryption key

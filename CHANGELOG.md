@@ -6,6 +6,16 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+### Changed
+- Turning on two-factor authentication asks for your password as well as the first code, as turning it off
+  already did. **API:** `POST /auth/me/totp/enable` now requires `password`.
+
+### Fixed
+- An allowed origin saved with its default port (`https://example.com:443`) never matched, because browsers
+  leave the default port out of the Origin header. The port is now dropped when saving, and migration `0014`
+  fixes origins already stored.
+- The daily feedback limit can no longer be overshot by submissions arriving at the same moment.
+
 ## [0.1.0-alpha.10] - 2026-11-06
 
 ### Changed

@@ -2,6 +2,7 @@ from sqlalchemy import select
 
 from app.core.config import settings
 from app.models import Feedback, FeedbackStatus
+from app.schemas.common import normalize_origin
 from tests.conftest import SITE_ORIGIN, make_site
 
 HEADERS = {"X-API-Key": "pk_test_Shop", "Origin": SITE_ORIGIN}
@@ -136,3 +137,10 @@ def test_other_sites_origin_cannot_use_this_key(client, db):
     make_site(db, "Blog", origins=["https://blog.example.com"])
     r = post(client, headers={"X-API-Key": "pk_test_Shop", "Origin": "https://blog.example.com"})
     assert r.status_code == 403
+
+
+def test_default_ports_are_dropped_from_origins():
+    assert normalize_origin("HTTPS://Shop.example:443") == "https://shop.example"
+    assert normalize_origin("http://shop.example:80/") == "http://shop.example"
+    assert normalize_origin("https://shop.example:8443") == "https://shop.example:8443"
+    assert normalize_origin("http://localhost:443") == "http://localhost:443"  # not the default for http

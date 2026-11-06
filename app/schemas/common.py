@@ -9,14 +9,21 @@ def clean_text(value: str | None) -> str | None:
     return value or None
 
 
+_DEFAULT_PORTS = {"http": 80, "https": 443}
+
+
 def normalize_origin(origin: str) -> str:
-    """Return scheme://host[:port] in lowercase, or raise ValueError."""
+    """Return scheme://host[:port] in lowercase, or raise ValueError.
+
+    A default port is dropped: browsers never send it in the Origin header, so a stored
+    `https://example.com:443` would never match.
+    """
     parts = urlsplit(origin.strip())
     if parts.scheme not in ("http", "https") or not parts.hostname:
         raise ValueError(f"Invalid origin: {origin!r}")
     if parts.path not in ("", "/") or parts.query or parts.fragment or parts.username:
         raise ValueError(f"Origin must be scheme://host[:port] only: {origin!r}")
-    port = f":{parts.port}" if parts.port else ""
+    port = f":{parts.port}" if parts.port and parts.port != _DEFAULT_PORTS[parts.scheme] else ""
     return f"{parts.scheme}://{parts.hostname.lower()}{port}"
 
 

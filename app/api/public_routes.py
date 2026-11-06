@@ -119,6 +119,9 @@ def submit_feedback(
         record(db, site.id, StatKind.honeypot)
         return FeedbackReceipt(id="00000000-0000-0000-0000-000000000000")
 
+    # Concurrent submissions take turns from here to the commit, so they can't all pass the count
+    # below (Postgres row lock; SQLite has a single writer anyway).
+    db.execute(select(Site.id).where(Site.id == site.id).with_for_update())
     now = datetime.now(UTC)
     day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     today = db.scalar(
