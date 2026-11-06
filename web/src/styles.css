@@ -80,6 +80,19 @@ code { font-family: ui-monospace, Menlo, monospace; }
 .edit-user { display: grid; grid-template-columns: 1fr 1fr; gap: 0 .75rem; }
 .edit-user .wide, .edit-user .row-actions { grid-column: 1 / -1; }
 .row-actions { display: flex; gap: .5rem; justify-content: flex-end; }
+.system-settings h2 { margin-top: 0; }
+.setting { padding: .1rem 0 .35rem; border-bottom: 1px solid var(--border); }
+.setting label { display: flex; align-items: center; gap: .5rem; margin-bottom: .3rem; }
+.setting .hint { margin: .3rem 0 0; }
+.setting-source { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .6rem; margin: .35rem 0 .5rem; font-size: .8rem; overflow-wrap: anywhere; }
+.setting-source button.link { padding: .35rem .15rem; } /* a bigger touch target than the text */
+.system-settings .row-actions { margin-top: 1rem; }
+.system-settings summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem; cursor: pointer; }
+.system-settings summary h2 { display: inline; margin: 0; }
+.readonly-settings { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem 1rem; margin: 1rem 0 0; }
+.readonly-settings dt { font-size: .85rem; font-weight: 500; color: var(--muted); }
+.readonly-settings dt code { display: block; font-size: .75rem; overflow-wrap: anywhere; }
+.readonly-settings dd { margin: 0; overflow-wrap: anywhere; }
 
 main { max-width: 900px; margin: 1.5rem auto 1rem; padding: 0 1rem; }
 .appfooter { text-align: center; margin: 0 auto 4rem; padding: 0 1rem; }
@@ -276,8 +289,8 @@ code.key { display: inline-block; margin-right: .75rem; background: var(--surfac
   .topbar { flex-wrap: wrap; row-gap: .4rem; padding: .5rem .75rem; }
   /* Row 1: brand + controls. Row 2: full-width nav. */
   .mainnav { order: 3; flex: 1 0 100%; margin: 0 -.25rem; padding-top: .4rem; border-top: 1px solid var(--border); }
-  .mainnav a { flex: 1; text-align: center; }
-  .grid-2, .edit-user { grid-template-columns: 1fr; }
+  .mainnav a { flex: 1; text-align: center; padding: .4rem .3rem; }
+  .grid-2, .edit-user, .readonly-settings { grid-template-columns: 1fr; }
   .profile-head { flex-direction: column; text-align: center; }
   /* overflow-x makes the box scroll vertically too; the tabs' -1px margin would then overflow by 1px. */
   .tabs { overflow-x: auto; overflow-y: hidden; white-space: nowrap; }

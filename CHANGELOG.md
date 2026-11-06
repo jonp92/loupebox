@@ -7,6 +7,10 @@ change between releases; breaking changes are called out below.
 ## [Unreleased]
 
 ### Added
+- System settings page for superadmins (`/system`, `GET`/`PATCH /settings`): change email, notification,
+  rate-limit, sign-in and retention settings without a restart. Saved values win over `.env` and every change is
+  audited. The SMTP password and Brevo API key are write-only and stored encrypted with the new
+  `SETTINGS_ENCRYPTION_KEY` (`setup.sh` generates it; set it in existing `.env` files). Migration `0013`.
 - The dashboard shows the total non-spam feedback received across your sites, and an "Unread by site" list that
   opens each site with the unread filter on. `GET /dashboard` returns the total as `received_total`.
 

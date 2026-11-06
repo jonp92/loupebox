@@ -6,7 +6,8 @@ A **superadmin** manages the whole install. They create sites and users, and hav
 site. Everyone else gets access to a site through a role on that site. A person can have different roles on
 different sites.
 
-Superadmins manage accounts on the **Users** page. Only they can change names and email addresses. People
+Superadmins manage accounts on the **Users** page and server settings on the **System** page (see
+[Settings](../reference/configuration.md#changing-settings-in-the-app)). Only they can change names and email addresses. People
 change their own password and picture under **Profile and password**. Uploads are cropped to 256 by 256
 pixels, and the file is limited to 64 KB.
 

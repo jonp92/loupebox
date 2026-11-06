@@ -10,6 +10,7 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
+from app.core import runtime_settings
 from app.core.config import settings
 from app.core.origins import public_origins
 from app.core.rate_limit import limiter
@@ -64,6 +65,7 @@ def _clean_state():
     limiter.reset()
     public_origins.invalidate()
     yield
+    runtime_settings.reset()  # overrides saved through the API live on the shared settings object
 
 
 @pytest.fixture

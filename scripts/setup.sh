@@ -14,17 +14,18 @@ command -v openssl >/dev/null || { echo "openssl is required to generate secrets
 secret() { openssl rand -base64 48 | tr -d '\n=' | tr '+/' '-_'; }  # URL-safe
 dbpass=$(openssl rand -hex 24)
 
-awk -v jwt="$(secret)" -v totp="$(secret)" -v hook="$(secret)" -v db="$dbpass" '
+awk -v jwt="$(secret)" -v totp="$(secret)" -v hook="$(secret)" -v sets="$(secret)" -v db="$dbpass" '
   /^JWT_SECRET=$/             { print "JWT_SECRET=" jwt; next }
   /^TOTP_ENCRYPTION_KEY=$/    { print "TOTP_ENCRYPTION_KEY=" totp; next }
   /^WEBHOOK_ENCRYPTION_KEY=$/ { print "WEBHOOK_ENCRYPTION_KEY=" hook; next }
+  /^SETTINGS_ENCRYPTION_KEY=$/ { print "SETTINGS_ENCRYPTION_KEY=" sets; next }
   /^POSTGRES_PASSWORD=$/      { print "POSTGRES_PASSWORD=" db; next }
   { gsub(/CHANGE_ME/, db); print }
 ' "$template" > .env
 chmod 600 .env
 
 cat <<MSG
-Wrote .env with generated secrets (keep it safe; changing the encryption keys later locks out 2FA and webhooks).
+Wrote .env with generated secrets (keep it safe; changing the encryption keys later locks out 2FA, webhooks and saved email credentials).
 
 Next:
   docker compose up -d --build

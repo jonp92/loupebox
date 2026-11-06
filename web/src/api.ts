@@ -135,6 +135,25 @@ export interface AuditEvent {
   details: Record<string, unknown>;
 }
 
+/** One row of System settings. Secrets never come back: value, env_value and default are null for them. */
+export interface SystemSetting {
+  key: string;
+  group: string;
+  label: string;
+  help: string;
+  type: "integer" | "string" | "boolean" | "list";
+  minimum: number | null;
+  maximum: number | null;
+  choices: string[] | null;
+  secret: boolean;
+  editable: boolean;
+  source: "default" | "env" | "ui";
+  configured: boolean;
+  value: unknown;
+  env_value: unknown;
+  default: unknown;
+}
+
 export interface DayStats {
   day: string; // YYYY-MM-DD (UTC)
   accepted: number;

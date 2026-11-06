@@ -11,6 +11,7 @@ const GROUPS = [
   ["member", "Site members"],
   ["channel", "Notification channels"],
   ["feedback", "Feedback"],
+  ["settings", "System settings"],
   ["auth", "Own account"],
 ] as const;
 
