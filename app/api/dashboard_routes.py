@@ -1,3 +1,4 @@
+import heapq
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, Query
@@ -38,44 +39,39 @@ def dashboard(
             .order_by(Site.name)
         ).all()
     site_ids = [s.id for s, _ in rows]
-    unread = [Feedback.site_id.in_(site_ids), Feedback.status == FeedbackStatus.new]
-
-    per_site = (
-        dict(
-            db.execute(select(Feedback.site_id, func.count()).where(*unread).group_by(Feedback.site_id)).all()
-        )
-        if site_ids
-        else {}
-    )
-    received_total = (
-        db.scalar(
-            select(func.count())
-            .select_from(Feedback)
-            .where(Feedback.site_id.in_(site_ids), Feedback.status.in_(NOT_SPAM))
-        )
-        if site_ids
-        else 0
-    )
-    new_24h = (
-        db.scalar(
-            select(func.count())
-            .select_from(Feedback)
-            .where(*unread, Feedback.created_at > utcnow() - timedelta(hours=24))
-        )
-        if site_ids
-        else 0
-    )
-    recent = (
+    # One pass over the caller's sites for the three counts (instead of one scan each).
+    day_ago = utcnow() - timedelta(hours=24)
+    counts = (
         db.execute(
-            select(Feedback, Site.name)
-            .join(Site, Site.id == Feedback.site_id)
-            .where(*unread)
-            .order_by(Feedback.created_at.desc())
-            .limit(limit)
+            select(
+                Feedback.site_id,
+                func.count().filter(Feedback.status == FeedbackStatus.new),
+                func.count().filter(Feedback.status.in_(NOT_SPAM)),
+                func.count().filter(Feedback.status == FeedbackStatus.new, Feedback.created_at > day_ago),
+            )
+            .where(Feedback.site_id.in_(site_ids))
+            .group_by(Feedback.site_id)
         ).all()
         if site_ids
         else []
     )
+    per_site = {site_id: unread for site_id, unread, _, _ in counts if unread}
+    received_total = sum(received for _, _, received, _ in counts)
+    new_24h = sum(recent_24h for _, _, _, recent_24h in counts)
+    # The newest unread items: the newest few of each site that has any (one index lookup each), then the
+    # newest overall. A single query over all the sites would sort every unread item.
+    names = {site.id: site.name for site, _ in rows}
+    newest = [
+        f
+        for site_id in per_site
+        for f in db.scalars(
+            select(Feedback)
+            .where(Feedback.site_id == site_id, Feedback.status == FeedbackStatus.new)
+            .order_by(Feedback.created_at.desc())
+            .limit(limit)
+        )
+    ]
+    recent = [(f, names[f.site_id]) for f in heapq.nlargest(limit, newest, key=lambda f: f.created_at)]
 
     # Open items (not archived or spam) the caller has been assigned, on sites they can still see.
     mine = [
