@@ -12,7 +12,7 @@ from app.core.config import settings
 from app.core.origins import public_origins
 from app.core.security import new_public_key
 from app.db.session import get_db
-from app.models import Feedback, Membership, Role, Site, User
+from app.models import Feedback, Membership, Role, Site, User, user_matches
 from app.schemas.site import (
     MemberOut,
     MemberUpsert,
@@ -222,11 +222,7 @@ def search_users(
     turns up only for their full email address, so the instance's user list can't be read letter by letter.
     """
     members = select(Membership.user_id).where(Membership.site_id == access.site.id)
-    match = or_(
-        User.email.icontains(q, autoescape=True),
-        User.first_name.icontains(q, autoescape=True),
-        User.last_name.icontains(q, autoescape=True),
-    )
+    match = user_matches(q)
     if not access.user.is_superadmin:
         own_sites = select(Membership.site_id).where(Membership.user_id == access.user.id)
         colleagues = select(Membership.user_id).where(Membership.site_id.in_(own_sites))
