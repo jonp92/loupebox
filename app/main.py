@@ -19,6 +19,7 @@ from app.api import (
     settings_routes,
     site_routes,
     stats_routes,
+    system_routes,
     user_routes,
 )
 from app.challenges.registry import load_verifiers
@@ -94,6 +95,7 @@ for module in (
     stats_routes,
     dashboard_routes,
     settings_routes,
+    system_routes,
 ):
     api.include_router(module.router)
 app.include_router(api)

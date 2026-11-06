@@ -118,6 +118,13 @@ class RedisLimiter:
         except redis.RedisError as e:
             self._failed(e)
 
+    def ping(self) -> bool:
+        """Is Redis answering right now (System status panel)?"""
+        try:
+            return bool(self._redis.ping())
+        except redis.RedisError:
+            return False
+
     def reset(self) -> None:
         """Forget every limit (tests)."""
         self._fallback.reset()

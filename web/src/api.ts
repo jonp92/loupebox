@@ -154,6 +154,22 @@ export interface SystemSetting {
   default: unknown;
 }
 
+export type HealthStatus = "ok" | "warn" | "error";
+
+/** GET /system/health: what the System status panel shows. */
+export interface InstanceHealth {
+  database: HealthStatus;
+  worker: { status: HealthStatus; last_beat_at: string | null; live: number };
+  outbox: {
+    status: HealthStatus;
+    pending: number;
+    held: number;
+    failed_24h: number;
+    oldest_due_seconds: number | null;
+  };
+  redis: HealthStatus | null; // null: not configured
+}
+
 export interface DayStats {
   day: string; // YYYY-MM-DD (UTC)
   accepted: number;

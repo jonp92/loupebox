@@ -5,7 +5,7 @@ import signal
 import time
 
 from app.challenges.replay import purge_expired
-from app.core import runtime_settings
+from app.core import health, runtime_settings
 from app.core.audit import purge_expired as purge_audit
 from app.core.config import settings
 from app.db.session import get_sessionmaker
@@ -30,12 +30,15 @@ def run() -> None:
     signal.signal(signal.SIGINT, _request_stop)
     load_providers()
     log.info("worker started, polling every %ss", settings.worker_poll_seconds)
-    last_purge = float("-inf")  # sweep once at startup, then hourly
+    last_purge = last_beat = float("-inf")  # sweep once at startup, then hourly
     while not _stop:
         try:
             with get_sessionmaker()() as db:
                 runtime_settings.load(db)  # pick up changes made in the admin UI
                 handled = process_due(db)
+                if time.monotonic() - last_beat >= health.HEARTBEAT_EVERY:
+                    last_beat = time.monotonic()
+                    health.beat(db, utcnow())
                 if time.monotonic() - last_purge >= PURGE_EVERY:
                     last_purge = time.monotonic()
                     removed = purge_finished(db, utcnow())
@@ -44,6 +47,7 @@ def run() -> None:
                     expired = purge_expired(db, utcnow())
                     if expired:
                         log.info("purged %s expired challenge markers", expired)
+                    health.purge_heartbeats(db, utcnow())
                     old_audit = purge_audit(db, utcnow())
                     if old_audit:
                         log.info("purged %s audit events past retention", old_audit)
