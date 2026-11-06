@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import decode_access_token
 from app.db.session import get_db
-from app.models import ROLE_RANK, Membership, Role, Site, User
+from app.models import ROLE_RANK, Feedback, Membership, Role, Site, User
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -41,6 +41,13 @@ class SiteAccess:
     site: Site
     role: Role
 
+    def has(self, role: Role) -> bool:
+        return ROLE_RANK[self.role] >= ROLE_RANK[role]
+
+    def require(self, role: Role) -> None:
+        if not self.has(role):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, f"Requires {role.value} role")
+
 
 def site_access(min_role: Role):
     """Dependency factory: resolves {site_id} and checks the caller holds at least `min_role`.
@@ -65,8 +72,16 @@ def site_access(min_role: Role):
             if membership is None:
                 raise HTTPException(status.HTTP_404_NOT_FOUND, "Site not found")
             role = membership.role
-        if ROLE_RANK[role] < ROLE_RANK[min_role]:
-            raise HTTPException(status.HTTP_403_FORBIDDEN, f"Requires {min_role.value} role")
-        return SiteAccess(user=user, site=site, role=role)
+        access = SiteAccess(user=user, site=site, role=role)
+        access.require(min_role)
+        return access
 
     return dependency
+
+
+def feedback_or_404(db: Session, site_id: uuid.UUID, feedback_id: uuid.UUID) -> Feedback:
+    """A feedback item of this site, or 404 (an id from another site is not revealed)."""
+    item = db.scalar(select(Feedback).where(Feedback.id == feedback_id, Feedback.site_id == site_id))
+    if item is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Feedback not found")
+    return item

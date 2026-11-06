@@ -12,12 +12,11 @@ from pydantic import BaseModel
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import SiteAccess, site_access
+from app.api.deps import SiteAccess, feedback_or_404, site_access
 from app.core.audit import audit
 from app.core.config import settings
 from app.db.session import get_db, get_sessionmaker
 from app.models import (
-    ROLE_RANK,
     Feedback,
     FeedbackNote,
     FeedbackStatus,
@@ -44,13 +43,6 @@ from app.schemas.feedback import (
 )
 
 router = APIRouter(prefix="/sites/{site_id}/feedback", tags=["feedback"])
-
-
-def _get(db: Session, site_id: uuid.UUID, feedback_id: uuid.UUID) -> Feedback:
-    item = db.scalar(select(Feedback).where(Feedback.id == feedback_id, Feedback.site_id == site_id))
-    if item is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Feedback not found")
-    return item
 
 
 _ISSUE_TYPE = r"^[a-z0-9_-]{1,32}$"  # what the widget's badges send as metadata.issue_type
@@ -236,12 +228,11 @@ def _csv_rows(site_id: uuid.UUID, where: list) -> Iterator[str]:
             .execution_options(yield_per=500)
         )
         for n, item in enumerate(db.scalars(stmt), 1):
-            created = item.created_at if item.created_at.tzinfo else item.created_at.replace(tzinfo=UTC)
             writer.writerow(
                 csv_cell(v)
                 for v in (
                     item.id,
-                    created.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    item.created_at.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
                     item.status.value,
                     _issue_type_of(item),
                     item.rating,
@@ -380,8 +371,8 @@ def bulk_feedback(
 ) -> BulkResult:
     """Change the status of, or delete, several items at once. Ids that are not in this site are
     skipped (not an error, and not revealed). Deleting needs the admin role, as for a single item."""
-    if body.action == "delete" and ROLE_RANK[access.role] < ROLE_RANK[Role.admin]:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, f"Requires {Role.admin.value} role")
+    if body.action == "delete":
+        access.require(Role.admin)
     ids = set(body.ids)
     items = list(db.scalars(select(Feedback).where(Feedback.site_id == access.site.id, Feedback.id.in_(ids))))
     if body.action == "delete":
@@ -459,7 +450,7 @@ def get_feedback(
     access: SiteAccess = Depends(site_access(Role.viewer)),
     db: Session = Depends(get_db),
 ) -> FeedbackOut:
-    return FeedbackOut.model_validate(_get(db, access.site.id, feedback_id))
+    return FeedbackOut.model_validate(feedback_or_404(db, access.site.id, feedback_id))
 
 
 @router.patch("/{feedback_id}")
@@ -469,7 +460,7 @@ def update_feedback(
     access: SiteAccess = Depends(site_access(Role.editor)),
     db: Session = Depends(get_db),
 ) -> FeedbackOut:
-    item = _get(db, access.site.id, feedback_id)
+    item = feedback_or_404(db, access.site.id, feedback_id)
     sent = body.model_fields_set
     if "status" in sent:
         item.status = body.status
@@ -503,7 +494,7 @@ def list_notes(
     access: SiteAccess = Depends(site_access(Role.viewer)),
     db: Session = Depends(get_db),
 ) -> list[NoteOut]:
-    item = _get(db, access.site.id, feedback_id)
+    item = feedback_or_404(db, access.site.id, feedback_id)
     rows = db.execute(
         select(FeedbackNote, user_name())
         .outerjoin(User, User.id == FeedbackNote.author_id)
@@ -520,7 +511,7 @@ def add_note(
     access: SiteAccess = Depends(site_access(Role.editor)),
     db: Session = Depends(get_db),
 ) -> NoteOut:
-    item = _get(db, access.site.id, feedback_id)
+    item = feedback_or_404(db, access.site.id, feedback_id)
     note = FeedbackNote(feedback_id=item.id, author_id=access.user.id, body=body.body)
     db.add(note)
     db.commit()
@@ -537,13 +528,13 @@ def delete_note(
     db: Session = Depends(get_db),
 ) -> None:
     """An editor removes their own notes; an admin can remove any."""
-    item = _get(db, access.site.id, feedback_id)
+    item = feedback_or_404(db, access.site.id, feedback_id)
     note = db.scalar(
         select(FeedbackNote).where(FeedbackNote.id == note_id, FeedbackNote.feedback_id == item.id)
     )
     if note is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Note not found")
-    if note.author_id != access.user.id and ROLE_RANK[access.role] < ROLE_RANK[Role.admin]:
+    if note.author_id != access.user.id and not access.has(Role.admin):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Only the author or an admin can delete a note")
     audit(
         db,
@@ -565,7 +556,7 @@ def delete_feedback(
     access: SiteAccess = Depends(site_access(Role.admin)),
     db: Session = Depends(get_db),
 ) -> None:
-    item = _get(db, access.site.id, feedback_id)
+    item = feedback_or_404(db, access.site.id, feedback_id)
     audit(  # the message itself is personal data, so only its id and status are kept
         db,
         access.user,

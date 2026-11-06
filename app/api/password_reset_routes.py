@@ -12,12 +12,13 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request,
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from app.core.accounts import revoke_sessions
 from app.core.audit import audit
 from app.core.config import settings
 from app.core.rate_limit import clear_login_failures, client_ip, enforce
 from app.core.security import hash_password, hash_token, new_refresh_token
 from app.db.session import get_db, get_sessionmaker
-from app.models import PasswordResetToken, RefreshToken, User
+from app.models import PasswordResetToken, User
 from app.models.user import utcnow
 from app.notifications import system_mail
 from app.schemas.auth import FeaturesOut, PasswordResetConfirm, PasswordResetRequest
@@ -102,9 +103,8 @@ def confirm_reset(
     now = datetime.now(UTC)
     if row is None or row.used_at is not None:
         raise invalid
-    expires = row.expires_at if row.expires_at.tzinfo else row.expires_at.replace(tzinfo=UTC)
     user = db.get(User, row.user_id)
-    if expires < now or user is None or not user.is_active:
+    if row.expires_at < now or user is None or not user.is_active:
         raise invalid
 
     user.password_hash = hash_password(body.new_password)
@@ -113,11 +113,7 @@ def confirm_reset(
         .where(PasswordResetToken.user_id == user.id, PasswordResetToken.used_at.is_(None))
         .values(used_at=now)
     )
-    db.execute(
-        update(RefreshToken)
-        .where(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None))
-        .values(revoked_at=now)
-    )
+    revoke_sessions(db, user.id)
     audit(
         db,
         user,

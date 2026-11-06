@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.api.avatar_routes import clear_avatar, raw_body, store_avatar
 from app.api.deps import get_current_user
 from app.core import totp
+from app.core.accounts import clear_totp, revoke_sessions
 from app.core.audit import audit
 from app.core.config import settings
 from app.core.rate_limit import (
@@ -138,14 +139,6 @@ def _check_second_factor(db: Session, user: User, code: str) -> str | None:
     return None
 
 
-def _revoke_sessions(db: Session, user: User) -> None:
-    db.execute(
-        update(RefreshToken)
-        .where(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None))
-        .values(revoked_at=datetime.now(UTC))
-    )
-
-
 @router.post("/login/totp")
 def login_totp(
     body: MfaLogin, request: Request, response: Response, db: Session = Depends(get_db)
@@ -188,16 +181,11 @@ def refresh(
     now = datetime.now(UTC)
     if row.revoked_at is not None:
         # A rotated token was replayed: assume theft and kill every session for this user.
-        db.execute(
-            update(RefreshToken)
-            .where(RefreshToken.user_id == row.user_id, RefreshToken.revoked_at.is_(None))
-            .values(revoked_at=now)
-        )
+        revoke_sessions(db, row.user_id)
         db.commit()
         raise invalid
-    expires = row.expires_at if row.expires_at.tzinfo else row.expires_at.replace(tzinfo=UTC)
     user = db.get(User, row.user_id)
-    if expires < now or user is None or not user.is_active:
+    if row.expires_at < now or user is None or not user.is_active:
         raise invalid
     row.revoked_at = now  # rotate
     return _issue(db, user, response)
@@ -249,13 +237,15 @@ def set_avatar(
     db: Session = Depends(get_db),
 ) -> MeResponse:
     """Upload the avatar as a raw image body. Name and email are superadmin-managed."""
-    store_avatar(db, user, raw, content_type)
+    store_avatar(user, raw, content_type)
+    db.commit()
     return _me(db, user)
 
 
 @router.delete("/me/avatar")
 def delete_avatar(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> MeResponse:
-    clear_avatar(db, user)
+    clear_avatar(user)
+    db.commit()
     return _me(db, user)
 
 
@@ -274,7 +264,7 @@ def change_password(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "New password must differ from the current one")
     user.password_hash = hash_password(body.new_password)
     # Sign out every other session; this one continues with a fresh refresh token.
-    _revoke_sessions(db, user)
+    revoke_sessions(db, user.id)
     audit(  # self-service, but a password change is what an account takeover looks like
         db,
         user,
@@ -335,7 +325,7 @@ def totp_enable(
     user.totp_enabled_at = datetime.now(UTC)
     user.totp_last_step = step
     codes = _store_recovery_codes(db, user)
-    _revoke_sessions(db, user)
+    revoke_sessions(db, user.id)
     audit(
         db,
         user,
@@ -358,9 +348,8 @@ def totp_disable(
     if not user.totp_enabled:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "TOTP is not enabled")
     _require_proof(db, user, body)
-    user.totp_secret = user.totp_enabled_at = user.totp_last_step = None
-    db.execute(delete(RecoveryCode).where(RecoveryCode.user_id == user.id))
-    _revoke_sessions(db, user)
+    clear_totp(db, user)
+    revoke_sessions(db, user.id)
     audit(
         db,
         user,

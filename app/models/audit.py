@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, String
+from sqlalchemy import JSON, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -21,7 +21,7 @@ class AuditEvent(Base):
     __tablename__ = "audit_events"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow, index=True)
     actor_id: Mapped[uuid.UUID | None] = mapped_column(index=True, default=None)
     actor_email: Mapped[str] = mapped_column(String(320))
     action: Mapped[str] = mapped_column(String(48), index=True)  # "<group>.<verb>", e.g. user.promote

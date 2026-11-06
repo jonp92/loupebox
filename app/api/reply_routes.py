@@ -10,8 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import SiteAccess, site_access
-from app.api.feedback_routes import _get
+from app.api.deps import SiteAccess, feedback_or_404, site_access
 from app.core.audit import audit
 from app.core.config import settings
 from app.core.rate_limit import enforce
@@ -86,7 +85,7 @@ def list_replies(
     access: SiteAccess = Depends(site_access(Role.viewer)),
     db: Session = Depends(get_db),
 ) -> ReplyThread:
-    item = _get(db, access.site.id, feedback_id)
+    item = feedback_or_404(db, access.site.id, feedback_id)
     rows = db.execute(
         select(FeedbackReply, user_name())
         .outerjoin(User, User.id == FeedbackReply.author_id)
@@ -106,7 +105,7 @@ def send_reply(
     db: Session = Depends(get_db),
 ) -> ReplyOut:
     """201 even when the mail server refused it: the saved row says `failed` and why."""
-    item = _get(db, access.site.id, feedback_id)
+    item = feedback_or_404(db, access.site.id, feedback_id)
     _check_can_send(db, item, access)
     reply = FeedbackReply(id=uuid.uuid4(), feedback_id=item.id, author_id=access.user.id, body=body.body)
     _deliver(db, access, item, reply)
@@ -122,7 +121,7 @@ def retry_reply(
     access: SiteAccess = Depends(site_access(Role.editor)),
     db: Session = Depends(get_db),
 ) -> ReplyOut:
-    item = _get(db, access.site.id, feedback_id)
+    item = feedback_or_404(db, access.site.id, feedback_id)
     reply = db.scalar(
         select(FeedbackReply).where(FeedbackReply.id == reply_id, FeedbackReply.feedback_id == item.id)
     )
