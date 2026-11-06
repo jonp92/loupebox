@@ -4,6 +4,7 @@ import { api, json, type SystemSetting } from "../api";
 import { useAuth } from "../auth";
 import { ScrollTabs } from "../components";
 import SystemHealth from "./SystemHealth";
+import SystemTestEmail from "./SystemTestEmail";
 import { useConfirm } from "../confirm";
 import { useToast } from "../toast";
 
@@ -176,6 +177,7 @@ export default function SystemSettings() {
           </details>
         ),
       )}
+      {tab.path === "email" && <SystemTestEmail settings={items} />}
     </>
   );
 }

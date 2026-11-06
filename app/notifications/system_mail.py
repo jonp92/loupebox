@@ -33,9 +33,16 @@ def password_reset_available() -> bool:
 
 
 def send_system_email(
-    to: str, subject: str, text: str, html: str, tag: str, reply_to: str | None = None
+    to: str,
+    subject: str,
+    text: str,
+    html: str,
+    tag: str,
+    reply_to: str | None = None,
+    provider: NotificationProvider | None = None,
 ) -> SendResult:
-    provider = mail_provider()
+    """Send through `provider`, or the one account mail uses."""
+    provider = provider or mail_provider()
     if provider is None:
         return SendResult.failed("no mail provider is configured")
     message = Message(to=[to], subject=subject, text=text, html=html, tags=[tag], reply_to=reply_to)
@@ -71,6 +78,18 @@ def password_reset_message(token: str) -> tuple[str, str, str]:
         footer=_FOOTER,
     )
     return "Reset your Loupebox password", text, html
+
+
+def test_message(provider_label: str) -> tuple[str, str, str]:
+    lead = f"This is a test email sent through {provider_label}. Email is working."
+    html = render(
+        heading="Email is working",
+        preheader=lead,
+        body=f"<p {_P}>{escape(lead)}</p>",
+        link=None,
+        site="Loupebox",
+    )
+    return "Loupebox test email", lead, html
 
 
 def password_changed_message() -> tuple[str, str, str]:
