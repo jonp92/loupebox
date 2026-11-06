@@ -67,11 +67,69 @@ def test_outbox_counts_and_stuck_detection(client, h, db):
     assert client.get("/system/health", headers=h).json()["outbox"]["status"] == "warn"  # a failure remains
 
 
-def test_health_never_exposes_payloads_or_errors(client, h, db):
-    failed = OutboxStatus.failed
-    row(db, make_site(db), failed, last_error="smtp password was hunter2", payload={"text": "secret"})
-    text = client.get("/system/health", headers=h).text
-    assert "hunter2" not in text and "secret" not in text
+def test_failures_list_newest_first_with_context(client, h, db):
+    site = make_site(db, "Shop")
+    channel = NotificationChannel(site_id=site.id, provider="webhook", name="Ops hook")
+    db.add(channel)
+    db.commit()
+    now = utcnow()
+    row(
+        db,
+        site,
+        OutboxStatus.failed,
+        channel_id=channel.id,
+        attempts=4,
+        last_error="old",
+        created_at=now - timedelta(hours=3),
+    )
+    row(
+        db,
+        site,
+        OutboxStatus.failed,
+        channel_id=channel.id,
+        attempts=1,
+        last_error="new",
+        created_at=now - timedelta(hours=1),
+    )
+    row(
+        db, site, OutboxStatus.failed, last_error="orphan", created_at=now - timedelta(hours=2)
+    )  # channel deleted
+    row(db, site, OutboxStatus.failed, last_error="ancient", created_at=now - timedelta(days=2))
+    row(db, site, OutboxStatus.pending, last_error="retrying")
+    failures = client.get("/system/health", headers=h).json()["outbox"]["recent_failures"]
+    assert [f["error"] for f in failures] == ["new", "orphan", "old"]
+    assert failures[0] | {"queued_at": None} == {
+        "site": "Shop",
+        "channel": "Ops hook",
+        "provider": "webhook",
+        "queued_at": None,
+        "attempts": 1,
+        "error": "new",
+    }
+    assert failures[1]["channel"] is None and failures[1]["provider"] is None
+
+
+def test_failures_are_capped(client, h, db):
+    site = make_site(db)
+    for _ in range(health.FAILURES_SHOWN + 3):
+        row(db, site, OutboxStatus.failed, last_error="x")
+    box = client.get("/system/health", headers=h).json()["outbox"]
+    assert (
+        box["failed_24h"] == health.FAILURES_SHOWN + 3
+        and len(box["recent_failures"]) == health.FAILURES_SHOWN
+    )
+
+
+def test_failure_errors_hide_url_secrets_and_stay_short(client, h, db):
+    leaky = "POST https://user:hunter2@hooks.example.com/services/T0/B0/secret-path?token=abc failed"
+    row(db, make_site(db), OutboxStatus.failed, last_error=leaky, payload={"text": "feedback words"})
+    row(db, make_site(db, "Two"), OutboxStatus.failed, last_error="z" * 500)
+    resp = client.get("/system/health", headers=h)
+    errors = [f["error"] for f in resp.json()["outbox"]["recent_failures"]]
+    assert "POST https://hooks.example.com failed" in errors
+    assert max(map(len, errors)) == health.ERROR_SHOWN
+    for hidden in ("hunter2", "secret-path", "token=abc", "feedback words"):
+        assert hidden not in resp.text
 
 
 def test_redis_is_reported_only_when_configured(client, h, monkeypatch):

@@ -166,6 +166,14 @@ export interface InstanceHealth {
     held: number;
     failed_24h: number;
     oldest_due_seconds: number | null;
+    recent_failures: {
+      site: string;
+      channel: string | null;
+      provider: string | null;
+      queued_at: string;
+      attempts: number;
+      error: string;
+    }[];
   };
   redis: HealthStatus | null; // null: not configured
   checklist: { id: "mail" | "public_url" | "worker" | "site" | "channel"; done: boolean }[];

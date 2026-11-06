@@ -21,7 +21,7 @@ function Check({ title, status, children }: { title: string; status: HealthStatu
   );
 }
 
-const seen = (iso: string) => (ago(iso) === "now" ? "just now" : `${ago(iso)} ago`);
+const since = (iso: string) => (ago(iso) === "now" ? "just now" : `${ago(iso)} ago`);
 // What each checklist item asks for, and where to do it.
 const STEPS: Record<InstanceHealth["checklist"][number]["id"], { label: string; to?: string }> = {
   mail: { label: "Set up an email provider", to: "/system/email" },
@@ -59,7 +59,7 @@ export default function SystemHealth() {
           <Check title="Database" status={health.database}>Connected</Check>
           <Check title="Worker" status={worker.status}>
             {worker.last_beat_at
-              ? `Last seen ${seen(worker.last_beat_at)}${worker.live ? `, ${worker.live} running` : ""}`
+              ? `Last seen ${since(worker.last_beat_at)}${worker.live ? `, ${worker.live} running` : ""}`
               : "Never seen"}
           </Check>
           <Check title="Outbox" status={outbox.status}>
@@ -73,6 +73,23 @@ export default function SystemHealth() {
             </Check>
           )}
         </div>
+      )}
+      {outbox && outbox.recent_failures.length > 0 && (
+        <>
+          <h3 id="failures-title">Recent failures</h3>
+          <ul className="failures" aria-labelledby="failures-title">
+            {outbox.recent_failures.map((f, i) => (
+              <li key={i}>
+                <strong>{f.site}</strong>
+                <span className="muted">
+                  {f.channel ? `${f.channel} (${f.provider})` : "deleted channel"}, queued {since(f.queued_at)}, {f.attempts}{" "}
+                  {f.attempts === 1 ? "attempt" : "attempts"}
+                </span>
+                <code>{f.error || "No error recorded"}</code>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
       {health && health.checklist.some((i) => !i.done) && (
         <>
