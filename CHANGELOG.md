@@ -19,6 +19,8 @@ change between releases; breaking changes are called out below.
 - Users who belong to a single site skip the Sites list and land on that site's feedback.
 
 ### Fixed
+- Pressing Enter on the sign-in form right after the page opened did nothing on a slow server. The form now
+  appears once the session check is done, and Enter always signs in.
 - The favicon is now a transparent glyph (SVG, `.ico` and 16/32px PNGs, all declared in `index.html`), so Safari
   no longer shows a light border around it in the tab bar. The docs site uses the same favicon.
 - The app header and login wordmark is an SVG with a 176px-high PNG fallback.
