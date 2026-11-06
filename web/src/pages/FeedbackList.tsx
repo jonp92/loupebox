@@ -8,7 +8,17 @@ import {
   FeedbackBadges, TAG_PATTERN, ago, below, label, personName, recentAssignees, slug, useAssigneePicker, useContextMenu, type MenuItem,
 } from "../triage";
 
-const PAGE = 25;
+type Density = "comfortable" | "compact";
+const PAGE_SIZE: Record<Density, number> = { comfortable: 25, compact: 50 };
+const DENSITY_KEY = "loupebox.feedback-density";
+/** The list density chosen in this browser. Compact rows only apply on wide screens (see styles.css). */
+function savedDensity(): Density {
+  try {
+    return localStorage.getItem(DENSITY_KEY) === "compact" ? "compact" : "comfortable";
+  } catch {
+    return "comfortable";
+  }
+}
 const STATUSES: Status[] = ["new", "read", "archived", "spam"];
 
 export default function FeedbackList({ site }: { site: Site }) {
@@ -41,6 +51,8 @@ export default function FeedbackList({ site }: { site: Site }) {
   const [exporting, setExporting] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false); // small screens only; wide ones always show the filters
   const [tagging, setTagging] = useState(false);
+  const [density, setDensityState] = useState(savedDensity);
+  const pageSize = PAGE_SIZE[density];
   const canEdit = site.my_role === "editor" || site.my_role === "admin";
   const canDelete = site.my_role === "admin";
   // Only editors and admins hold assignments, and a superadmin who is not a member cannot.
@@ -63,7 +75,7 @@ export default function FeedbackList({ site }: { site: Site }) {
 
   const load = useCallback(() => {
     const params = filterParams();
-    params.set("limit", String(PAGE));
+    params.set("limit", String(pageSize));
     params.set("offset", String(offset));
     api<{ items: Feedback[]; total: number }>(`/sites/${site.id}/feedback?${params}`)
       .then((r) => {
@@ -74,7 +86,7 @@ export default function FeedbackList({ site }: { site: Site }) {
       })
       .catch((e) => setError(e.message));
     api<typeof counts>(`/sites/${site.id}/feedback/counts`).then(setCounts, () => undefined);
-  }, [site.id, offset, filterParams]);
+  }, [site.id, offset, pageSize, filterParams]);
   useEffect(load, [load]);
   // The kinds of feedback visitors have tagged (from the widget's badges), for the filter.
   useEffect(() => {
@@ -142,6 +154,16 @@ export default function FeedbackList({ site }: { site: Site }) {
     from && { text: `From ${from}`, clear: () => setFrom("") },
     to && { text: `To ${to}`, clear: () => setTo("") },
   ].filter((c): c is { text: string; clear: () => void } => Boolean(c));
+  function setDensity(d: Density) {
+    setDensityState(d);
+    setOffset(0);
+    try {
+      localStorage.setItem(DENSITY_KEY, d);
+    } catch {
+      // storage unavailable: the choice lasts until the page is reloaded
+    }
+  }
+
   const removeChip = (c: { clear: () => void }) => { c.clear(); setOffset(0); };
   const moreMenu: MenuItem[] = [{ label: exporting ? "Exporting…" : "Export CSV", onSelect: exportCsv }];
   const statusMenu: MenuItem[] = STATUSES.map((s) => ({ label: `Mark ${s}`, onSelect: () => bulk({ action: "set_status", status: s }) }));
@@ -205,10 +227,20 @@ export default function FeedbackList({ site }: { site: Site }) {
 
   return (
     <>
-      <div className="quick-tabs" role="group" aria-label="Whose feedback">
-        {quickTab("", "All")}
-        {me && canBeAssigned && quickTab(me.id, "Assigned to me", counts.mine)}
-        {quickTab("none", "Unassigned", counts.unassigned)}
+      <div className="list-head">
+        <div className="quick-tabs" role="group" aria-label="Whose feedback">
+          {quickTab("", "All")}
+          {me && canBeAssigned && quickTab(me.id, "Assigned to me", counts.mine)}
+          {quickTab("none", "Unassigned", counts.unassigned)}
+        </div>
+        <div className="density" role="radiogroup" aria-label="List density">
+          {(["comfortable", "compact"] as const).map((d) => (
+            <label key={d}>
+              <input type="radio" name="density" value={d} checked={density === d} onChange={() => setDensity(d)} />
+              {d === "compact" ? "Compact" : "Comfortable"}
+            </label>
+          ))}
+        </div>
       </div>
       <div className="toolbar">
         <input
@@ -276,10 +308,10 @@ export default function FeedbackList({ site }: { site: Site }) {
       {error && <p className="error">{error}</p>}
       {items.length === 0 && !error && <p className="empty-state">No feedback found.</p>}
       {items.map((f) => (
-        <article key={f.id} className={`card fb compact ${f.status}`} {...ctx.bind(() => menuFor(f))}>
+        <article key={f.id} className={`card fb compact ${f.status}${density === "compact" ? " dense" : ""}`} {...ctx.bind(() => menuFor(f))}>
           <header>
             {canEdit && <input type="checkbox" checked={selected.has(f.id)} onChange={() => toggle(f.id)} aria-label="Select this feedback" />}
-            <FeedbackBadges f={f} />
+            <span className="fb-badges"><FeedbackBadges f={f} /></span>
             <time className="muted grow-end" dateTime={f.created_at} title={new Date(f.created_at).toLocaleString()}>{ago(f.created_at)}</time>
             <button className="menu-btn" aria-label="Actions" aria-haspopup="menu" onClick={(e) => ctx.openAt(e.currentTarget, menuFor(f))}>⋯</button>
           </header>
@@ -314,9 +346,9 @@ export default function FeedbackList({ site }: { site: Site }) {
       {ctx.node}
       {picker.node}
       <div className="toolbar">
-        <button disabled={offset === 0} onClick={() => setOffset(offset - PAGE)}>Previous</button>
-        <span className="muted">{total === 0 ? 0 : offset + 1}–{Math.min(offset + PAGE, total)} of {total}</span>
-        <button disabled={offset + PAGE >= total} onClick={() => setOffset(offset + PAGE)}>Next</button>
+        <button disabled={offset === 0} onClick={() => setOffset(offset - pageSize)}>Previous</button>
+        <span className="muted">{total === 0 ? 0 : offset + 1}–{Math.min(offset + pageSize, total)} of {total}</span>
+        <button disabled={offset + pageSize >= total} onClick={() => setOffset(offset + pageSize)}>Next</button>
       </div>
     </>
   );

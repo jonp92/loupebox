@@ -337,7 +337,6 @@ code.key { display: inline-block; margin-right: .75rem; background: var(--surfac
   .toolbar.filters:not([data-open]) { display: none; }
   .toolbar.filters select, .toolbar.filters > button, .toolbar.filters label { flex: 1 1 45%; }
   .toolbar.filters input[type=date] { flex: 1; min-width: 0; }
-  .fb.compact .message { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .add-member { flex-wrap: wrap; }
   .picker { flex: 1 0 100%; }
   .list li { flex-wrap: wrap; }
@@ -400,6 +399,36 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 .fb.compact .message a { color: inherit; text-decoration: none; }
 .fb.compact .message a:hover { text-decoration: underline; }
 .fb.compact .tags { margin: .3rem 0 0; }
+.fb-badges { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+.list-head { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin: 1rem 0 0; }
+.list-head .quick-tabs { margin: 0; }
+.density { display: inline-flex; margin-left: auto; padding: 2px; border: 1px solid var(--border); border-radius: 999px; }
+.density label { display: flex; align-items: center; margin: 0; padding: .2rem .75rem; border-radius: 999px; font-size: .8rem; cursor: pointer; }
+.density input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.density label:has(input:checked) { background: var(--accent-soft); color: var(--accent); }
+.density label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Compact rows: two short lines, columns aligned down the list. Wide screens only; phones keep cards. */
+@media (min-width: 641px) {
+  .fb.dense { display: grid; grid-template-columns: auto 13rem minmax(0, 1fr) auto auto; align-items: center; gap: .1rem .75rem; margin: .35rem 0; padding: .45rem .9rem .45rem .75rem; box-shadow: none; }
+  .fb.dense header { display: contents; }
+  .fb.dense header > input { grid-area: 1 / 1; margin: 0; }
+  .fb.dense .fb-badges { grid-area: 1 / 2; flex-wrap: nowrap; gap: .35rem; overflow: hidden; }
+  .fb.dense .stars { font-size: .75rem; }
+  .fb.dense .message { grid-area: 1 / 3; margin: 0; font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fb.dense time { grid-area: 1 / 4; }
+  .fb.dense .menu-btn { grid-area: 1 / 5; }
+  .fb.dense > p.muted { grid-area: 2 / 2; margin: 0; font-size: .8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fb.dense .tags { grid-area: 2 / 3 / 3 / 6; flex-wrap: nowrap; gap: .35rem; margin: 0; overflow: hidden; font-size: .8rem; }
+}
+/* Phones: tighter cards, after the base .fb.compact rules so these win. */
+@media (max-width: 640px) {
+  .fb.compact { margin: .5rem 0; padding: .65rem .85rem; }
+  .fb.compact .message { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: .3rem 0; font-size: .95rem; }
+  .fb.compact > p.muted { margin: 0; font-size: .82rem; }
+  .fb.compact .tags { margin-top: .35rem; font-size: .8rem; }
+  .fb-badges { gap: .5rem; }
+  .density { display: none; }
+}
 .assignee { font-size: .85rem; color: var(--muted); user-select: none; }
 .assignee.editable { cursor: pointer; padding: .1rem .4rem; border-radius: 6px; }
 .assignee.editable:hover, .assignee.editable:focus-visible { background: var(--surface-2); }
