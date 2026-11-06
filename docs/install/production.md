@@ -38,3 +38,20 @@ tries Redis again a few seconds later.
 
 Settings saved on the System page reach the other API containers within 30 seconds. One worker is enough,
 but more are safe on Postgres.
+
+## Search on a large database
+
+Search looks for the text anywhere in the message, name and email address. On Postgres, Loupebox speeds this up
+with trigram indexes from the `pg_trgm` extension, created by a database migration when you upgrade. You do
+not need to do anything on the bundled Postgres, or on Postgres 13 or later, where the database owner may
+create this extension.
+
+* **Small inboxes do not need it.** A site with a few thousand items searches in about 10 ms either way. The
+  difference shows on sites with hundreds of thousands of items.
+* **The migration blocks new feedback while it builds the indexes.** That is a few seconds per 100,000 items,
+  and about 35 seconds for 1 million.
+* **If your database does not allow the extension**, the upgrade still finishes and prints a warning that
+  `pg_trgm` is not available. Search keeps working, slower on big sites. To add the indexes later, run
+  `CREATE EXTENSION pg_trgm;` as a superuser in the Loupebox database, then run
+  `alembic downgrade 0016 && alembic upgrade head` in the API container.
+* **SQLite** has no such indexes. It is meant for trying Loupebox out, not for large inboxes.

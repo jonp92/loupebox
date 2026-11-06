@@ -48,7 +48,7 @@ key on `assignee_id`. Everything that filters on anything else falls through.
   `(site_id, status, created_at)`. This makes them cheaper but still proportional to the site's size.
 * Avoid exact totals for big sites: show "10,000+" past a cap, or keep per-status counters (there is already a
   `SiteStat` table for daily counters).
-* Search: `pg_trgm` GIN indexes help rare terms a lot and common terms little.
+* Search: `pg_trgm` GIN indexes help rare terms a lot and common terms little. Shipped as migration `0017`.
 * Issue types: an expression index on `(site_id, (meta->>'issue_type'))`. Tags: carry `site_id` on
   `feedback_tags` so the menu does not join to feedback.
 * Dashboard: one grouped query instead of five, or cached per-site unread counts.
