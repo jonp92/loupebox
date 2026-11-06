@@ -1,6 +1,7 @@
-# Throwaway Postgres for benchmarks. Never point this at a real database.
-#   docker compose -f bench/docker-compose.yml up -d
-# Set BENCH_CPUS / BENCH_MEM to match the machine under test (defaults suit a small VM).
+# Throwaway Postgres and the API image built from this checkout. Never point this at a real database.
+#   docker compose -f bench/docker-compose.yml up -d --build
+# BENCH_CPUS / BENCH_MEM cap Postgres only (defaults suit a small VM); the API is not capped, so the whole
+# machine is the system under test. Record both with the results.
 services:
   db:
     image: postgres:17
@@ -19,6 +20,19 @@ services:
       test: ["CMD-SHELL", "pg_isready -U bench"]
       interval: 3s
       retries: 20
+
+  api:
+    build:
+      context: ..
+    image: loupebox-bench-api
+    env_file: bench.env
+    environment:
+      DATABASE_URL: postgresql+psycopg://bench:bench@db:5432/bench
+    ports:
+      - "${BENCH_API_BIND:-0.0.0.0}:${BENCH_API_PORT:-18000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   benchdata:
