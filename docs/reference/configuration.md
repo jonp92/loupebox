@@ -1,8 +1,10 @@
 # Settings (.env)
 
 Loupebox reads its settings from environment variables, which Docker Compose takes from the `.env` file next
-to `docker-compose.yml`. Secrets such as email credentials are only ever set here and are never stored in the
-database. Change `.env`, then run `docker compose up -d` to apply it.
+to `docker-compose.yml`. Change `.env`, then run `docker compose up -d` to apply it.
+
+Many settings can also be changed by a superadmin on the **System** page, with no restart (see
+[below](#changing-settings-in-the-app)).
 
 The comments in [`.env.example`](https://github.com/jonp92/loupebox/blob/master/.env.example) explain every
 setting, and `setup.sh` fills in the secrets for you.
@@ -15,6 +17,7 @@ setting, and `setup.sh` fills in the secrets for you.
 | `POSTGRES_PASSWORD` | Database password. Use letters, digits, `-`, `_` and `.` only. |
 | `TOTP_ENCRYPTION_KEY` | Encrypts two-factor secrets. Set once and keep it. |
 | `WEBHOOK_ENCRYPTION_KEY` | Encrypts webhook signing secrets. Set once and keep it. |
+| `SETTINGS_ENCRYPTION_KEY` | Encrypts email passwords and keys saved on the System page. Set once and keep it. |
 
 ## Where things are
 
@@ -61,3 +64,20 @@ setting, and `setup.sh` fills in the secrets for you.
 | `LOGIN_ACCOUNT_LIMIT` | 5 sign-in attempts per minute |
 | `LOGIN_FAILURE_LIMIT`, `LOGIN_FAILURE_WINDOW_SECONDS` | 10 wrong passwords per email per 15 minutes, from any IP. A successful sign-in or password reset clears them. |
 | `MFA_HOURLY_LIMIT` | 20 two-factor attempts per hour |
+
+## Changing settings in the app
+
+Superadmins can change email, notification, rate-limit, sign-in and retention settings on the **System** page.
+A value saved there:
+
+* **wins over `.env`**. Editing `.env` does not change a setting that was saved on the System page. Each field
+  says where its value comes from, and **Reset** goes back to the `.env` value.
+* **takes effect without a restart**, in the API at once and in the worker within one poll interval.
+* **is recorded in the audit log** with its old and new value.
+
+The SMTP password and the Brevo API key can be set there but never read back: they are stored encrypted with
+`SETTINGS_ENCRYPTION_KEY`, and the page only shows whether they are set. If that key changes, saved
+credentials can't be read any more and Loupebox falls back to the `.env` values until they are entered again.
+
+Settings that are read at startup or that weaken a security check (cookies, proxies, origins, private webhook
+targets, request size) are shown on the page but can only be changed in `.env`.
