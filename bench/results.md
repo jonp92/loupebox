@@ -41,7 +41,8 @@ What the table says:
 * **The big wins are on reads.** The page load went from breaking at about 12 per second to no limit found up to 40.
   The list request itself went from p50 81 ms to 8 ms, `filters` moved from breaking at 40 to 80 or more, and the
   dashboard for one user went from 523 ms to 248 ms.
-* **Search barely moved.** It is the slowest read (about 210 ms at the median under `mixed`) and the next one to fix.
+* **Search barely moved** through these three fixes. It was the slowest read (about 210 ms at the median under
+  `mixed`); the trigram index in [#94](https://github.com/jonp92/loupebox/pull/94) fixed it, see below.
 * Small differences between the first three columns (for example `filters` at 40 against 30, or the dashboard at
   5 against 4) are within run-to-run noise.
 * Only `list`, `dashboard` and `mixed` were rerun after the last change, so the `filters`, `search` and `ingest_many`
@@ -100,8 +101,61 @@ not the limit for ingest (the VM was mostly idle when it failed); the read scena
   filter. The count went from 56 ms to about 1 ms.
 * **#92:** the quick-tab counts stop at the same cap, the tag and issue-type menus are cached for 30 s, and the
   dashboard counts in one pass. I tested an index for the menus first; it did not help.
-* **Not fixed:** search (an `ILIKE` over three columns, no index) and the dashboard's exact counts over the whole
-  table (about 250 ms for a superadmin).
+* **#94:** trigram indexes for search, see the next section.
+* **Not fixed:** the dashboard's exact counts over the whole table (about 250 ms for a superadmin).
+
+## Search with trigram indexes ([#94](https://github.com/jonp92/loupebox/pull/94))
+
+Measured afterwards on the same VM and data (1.13M rows). The build is the same both times and only the indexes
+differ: three GIN `pg_trgm` indexes on `message`, `email` and `name` (192 + 21 + 12 MB on a 548 MB table, built
+in about 35 s), created with SQL and dropped again for the plain runs. Each number is one run.
+
+A search request runs two queries, a count that stops at 10,001 and the page. Per query, warm, on the largest
+site (237,000 rows). In this data `checkout` is in 15.6% of the rows, `invoice` 0.45% and `zyxwvu` 0.009%:
+
+| Term | Count, plain | Count, indexed | Page, plain | Page, indexed |
+|---|---|---|---|---|
+| `checkout` (common) | 53 ms | 59 ms | 0.0 ms | 0.0 ms |
+| `invoice` (medium) | 161 ms | 19 ms | 22 ms | 22 ms |
+| `zyxwvu` (rare) | 151 ms | 0.2 ms | 149 ms | 0.2 ms |
+
+A common word was already cheap, because the page stops after 25 matches and the count stops at its cap. The index
+helps where the plain query had to read the whole site. On a small site (7,800 rows) the rare word went from
+11.5 ms to 0.7 ms, but the common word's count got slower, 12 ms to 23 ms: a trigram index covers the whole
+table, not one site, so a common word makes Postgres read a big bitmap for a small site.
+
+The `search` scenario (95th percentile, one run each; "ramp to" is the rate a step ramps up to):
+
+| Ramp to /s | 8 | 10 | 12 | 14 | 16 |
+|---|---|---|---|---|---|
+| Plain | 547 ms | 770 ms | 3.8 s | 5.2 s, 16% failed | 5.0 s, 30% failed |
+| Indexed | 81 ms | 152 ms | 101 ms | 82 ms | 188 ms |
+
+Indexed, the median stayed at 15 to 37 ms and nothing failed up to the top of the range, so the real ceiling is
+higher; plain, the median went from 150 to 300 ms to 2.5 s at the top.
+
+### Does the index slow ingest down?
+
+`ingest_many` with one worker (the setup above) and with three (`--workers 3`, the other settings unchanged),
+indexed and plain. The 95th percentile in ms; the three-worker runs were done twice, in the order indexed, plain,
+indexed, plain, and the cells show both:
+
+| Ramp to /s | 1 worker, plain | 1 worker, indexed | 3 workers, plain | 3 workers, indexed |
+|---|---|---|---|---|
+| 250 | 13 | 92 | 13, 9 | 10, 15 |
+| 300 | 2,069 (3% failed) | 2,068 (3% failed) | 145, 11 | 13, 18 |
+| 400 | 2,084 (14% failed) | 2,084 (14% failed) | 219, 51 | 55, 29 |
+| 450 | 2,085 (14% failed) | 2,085 (14% failed) | 484, 153 | 579, 161 |
+| 500 | 2,083 (13% failed) | 2,082 (13% failed) | 1,611, 1,391 | 1,399, 1,183 |
+
+* **Three workers sustain a ramp to 450 requests per second against 250 for one**, with nothing failing, so the
+  limit on ingest was the single Python process. In production more than one worker needs `REDIS_URL`; the
+  benchmark lifts the rate limits instead.
+* **The indexes show no consistent cost.** The runs overlap and the order of the pairs flips. The one gap, 92 ms
+  against 13 ms at a ramp to 250 on one worker, did not appear on three workers (10 and 15 ms against 13 and 9 ms).
+  With one run per cell a small cost cannot be ruled out.
+* The VM has 4 vCPUs shared by the three workers and Postgres, so three workers is not the same as three times
+  the capacity.
 
 ## To do before quoting numbers
 
@@ -110,6 +164,6 @@ not the limit for ingest (the VM was mostly idle when it failed); the read scena
   reached", so each has a real ceiling.
 * Find the threshold of `mixed` by running it at higher rates.
 * Tune Postgres (the default `shared_buffers` is 128 MB) and see how much that changes the read scenarios.
-* Try more than one Uvicorn worker (with Redis for the shared rate limits), one change at a time.
-* Search: a trigram index, after checking the Postgres extension is available where people run Loupebox.
+* Try more than one Uvicorn worker on the other scenarios too (with Redis for the shared rate limits). Only
+  `ingest_many` was tried, see the last section.
 * The summaries in `bench/out/results/` contain the throwaway admin token, so do not publish them as they are.
