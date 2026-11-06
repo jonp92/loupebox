@@ -12,6 +12,10 @@ change between releases; breaking changes are called out below.
   kept in this browser.
 
 ### Changed
+- **Breaking (API):** `GET /users` returns one page as `{items, total}` instead of a list, and takes `q` (name or
+  email contains), `limit` (default 50, max 200) and `offset`.
+- The Users page is a table with search and paging (50 per page). Edit and a ⋯ menu replace the four buttons per
+  row, phones get one compact card per user, and **New user** opens the form above the list.
 - Feedback cards on phones are tighter: two-line message preview and less padding.
 
 ## [0.1.0-alpha.8] - 2026-11-05
