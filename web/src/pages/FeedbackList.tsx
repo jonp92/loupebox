@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type MouseEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { api, download, json, type Feedback, type Site, type Status } from "../api";
 import { useAuth } from "../auth";
@@ -182,6 +182,12 @@ export default function FeedbackList({ site }: { site: Site }) {
   }
 
   const open = (id: string) => navigate(`/sites/${site.id}/feedback/${id}`);
+  /** A plain click opens the item in the app; Cmd/Ctrl/Shift-click and middle-click are left to the browser (new tab). */
+  const openOnPlainClick = (id: string) => (e: MouseEvent) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    e.preventDefault();
+    open(id);
+  };
   const quickTab = (value: string, text: string, count?: number) => (
     <button key={text} aria-pressed={assignee === value} onClick={() => { setAssignee(value); setOffset(0); }}>
       {text}{count !== undefined && <span className="count">{count}</span>}
@@ -316,14 +322,14 @@ export default function FeedbackList({ site }: { site: Site }) {
             <button className="menu-btn" aria-label="Actions" aria-haspopup="menu" onClick={(e) => ctx.openAt(e.currentTarget, menuFor(f))}>⋯</button>
           </header>
           {/* Rendered as text by React; never as HTML. */}
-          <p className="message"><a href={`/sites/${site.id}/feedback/${f.id}`} onClick={(e) => { e.preventDefault(); open(f.id); }}>{f.message}</a></p>
+          <p className="message"><a href={`/sites/${site.id}/feedback/${f.id}`} onClick={openOnPlainClick(f.id)}>{f.message}</a></p>
           {(f.name || f.email) && <p className="muted">{[f.name, f.email].filter(Boolean).join(" · ")}</p>}
           <div className="tags">
             {assigneeChip(f)}
             {f.tags.map((t) => <span key={t} className="tag static">{t}</span>)}
             {f.reply_count > 0 && <span className="muted" title={`Replied ${f.reply_count} time${f.reply_count === 1 ? "" : "s"}`}>↩ Replied</span>}
             {f.note_count > 0 && (
-              <a className="note-count" href={`/sites/${site.id}/feedback/${f.id}`} onClick={(e) => { e.preventDefault(); open(f.id); }}
+              <a className="note-count" href={`/sites/${site.id}/feedback/${f.id}`} onClick={openOnPlainClick(f.id)}
                 title={`${f.note_count} internal note${f.note_count === 1 ? "" : "s"}`}>💬 {f.note_count}</a>
             )}
           </div>
