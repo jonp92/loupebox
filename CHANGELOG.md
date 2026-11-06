@@ -6,6 +6,8 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+## [0.1.0-alpha.9] - 2026-11-06
+
 ### Added
 - Compact view for the feedback list on wide screens: two short lines per item with the message cut to one line,
   aligned columns and 50 items per page. Switch between Comfortable and Compact above the list; the choice is
@@ -180,6 +182,7 @@ First public alpha.
 - Not load tested; capacity numbers are estimates.
 - The database role and name stay `ganymede` (the project's former name) so existing volumes keep working.
 
+[0.1.0-alpha.9]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.9
 [0.1.0-alpha.8]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.8
 [0.1.0-alpha.7]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.7
 [0.1.0-alpha.6]: https://github.com/jonp92/loupebox/releases/tag/v0.1.0-alpha.6
