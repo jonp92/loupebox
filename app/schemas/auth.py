@@ -33,6 +33,9 @@ class TotpSetup(BaseModel):
 
 
 class TotpConfirm(BaseModel):
+    """Turning TOTP on: the password (so a stolen session can't lock the owner out) and the first code."""
+
+    password: str = Field(max_length=256)
     code: str = Field(min_length=1, max_length=32)
 
 

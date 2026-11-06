@@ -13,7 +13,11 @@ def _enroll(client, db, email="a@example.com") -> tuple[dict, str, list[str]]:
     make_user(db, email)
     h = login(client, email)
     secret = client.post("/auth/me/totp/setup", headers=h).json()["secret"]
-    r = client.post("/auth/me/totp/enable", headers=h, json={"code": totp._code(secret, totp.current_step())})
+    r = client.post(
+        "/auth/me/totp/enable",
+        headers=h,
+        json={"password": PW, "code": totp._code(secret, totp.current_step())},
+    )
     assert r.status_code == 200, r.text
     h = {"Authorization": f"Bearer {r.json()['access_token']}"}
     return h, secret, r.json()["recovery_codes"]
@@ -54,7 +58,7 @@ def test_setup_is_inert_until_confirmed(client, db):
     assert (
         "access_token" in client.post("/auth/login", json={"email": "a@example.com", "password": PW}).json()
     )
-    bad = client.post("/auth/me/totp/enable", headers=h, json={"code": "000000"})
+    bad = client.post("/auth/me/totp/enable", headers=h, json={"password": PW, "code": "000000"})
     assert bad.status_code == 400
 
 
@@ -143,7 +147,11 @@ def test_enable_signs_out_other_sessions(client, db):
     other = login(client, "a@example.com")  # a second session
     secret = client.post("/auth/me/totp/setup", headers=other).json()["secret"]
     client.post("/auth/login", json={"email": "a@example.com", "password": PW})
-    client.post("/auth/me/totp/enable", headers=other, json={"code": totp._code(secret, totp.current_step())})
+    client.post(
+        "/auth/me/totp/enable",
+        headers=other,
+        json={"password": PW, "code": totp._code(secret, totp.current_step())},
+    )
     rows = db.scalars(select(RefreshToken)).all()
     assert sum(1 for r in rows if r.revoked_at is None) == 1  # only the session that enabled it
     event = db.scalars(select(AuditEvent).where(AuditEvent.action == "auth.totp_enable")).one()
@@ -252,3 +260,13 @@ def test_login_lockout_does_not_block_managing_totp(client, db):
         client.post("/auth/login/totp", json={"mfa_token": mfa, "code": "000000"})
     r = client.post("/auth/me/totp/recovery-codes", headers=h, json={"password": PW, "code": codes[0]})
     assert r.status_code == 200
+
+
+def test_enable_requires_password(client, db):
+    make_user(db, "a@example.com")
+    h = login(client, "a@example.com")
+    secret = client.post("/auth/me/totp/setup", headers=h).json()["secret"]
+    code = totp._code(secret, totp.current_step())
+    r = client.post("/auth/me/totp/enable", headers=h, json={"password": "wrong", "code": code})
+    assert r.status_code == 400 and r.json()["detail"] == "Password is incorrect"
+    assert client.get("/auth/me", headers=h).json()["totp_enabled"] is False

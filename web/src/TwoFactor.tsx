@@ -68,9 +68,10 @@ export default function TwoFactor() {
 
   function confirm(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const code = String(new FormData(e.currentTarget).get("code"));
+    const d = new FormData(e.currentTarget);
+    const body = { password: d.get("password"), code: d.get("code") };
     void run(async () => {
-      const r = await totpChange<{ access_token: string; recovery_codes: string[] }>("/auth/me/totp/enable", { code });
+      const r = await totpChange<{ access_token: string; recovery_codes: string[] }>("/auth/me/totp/enable", body);
       setCodes(r.recovery_codes);
       setSetup(null);
       await refreshMe();
@@ -111,6 +112,7 @@ export default function TwoFactor() {
           <QrCode text={setup.uri} />
           <p className="muted hint">Can't scan? Enter this key instead: <code>{setup.secret}</code></p>
           <label>Code<input name="code" inputMode="numeric" pattern="[0-9 ]*" maxLength={7} autoComplete="one-time-code" required autoFocus /></label>
+          <label>Password<input name="password" type="password" autoComplete="current-password" required /></label>
           <div className="row-actions">
             <button type="button" onClick={() => setSetup(null)}>Cancel</button>
             <button className="primary" disabled={busy}>Turn on</button>

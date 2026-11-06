@@ -284,12 +284,17 @@ def _store_recovery_codes(db: Session, user: User) -> list[str]:
     return codes
 
 
-def _require_proof(db: Session, user: User, body: TotpProof) -> str:
-    """Password plus a current second factor, for changes that would weaken or reset TOTP."""
+def _require_password(user: User, password: str) -> None:
+    """Re-authentication for TOTP changes, rate limited like a second-factor attempt."""
     _enforce_mfa_limits(user, "manage")
     # 400, not 401: the SPA treats 401 as "session expired".
-    if not verify_password(body.password, user.password_hash):
+    if not verify_password(password, user.password_hash):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Password is incorrect")
+
+
+def _require_proof(db: Session, user: User, body: TotpProof) -> str:
+    """Password plus a current second factor, for changes that would weaken or reset TOTP."""
+    _require_password(user, body.password)
     used = _check_second_factor(db, user, body.code)
     if used is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid code")
@@ -315,7 +320,7 @@ def totp_enable(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> TotpEnabled:
-    _enforce_mfa_limits(user, "manage")
+    _require_password(user, body.password)
     secret = totp.decrypt_secret(user.totp_secret) if user.totp_secret else None
     if user.totp_enabled or secret is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Start setup first")
