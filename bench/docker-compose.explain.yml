@@ -1,0 +1,19 @@
+# Adds auto_explain so every query's real plan lands in the database log:
+#   docker compose -f bench/docker-compose.yml -f bench/docker-compose.explain.yml up -d
+# Slows queries a little (it times every node), so use it for reading plans, not for timings.
+services:
+  db:
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=auto_explain
+      - -c
+      - auto_explain.log_min_duration=0
+      - -c
+      - auto_explain.log_analyze=on
+      - -c
+      - auto_explain.log_buffers=on
+      - -c
+      - auto_explain.log_nested_statements=on
+      - -c
+      - log_min_messages=log

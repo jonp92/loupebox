@@ -13,3 +13,4 @@ site/
 
 # Backups made by scripts/backup.sh (they hold the encryption keys)
 backups/
+bench/out/
