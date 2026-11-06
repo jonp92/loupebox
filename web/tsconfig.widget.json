@@ -4,6 +4,7 @@
     "noEmit": false,
     "declaration": true,
     "emitDeclarationOnly": true,
+    "rootDir": "./widget/src",
     "outDir": "dist/widget/v1/types",
     "types": []
   },

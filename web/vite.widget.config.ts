@@ -10,8 +10,7 @@ export default defineConfig({
     outDir: "dist/widget/v1",
     emptyOutDir: false,
     target: "es2020",
-    minify: "esbuild",
     lib: { entry: "widget/src/index.ts", formats: ["es"], fileName: () => "loupebox.js" },
-    rollupOptions: { output: { inlineDynamicImports: true } },
+    rolldownOptions: { output: { codeSplitting: false } },
   },
 });

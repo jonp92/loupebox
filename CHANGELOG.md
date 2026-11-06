@@ -6,6 +6,9 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+### Changed
+- The admin UI and widget build on React 19, Vite 8 and TypeScript 7. Nothing changes for users or embedders.
+
 ## [0.1.0-alpha.9] - 2026-11-06
 
 ### Added
