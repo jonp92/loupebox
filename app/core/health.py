@@ -63,9 +63,7 @@ def check(db: Session, now: datetime | None = None) -> Health:
 
     beats = list(db.scalars(select(WorkerHeartbeat.beat_at)))
     live = sum(b >= now - WORKER_STALE for b in beats)
-    worker = WorkerHealth(
-        status="ok" if live else "error", last_beat_at=max(beats, default=None), live=live
-    )
+    worker = WorkerHealth(status="ok" if live else "error", last_beat_at=max(beats, default=None), live=live)
 
     by_status = select(NotificationOutbox.status, func.count()).group_by(NotificationOutbox.status)
     counts = dict(db.execute(by_status).all())

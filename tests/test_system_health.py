@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytest
 
 from app.core import health
-from app.core.rate_limit import RedisLimiter
+from app.core.rate_limit import MemoryLimiter, RedisLimiter
 from app.models import NotificationOutbox, OutboxStatus, Role, WorkerHeartbeat
 from app.models.user import utcnow
 from tests.conftest import add_member, login, make_site, make_user
@@ -75,7 +75,8 @@ def test_health_never_exposes_payloads_or_errors(client, h, db):
 
 
 def test_redis_is_reported_only_when_configured(client, h, monkeypatch):
-    assert client.get("/system/health", headers=h).json()["redis"] is None  # memory limiter
+    monkeypatch.setattr(health, "limiter", MemoryLimiter())  # CI's Postgres leg runs with REDIS_URL set
+    assert client.get("/system/health", headers=h).json()["redis"] is None
     stub = object.__new__(RedisLimiter)
     monkeypatch.setattr(health, "limiter", stub)
     for up, expected in ((True, "ok"), (False, "warn")):
