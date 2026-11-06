@@ -444,10 +444,12 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 .assignee-edit { width: auto; margin: 0; padding: .15rem .4rem; font-size: .85rem; }
 .note-count { font-size: .8rem; color: var(--muted); text-decoration: none; margin-left: auto; }
 .menu-btn { border: 0; background: none; padding: .1rem .5rem; font-size: 1.2rem; line-height: 1; min-width: 0; }
-.ctx-menu { position: fixed; z-index: 50; min-width: 12rem; max-height: 70vh; overflow-y: auto; padding: .3rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); display: flex; flex-direction: column; }
+.ctx-menu { position: fixed; z-index: 50; min-width: 12rem; max-height: 70vh; overflow-y: auto; padding: .3rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+.ctx-menu [role="menu"] { display: flex; flex-direction: column; }
 .ctx-menu button { text-align: left; border: 0; background: none; padding: .4rem .7rem; border-radius: 6px; }
 .ctx-menu button:hover, .ctx-menu button:focus-visible { background: var(--surface-2); }
 .ctx-menu button.danger { color: var(--danger); }
+@media (pointer: coarse) { .ctx-menu button { min-height: 44px; } }
 .ctx-heading { font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; padding: .5rem .7rem .15rem; }
 
 .picker-pop { position: fixed; z-index: 50; width: 18rem; max-width: calc(100vw - 8px); padding: .5rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }

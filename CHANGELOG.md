@@ -9,6 +9,10 @@ change between releases; breaking changes are called out below.
 ### Changed
 - The admin UI and widget build on React 19, Vite 8 and TypeScript 7. Nothing changes for users or embedders.
 
+### Fixed
+- The feedback item menu (⋯, right-click or long-press) lists its actions one per line again instead of running
+  them together, and its items are at least 44px tall on touch screens.
+
 ## [0.1.0-alpha.9] - 2026-11-06
 
 ### Added
