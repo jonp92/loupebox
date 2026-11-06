@@ -4,6 +4,8 @@ Check these before you use Loupebox in production.
 
 * `ENVIRONMENT=production`.
 * `JWT_SECRET` is at least 32 characters. `setup.sh` generates a good one.
+* `TOTP_ENCRYPTION_KEY`, `WEBHOOK_ENCRYPTION_KEY` and `SETTINGS_ENCRYPTION_KEY` are set. With
+  `ENVIRONMENT=production` the API and worker refuse to start without them. `setup.sh` generates them.
 * `COOKIE_SECURE=true`, because you serve the admin app over HTTPS.
 * If the admin app and the API are on different sites (not just different subdomains), also set
   `COOKIE_SAMESITE=none`. Using one domain for both avoids this.

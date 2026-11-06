@@ -117,14 +117,16 @@ def test_spam_hidden_by_default_and_search(client, db):
 
 
 def test_user_search_for_site_admins(client, db):
-    site = make_site(db)
+    site, other_site = make_site(db), make_site(db, "Blog")
     admin = make_user(db, "boss@example.com")
     add_member(db, admin, site, Role.admin)
+    add_member(db, admin, other_site, Role.viewer)
     viewer = make_user(db, "viewer@example.com")
     add_member(db, viewer, site, Role.viewer)
-    make_user(db, "alice@example.com")
-    make_user(db, "alicia@example.com")
+    for email in ("alice@example.com", "alicia@example.com"):
+        add_member(db, make_user(db, email), other_site, Role.viewer)
     off = make_user(db, "alison@example.com")
+    add_member(db, off, other_site, Role.viewer)
     off.is_active = False
     db.commit()
     h = login(client, "boss@example.com")
@@ -138,6 +140,25 @@ def test_user_search_for_site_admins(client, db):
 
     v = login(client, "viewer@example.com")
     assert client.get(url, params={"q": "ali"}, headers=v).status_code == 403
+
+
+def test_site_admins_find_strangers_only_by_full_email(client, db):
+    site = make_site(db)
+    add_member(db, make_user(db, "boss@example.com"), site, Role.admin)
+    make_user(db, "stranger@example.com")
+    make_user(db, "root@example.com", superadmin=True)
+    url = f"/sites/{site.id}/user-search"
+
+    def emails(h, q):
+        return [u["email"] for u in client.get(url, params={"q": q}, headers=h).json()]
+
+    boss = login(client, "boss@example.com")
+    assert emails(boss, "strang") == []
+    assert emails(boss, "example.com") == []  # nobody shares a site with boss
+    assert emails(boss, " Stranger@Example.com ") == ["stranger@example.com"]
+
+    root = login(client, "root@example.com")
+    assert emails(root, "strang") == ["stranger@example.com"]
 
 
 def test_superadmin_can_promote_and_demote_others_but_not_self(client, db):

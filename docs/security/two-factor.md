@@ -20,9 +20,9 @@ signs out your other sessions.
 
 ## Keep the encryption key
 
-Secrets are encrypted in the database with `TOTP_ENCRYPTION_KEY`. If you leave it empty, `JWT_SECRET` is used,
-and changing that later would lock everyone out. Set `TOTP_ENCRYPTION_KEY` once and keep it. `setup.sh`
-does this for you.
+Secrets are encrypted in the database with `TOTP_ENCRYPTION_KEY`. Production refuses to start without it.
+Elsewhere an empty key means `JWT_SECRET` is used, and changing that later would lock everyone out. Set
+`TOTP_ENCRYPTION_KEY` once and keep it. `setup.sh` does this for you.
 
 ## If someone is locked out
 

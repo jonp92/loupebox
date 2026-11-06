@@ -187,7 +187,9 @@ def test_user_search_matches_names_and_returns_profile(client, db):
     add_member(db, admin, site, Role.admin)
     u = make_user(db, "x@example.com")
     u.first_name, u.last_name = "Grace", "Hopper"
-    db.commit()
+    other = make_site(db, "Blog")
+    add_member(db, admin, other, Role.viewer)
+    add_member(db, u, other, Role.viewer)  # site admins search the people they share a site with
     h = login(client, "boss@example.com")
     found = client.get(f"/sites/{site.id}/user-search", params={"q": "hopp"}, headers=h).json()
     assert [(f["email"], f["first_name"]) for f in found] == [("x@example.com", "Grace")]

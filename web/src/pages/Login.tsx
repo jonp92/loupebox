@@ -20,6 +20,8 @@ export default function Login() {
   }, []);
 
   if (me) return <Navigate to="/" replace />;
+  // No form until the session check is done: with a disabled submit button, Enter would silently do nothing.
+  if (loading) return <div className="login-page"><p className="muted" role="status">Loading…</p></div>;
 
   async function run(action: () => Promise<void>) {
     setBusy(true);
@@ -68,7 +70,7 @@ export default function Login() {
           <label>Email<input name="email" type="email" autoComplete="username" required autoFocus /></label>
           <label>Password<input name="password" type="password" autoComplete="current-password" required /></label>
           {error && <p className="error" role="alert">{error}</p>}
-          <button className="primary block" disabled={busy || loading}>{busy ? "Signing in…" : "Sign in"}</button>
+          <button className="primary block" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
           {canReset && <p className="login-links"><Link to="/forgot-password">Forgot password?</Link></p>}
         </form>
       ) : (

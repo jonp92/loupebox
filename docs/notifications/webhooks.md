@@ -102,5 +102,5 @@ on if every site admin is trusted to point at internal services.
 
 | Variable | Meaning |
 |----------|---------|
-| `WEBHOOK_ENCRYPTION_KEY` | Encrypts signing secrets in the database. Falls back to `JWT_SECRET`, but then rotating `JWT_SECRET` makes every secret unreadable and deliveries fail until the secrets are rotated. Set it once and keep it. |
+| `WEBHOOK_ENCRYPTION_KEY` | Encrypts signing secrets in the database. Required in production. Elsewhere it falls back to `JWT_SECRET`, and rotating `JWT_SECRET` then makes every secret unreadable, so deliveries fail until the secrets are rotated. Set it once and keep it. |
 | `WEBHOOK_ALLOW_PRIVATE` | `true` allows private, loopback and plain-http targets. Default `false`. |

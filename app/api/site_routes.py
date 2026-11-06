@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import ValidationError
-from sqlalchemy import or_, select, update
+from sqlalchemy import and_, or_, select, update
 from sqlalchemy.orm import Session
 
 from app.api.deps import SiteAccess, get_current_user, require_superadmin, site_access
@@ -216,16 +216,25 @@ def search_users(
     access: SiteAccess = Depends(site_access(Role.admin)),
     db: Session = Depends(get_db),
 ) -> list[UserSuggestion]:
-    """Email autocomplete for the add-member picker. Only active users who aren't already members."""
+    """Email autocomplete for the add-member picker. Only active users who aren't already members.
+
+    Superadmins search everyone. A site admin only browses people who share one of their sites; anyone else
+    turns up only for their full email address, so the instance's user list can't be read letter by letter.
+    """
     members = select(Membership.user_id).where(Membership.site_id == access.site.id)
+    match = or_(
+        User.email.icontains(q, autoescape=True),
+        User.first_name.icontains(q, autoescape=True),
+        User.last_name.icontains(q, autoescape=True),
+    )
+    if not access.user.is_superadmin:
+        own_sites = select(Membership.site_id).where(Membership.user_id == access.user.id)
+        colleagues = select(Membership.user_id).where(Membership.site_id.in_(own_sites))
+        match = or_(and_(match, User.id.in_(colleagues)), User.email == q.strip().lower())
     rows = db.scalars(
         select(User)
         .where(
-            or_(
-                User.email.icontains(q, autoescape=True),
-                User.first_name.icontains(q, autoescape=True),
-                User.last_name.icontains(q, autoescape=True),
-            ),
+            match,
             User.is_active.is_(True),
             User.id.not_in(members),
         )

@@ -25,7 +25,9 @@ nobody can find site ids by guessing.
 ![A site's members](../images/members-dark.png#only-dark)
 ![A site's members](../images/members-light.png#only-light)
 
-Add members from a site's **Members** tab. The person needs a user account first.
+Add members from a site's **Members** tab. The person needs a user account first. As you type, the picker
+suggests people who already share a site with you. For anyone else, type their full email address.
+Superadmins can find every user.
 
 ## If someone is locked out
 
