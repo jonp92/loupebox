@@ -44,6 +44,7 @@ nav = [
   { "Reference" = [
     { "Settings (.env)" = "reference/configuration.md" },
     { "Known limits" = "reference/limitations.md" },
+    { "Where to find logs" = "reference/logs.md" },
     { "Develop Loupebox" = "reference/development.md" },
   ] },
 ]
