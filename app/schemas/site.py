@@ -33,6 +33,9 @@ class SiteUpdate(_OriginsMixin):
     # "off" or a registered verifier key. Config is validated against that verifier's model.
     challenge_mode: str | None = Field(default=None, max_length=24)
     challenge_config: dict[str, Any] | None = None
+    # Days to keep submissions / their email address. Explicit null turns the rule off.
+    retention_delete_days: int | None = Field(default=None, ge=1, le=36_500)
+    retention_strip_email_days: int | None = Field(default=None, ge=1, le=36_500)
 
 
 class SiteOut(BaseModel):
@@ -46,6 +49,8 @@ class SiteOut(BaseModel):
     daily_limit: int
     challenge_mode: str
     challenge_config: dict[str, Any]
+    retention_delete_days: int | None
+    retention_strip_email_days: int | None
     created_at: datetime
     my_role: Role | None = None
 

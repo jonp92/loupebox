@@ -50,3 +50,6 @@ class TTLCache:
     def _lock_for(self, key: tuple[Hashable, str]) -> threading.Lock:
         with self._guard:
             return self._locks.setdefault(key, threading.Lock())
+
+
+menus = TTLCache(30)  # the filter menus' tag and issue-type counts, per site; feedback changes invalidate it

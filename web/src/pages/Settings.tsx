@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { API_PREFIX, API_URL, api, json, type Site, type VerifierInfo } from "../api";
 import { SchemaFields } from "../components";
 import { useConfirm } from "../confirm";
+import Privacy from "./Privacy";
 import { useToast } from "../toast";
 
 export default function Settings({ site, onChange }: { site: Site; onChange: (s: Site) => void }) {
@@ -157,6 +158,7 @@ await fetch(API + "/feedback", {
         <label className="inline"><input name="is_active" type="checkbox" defaultChecked={site.is_active} /> Accepting feedback</label>
         <button className="primary">Save changes</button>
       </form>
+      <Privacy site={site} onChange={onChange} />
     </>
   );
 }

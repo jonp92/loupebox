@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import SiteAccess, feedback_or_404, site_access
 from app.core.audit import audit
-from app.core.cache import TTLCache
+from app.core.cache import menus
 from app.core.config import settings
 from app.db.session import get_db, get_sessionmaker
 from app.models import (
@@ -46,7 +46,6 @@ from app.schemas.feedback import (
 
 router = APIRouter(prefix="/sites/{site_id}/feedback", tags=["feedback"])
 TOTAL_CAP = 10_000  # the list and the quick tabs stop counting here
-menus = TTLCache(30)  # the filter menus' tag and issue-type counts, per site
 
 
 def _capped_count(db: Session, where: list, cap: int) -> tuple[int, bool]:

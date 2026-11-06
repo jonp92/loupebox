@@ -41,6 +41,7 @@ the rest, including how to put it on the internet.
 * Replies by email to the person who wrote in.
 * Email and webhook alerts for new feedback.
 * Roles per site, optional two-factor sign-in and an audit log.
+* Per-site retention, and export or erase of personal data.
 * Spam checks that need no CAPTCHA.
 * An admin app that works on phones.
 

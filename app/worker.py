@@ -8,6 +8,7 @@ from app.challenges.replay import purge_expired
 from app.core import health, runtime_settings
 from app.core.audit import purge_expired as purge_audit
 from app.core.config import settings
+from app.core.retention import sweep as sweep_retention
 from app.db.session import get_sessionmaker
 from app.models.user import utcnow
 from app.notifications.dispatcher import process_due, purge_finished
@@ -48,6 +49,9 @@ def run() -> None:
                     if expired:
                         log.info("purged %s expired challenge markers", expired)
                     health.purge_heartbeats(db, utcnow())
+                    swept = sweep_retention(db, utcnow())
+                    if swept:
+                        log.info("retention removed %s feedback items or addresses", swept)
                     old_audit = purge_audit(db, utcnow())
                     if old_audit:
                         log.info("purged %s audit events past retention", old_audit)

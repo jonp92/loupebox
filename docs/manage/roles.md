@@ -18,7 +18,7 @@ pixels, and the file is limited to 64 KB.
 |---|---|
 | Viewer | Read feedback, tags, assignees, notes and replies. |
 | Editor | Everything a viewer can, plus change status, assign, tag, add notes and send replies. |
-| Admin | Everything an editor can, plus delete feedback and manage the site's settings, key, members and notifications. |
+| Admin | Everything an editor can, plus delete feedback, set retention, export or erase personal data, and manage the site's settings, key, members and notifications. |
 
 People who are not members of a site cannot see it. The server answers as if the site does not exist, so
 nobody can find site ids by guessing.

@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, Enum, ForeignKey, Index, SmallInteger, String, Text, func, select
+from sqlalchemy import JSON, Enum, ForeignKey, Index, SmallInteger, String, Text, func, select, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
@@ -27,6 +27,14 @@ class Feedback(Base):
         Index("ix_feedback_site_created", "site_id", "created_at"),
         Index("ix_feedback_site_status_created", "site_id", "status", "created_at"),
         Index("ix_feedback_site_dedupe", "site_id", "content_hash"),
+        # What the retention sweep walks: only rows that still hold an address.
+        Index(
+            "ix_feedback_site_email_created",
+            "site_id",
+            "created_at",
+            postgresql_where=text("email IS NOT NULL"),
+            sqlite_where=text("email IS NOT NULL"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
