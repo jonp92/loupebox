@@ -1,6 +1,7 @@
 import { createClient, type SubmitResult } from "./client";
 import { format } from "./i18n";
 import { icon } from "./icons";
+import { IMAGE_TYPES, prepareImage, type ImageLimits } from "./images";
 import {
   LoupeboxConfigError,
   normalizeOptions,
@@ -91,6 +92,9 @@ export function createWidget(input: WidgetOptions): WidgetController {
   let closeTimer: ReturnType<typeof setTimeout> | undefined;
   let selectedType: string | undefined;
   let rating = 0;
+  let limits: ImageLimits | null = null; // what the site accepts; null while unknown or when images are off
+  let limitsRequested = false;
+  const picked: { file: Blob; name: string; url: string }[] = [];
 
   // Refs filled by render().
   let launcher: HTMLButtonElement | null = null;
@@ -99,6 +103,7 @@ export function createWidget(input: WidgetOptions): WidgetController {
   let doneBox!: HTMLElement;
   let statusEl!: HTMLElement;
   let submitBtn!: HTMLButtonElement;
+  let imageSlot!: HTMLElement;
 
   const client = () => createClient({ url: opts.url, key: opts.key });
 
@@ -233,6 +238,94 @@ export function createWidget(input: WidgetOptions): WidgetController {
     return h("div", {}, label(field.label, fid, field.required ? undefined : "optional"), control, h("p", { class: "err", id: `${fid}-err`, hidden: true }));
   }
 
+  // --- images ---------------------------------------------------------------------------------
+
+  let paintImages: () => void = () => {};
+
+  function clearImages(): void {
+    for (const p of picked) URL.revokeObjectURL(p.url);
+    picked.length = 0;
+    paintImages();
+  }
+
+  async function addImages(files: File[]): Promise<void> {
+    if (!limits || busy) return;
+    const s = opts.strings;
+    setFieldError("images", "");
+    for (const file of files) {
+      if (picked.length >= limits.maxCount) {
+        setFieldError("images", format(s.errorImageCount, { max: limits.maxCount }));
+        break;
+      }
+      const out = await prepareImage(file, limits);
+      if (typeof out === "string") {
+        const mb = Math.round(limits.maxBytes / 1048576);
+        setFieldError("images", out === "type" ? s.errorImageType : format(s.errorImageSize, { mb }));
+        continue;
+      }
+      const name = file.name || "image";
+      const named = typeof File === "function" && !(out instanceof File) ? new File([out], name, { type: out.type }) : out;
+      picked.push({ file: named, name, url: URL.createObjectURL(named) });
+    }
+    paintImages();
+  }
+
+  /** The "Add image" button, the thumbnails and their messages. Built once the site is known to accept images. */
+  function mountImages(): void {
+    imageSlot.replaceChildren();
+    imageSlot.hidden = !limits || !opts.images;
+    if (!limits || !opts.images) return;
+    const max = limits.maxCount;
+    const s = opts.strings;
+    const input = h("input", { type: "file", accept: IMAGE_TYPES.join(","), multiple: true, hidden: true, tabindex: "-1" });
+    const add = h("button", { type: "button", class: "add-image", "aria-describedby": `${id}-images-hint` }, icon("image"), s.addImage);
+    const count = h("span", { class: "hint", "aria-live": "polite" });
+    const list = h("ul", { class: "thumbs", "aria-label": s.imagesLabel });
+    add.addEventListener("click", () => input.click());
+    input.addEventListener("change", () => {
+      const files = [...(input.files ?? [])];
+      input.value = ""; // so choosing the same file again still fires
+      void addImages(files);
+    });
+    paintImages = () => {
+      list.hidden = picked.length === 0;
+      add.disabled = picked.length >= max;
+      count.textContent = picked.length ? format(s.imageCount, { count: picked.length, max }) : "";
+      list.replaceChildren(...picked.map((p, i) => {
+        // The preview needs `img-src blob:` on strict pages; without it the picture is replaced by an icon.
+        const img = h("img", { src: p.url, alt: p.name });
+        img.addEventListener("error", () => img.replaceWith(icon("image") ?? p.name));
+        const remove = h("button", { type: "button", class: "remove", "aria-label": format(s.removeImage, { n: i + 1 }) }, icon("close"));
+        remove.addEventListener("click", () => {
+          if (busy) return;
+          URL.revokeObjectURL(p.url);
+          picked.splice(picked.indexOf(p), 1);
+          setFieldError("images", "");
+          paintImages();
+          add.focus();
+        });
+        return h("li", {}, img, remove);
+      }));
+    };
+    imageSlot.append(
+      h("div", { class: "image-row" }, add, input, count),
+      list,
+      h("p", { class: "hint", id: `${id}-images-hint` }, s.imageHint),
+      errorFor("images"),
+    );
+    paintImages();
+  }
+
+  function loadLimits(): void {
+    if (limitsRequested || destroyed || !opts.images) return;
+    limitsRequested = true;
+    void client().limits().then((found) => {
+      if (destroyed) return;
+      limits = found;
+      mountImages();
+    });
+  }
+
   // --- validation and status ------------------------------------------------------------------
 
   function setFieldError(fieldId: string, message: string): void {
@@ -345,7 +438,7 @@ export function createWidget(input: WidgetOptions): WidgetController {
 
     const honeypot = (shadow.getElementById(`${id}-website`) as HTMLInputElement | null)?.value ?? "";
     const pageUrl = typeof opts.pageUrl === "function" ? opts.pageUrl() : opts.pageUrl;
-    const result = await client().submit({ ...payload, website: honeypot, pageUrl });
+    const result = await client().submit({ ...payload, website: honeypot, pageUrl, images: picked.map((p) => p.file) });
 
     busy = false;
     submitBtn.disabled = false;
@@ -354,12 +447,13 @@ export function createWidget(input: WidgetOptions): WidgetController {
     if (destroyed) return;
 
     if (result.ok) {
+      clearImages();
       emit("submit", { id: result.id, payload });
       showDone();
       return;
     }
     if (result.fields) {
-      const known = { message: "message", email: "email", name: "name", rating: "rating" } as const;
+      const known = { message: "message", email: "email", name: "name", rating: "rating", images: "images" } as const;
       for (const [field, message] of Object.entries(result.fields)) {
         if (field in known) setFieldError(known[field as keyof typeof known], message);
       }
@@ -379,6 +473,7 @@ export function createWidget(input: WidgetOptions): WidgetController {
 
   function resetForm(): void {
     form.reset();
+    clearImages();
     rating = 0;
     form.hidden = false;
     doneBox.hidden = true;
@@ -403,6 +498,7 @@ export function createWidget(input: WidgetOptions): WidgetController {
     submitBtn = h("button", { type: "submit", class: "submit" }, opts.strings.submit);
     selectedType = undefined;
     rating = 0;
+    imageSlot = h("div", { class: "images", hidden: true });
 
     form = h(
       "form",
@@ -414,6 +510,7 @@ export function createWidget(input: WidgetOptions): WidgetController {
         h("textarea", { id: `${id}-message`, name: "message", maxlength: "5000", placeholder: opts.strings.messagePlaceholder, "aria-describedby": `${id}-message-err` }),
         errorFor("message"),
       ),
+      imageSlot,
       ratingField(),
       opts.fields.name ? textField("name", opts.strings.nameLabel, "text", opts.fields.name, "name") : null,
       opts.fields.email ? textField("email", opts.strings.emailLabel, "email", opts.fields.email, "email") : null,
@@ -442,6 +539,28 @@ export function createWidget(input: WidgetOptions): WidgetController {
       form,
       doneBox,
     );
+    // Paste or drop an image anywhere on the form. Text pastes and unrelated drops are left alone.
+    panel.addEventListener("paste", (e) => {
+      const files = [...(e.clipboardData?.files ?? [])].filter((f) => f.type.startsWith("image/"));
+      if (!limits || !files.length) return;
+      e.preventDefault();
+      void addImages(files);
+    });
+    const carriesFiles = (e: DragEvent) => [...(e.dataTransfer?.types ?? [])].includes("Files");
+    panel.addEventListener("dragover", (e) => {
+      if (!limits || !carriesFiles(e)) return;
+      e.preventDefault();
+      panel.setAttribute("data-dragging", "true");
+    });
+    panel.addEventListener("dragleave", (e) => {
+      if (!panel.contains(e.relatedTarget as Node | null)) panel.removeAttribute("data-dragging");
+    });
+    panel.addEventListener("drop", (e) => {
+      panel.removeAttribute("data-dragging");
+      if (!limits || !carriesFiles(e)) return;
+      e.preventDefault();
+      void addImages([...(e.dataTransfer?.files ?? [])]);
+    });
     panel.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && opts.mode === "floating") {
         e.stopPropagation();
@@ -461,6 +580,7 @@ export function createWidget(input: WidgetOptions): WidgetController {
     }
     panel.id = `${id}-panel`;
     shadow.append(h("div", { "data-mode": opts.mode, "data-position": opts.position }, launcher, panel));
+    mountImages();
   }
 
   // --- open / close ---------------------------------------------------------------------------
@@ -469,6 +589,7 @@ export function createWidget(input: WidgetOptions): WidgetController {
     if (isOpen || destroyed || opts.mode !== "floating") return;
     clearTimeout(closeTimer);
     isOpen = true;
+    loadLimits();
     if (!doneBox.hidden) resetForm();
     panel.hidden = false;
     launcher?.setAttribute("aria-expanded", "true");
@@ -504,6 +625,7 @@ export function createWidget(input: WidgetOptions): WidgetController {
       document.body.append(host);
     }
   };
+  if (opts.mode === "inline") loadLimits();
   if (opts.mode === "floating" && document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", mount, { once: true });
   } else {
@@ -518,13 +640,20 @@ export function createWidget(input: WidgetOptions): WidgetController {
       if (destroyed) return;
       destroyed = true;
       clearTimeout(closeTimer);
+      clearImages();
       host.remove();
       for (const set of Object.values(listeners)) set.clear();
     },
     update(changes) {
       raw = { ...raw, ...changes };
       opts = normalizeOptions(raw);
+      if ("url" in changes || "key" in changes || "images" in changes) {
+        limits = null; // another site may take different things
+        limitsRequested = false;
+        clearImages();
+      }
       render();
+      if (isOpen || opts.mode === "inline") loadLimits();
     },
     on(event, listener) {
       (listeners[event] as Set<typeof listener>).add(listener);

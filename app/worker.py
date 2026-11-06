@@ -6,6 +6,7 @@ import time
 
 from app.challenges.replay import purge_expired
 from app.core import health, runtime_settings
+from app.core.attachments import sweep_orphans
 from app.core.audit import purge_expired as purge_audit
 from app.core.config import settings
 from app.core.retention import sweep as sweep_retention
@@ -18,6 +19,7 @@ log = logging.getLogger("loupebox.worker")
 
 _stop = False
 PURGE_EVERY = 3600  # seconds between retention sweeps
+ORPHAN_EVERY = 86400  # seconds between scans of the attachment store for files with no row
 
 
 def _request_stop(*_: object) -> None:
@@ -31,7 +33,7 @@ def run() -> None:
     signal.signal(signal.SIGINT, _request_stop)
     load_providers()
     log.info("worker started, polling every %ss", settings.worker_poll_seconds)
-    last_purge = last_beat = float("-inf")  # sweep once at startup, then hourly
+    last_purge = last_beat = last_orphans = float("-inf")  # everything sweeps at startup
     while not _stop:
         try:
             with get_sessionmaker()() as db:
@@ -52,6 +54,11 @@ def run() -> None:
                     swept = sweep_retention(db, utcnow())
                     if swept:
                         log.info("retention removed %s feedback items or addresses", swept)
+                if time.monotonic() - last_orphans >= ORPHAN_EVERY:
+                    last_orphans = time.monotonic()
+                    orphans = sweep_orphans(db, utcnow())
+                    if orphans:
+                        log.info("removed %s attachment files that no feedback refers to", orphans)
                     old_audit = purge_audit(db, utcnow())
                     if old_audit:
                         log.info("purged %s audit events past retention", old_audit)

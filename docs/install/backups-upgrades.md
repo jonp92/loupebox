@@ -2,15 +2,17 @@
 
 ## Back up
 
-Everything lives in the database. Run this in the folder that holds `docker-compose.yml` (in a git checkout,
-use `./scripts/backup.sh`):
+Everything lives in the database, except the images visitors attach to feedback, which are files in a Docker
+volume. The backup script saves both. Run this in the folder that holds `docker-compose.yml` (in a git checkout,
+use `./scripts/backup.sh`), with Loupebox running:
 
 ```bash
 sh backup.sh
 ```
 
 It writes one file to `backups/`, named by the date and time in UTC, such as
-`backups/loupebox-2026-11-04T031500Z.tar`. The file holds a dump of the database and a copy of your `.env`.
+`backups/loupebox-2026-11-04T031500Z.tar`. The file holds a dump of the database, the image files and a copy of
+your `.env`.
 It keeps the newest 14 backups and deletes older ones. Set `BACKUP_KEEP` to keep a different number, or `0` to
 keep them all. To write somewhere else, give a folder: `sh backup.sh /mnt/backups/loupebox`.
 
@@ -36,7 +38,8 @@ Add a line like this with `crontab -e`, changing the folder to yours:
 sh restore.sh backups/loupebox-2026-11-04T031500Z.tar
 ```
 
-It asks you to type `yes`, then replaces everything in the database with the backup and starts Loupebox again.
+It asks you to type `yes`, then replaces everything in the database and all the images with the backup and
+starts Loupebox again. A backup made before images existed leaves the images as they are.
 Add `-y` to skip the question. On a new machine, put `docker-compose.yml`, `restore.sh` and the backup in an
 empty folder and run the same command: there is no `.env` yet, so the one from the backup is used.
 

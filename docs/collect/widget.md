@@ -30,6 +30,35 @@ The page's origin (scheme + host + port) must be in the site's **allowed origins
 same module works as an import (`import { createWidget } from "https://.../loupebox.js"`) or, for no network
 dependency, download the file and import it locally.
 
+### Without any JavaScript
+
+For the common case a script tag is enough:
+
+```html
+<script type="module" src="https://feedback.example.com/widget/v1/loupebox.js" data-key="pk_..."></script>
+```
+
+The widget starts itself and talks to `/v1/api` on the same address the script came from. If your API is somewhere
+else, add `data-url="https://api.example.com/v1/api"`. Nothing runs inline, so it also works under a strict
+Content-Security-Policy.
+
+| Attribute | Same as option | Example |
+|---|---|---|
+| `data-key` | `key` (required) | `pk_...` |
+| `data-url` | `url` | `https://api.example.com/v1/api` |
+| `data-mode`, `data-target` | `mode`, `target` | `inline`, `#feedback` |
+| `data-position`, `data-theme` | `position`, `theme` | `bottom-left`, `dark` |
+| `data-launcher`, `data-images` | `launcher`, `images` | `false` |
+| `data-rating` | `fields.rating` | `true` |
+| `data-name`, `data-email` | `fields.name`, `fields.email` | `required`, `optional` or `false` |
+| `data-require-issue-type`, `data-default-issue-type` | `requireIssueType`, `defaultIssueType` | `true`, `bug` |
+| `data-close-delay`, `data-radius`, `data-z-index` | `closeDelay`, `radius`, `zIndex` | `0`, `8`, `5000` |
+
+Anything else (`beforeSubmit`, `metadata`, `extraFields`, `strings`, `colors`) needs `createWidget`. Colors can also
+be set from your stylesheet, see [Look and feel](#look-and-feel). To open it from your own button, set
+`data-launcher="false"` and call `loupebox.open()`; the controller is `window.loupebox`, and a `loupebox:ready`
+event fires on `window` when it is there.
+
 ## Options
 
 Everything except `url` and `key` is optional.
@@ -53,6 +82,7 @@ Everything except `url` and `key` is optional.
 | `radius`, `fontFamily`, `zIndex` | | Corner radius in px, a font stack, and the stacking order |
 | `strings` | English | Override any text (see `defaultStrings` for the keys), e.g. to translate |
 | `closeDelay` | `2500` | Milliseconds before the panel closes after sending; `0` keeps it open |
+| `images` | `true` | Offer image upload when the site accepts images; `false` never does |
 | `beforeSubmit` | | `(payload) => payload \| false`, may be async: last look, change it or cancel |
 
 ### Issue-type badges
@@ -96,6 +126,22 @@ the field's `id` (a checkbox sends `true`/`false`). Ids can't be `issue_type` or
 Every submission carries `metadata.widget_version` and, when chosen, `metadata.issue_type`. Yours is merged in
 (`metadata` option, then extra fields); it can't overwrite those two. The server allows at most 20 keys, keys up to
 64 characters and values that are strings (cut at 256), numbers, booleans or null. **Don't put secrets or tokens in it.**
+
+## Images
+
+When the site has [images turned on](../manage/images.md), the form gets an **Add image** button. Visitors can
+also paste a screenshot or drop image files anywhere on the form. They see a thumbnail of each image, can remove
+one, and are told if a file is the wrong type, too big or over the limit.
+
+The widget asks the site what it accepts (`GET /feedback/config`) the first time it opens, so switching images on
+or off in the site's settings needs no change on your page. Large screenshots are scaled down in the browser
+before sending. With images, the submission goes as one multipart request to `/feedback/with-images`; without
+them it is the same JSON request as before.
+
+The thumbnails are shown from `blob:` addresses. A page with a strict `img-src` needs to allow `blob:` to see
+them; without it the visitor sees an icon instead and everything else works. Set `images: false` (or
+`data-images="false"`) to turn the feature off for a page. The text is in `strings` (`addImage`, `imageHint`,
+`imageCount`, `removeImage`, `errorImageType`, `errorImageSize`, `errorImageCount`).
 
 ## Controlling it from the page
 
@@ -144,6 +190,7 @@ import { createClient } from "https://feedback.example.com/widget/v1/loupebox.js
 
 const client = createClient({ url, key });
 const result = await client.submit({ message: "Hi", issueType: "idea", email: "a@b.co", metadata: { route: "/x" } });
+// Images: `const limits = await client.limits()` (null when the site takes none), then `images: [fileOrBlob]`.
 if (!result.ok) console.log(result.reason, result.retryAfter, result.fields);
 // reason: "network" | "rate_limited" | "invalid" | "rejected" | "challenge_unsupported"
 ```

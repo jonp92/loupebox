@@ -7,7 +7,7 @@ data held for one email address. Both are on the site's **Settings** page.
 
 Under **Data retention** set either or both of:
 
-* **Delete feedback after** a number of days. The message goes, along with its replies, notes and tags.
+* **Delete feedback after** a number of days. The message goes, along with its replies, notes, tags and images.
 * **Remove emails after** a number of days. The email address is removed and the message, name and
   everything else are kept until the feedback is deleted. This cannot be longer than the delete period.
 
@@ -36,8 +36,9 @@ Under **Export or erase personal data**, enter an email address and choose **Loo
 upper or lower case, and spam is included. You can then:
 
 * **Export** (a JSON file): every message from that address with its name, page, tags, replies sent to them and
-  internal notes.
-* **Erase**: removes those messages with their replies, notes and tags, and the alerts that carry
+  internal notes, plus a list of its images (type, size and date). The image files themselves are not in the
+  file; download them from the item's page.
+* **Erase**: removes those messages with their replies, notes, tags and images, and the alerts that carry
   their address. This cannot be undone.
 
 Only admins of the site can do this. Each export and erase is recorded in the audit log with the number of

@@ -10,3 +10,5 @@ email-validator
 httpx
 cryptography
 redis
+pillow
+python-multipart

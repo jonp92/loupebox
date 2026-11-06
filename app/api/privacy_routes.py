@@ -14,12 +14,13 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import SiteAccess, site_access
+from app.core.attachments import delete_files
 from app.core.audit import audit
 from app.core.cache import menus
 from app.core.config import settings
 from app.core.retention import erase_email, from_email
 from app.db.session import get_db
-from app.models import Feedback, FeedbackNote, FeedbackReply, Role
+from app.models import Feedback, FeedbackAttachment, FeedbackNote, FeedbackReply, Role
 from app.models.user import utcnow
 from app.schemas.privacy import ErasureResult, PersonIn, PersonSummary
 
@@ -62,7 +63,7 @@ def export_person(
     access: SiteAccess = Depends(site_access(Role.admin)),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
-    """Every item from the address with its tags, replies and internal notes, as a JSON download."""
+    """Every item from the address with its tags, replies, notes and a list of its images, as JSON."""
     items = db.scalars(
         select(Feedback)
         .where(*from_email(access.site.id, body.email))
@@ -71,6 +72,7 @@ def export_person(
     ).all()
     ids = [i.id for i in items]
     replies, notes = _by_item(db, FeedbackReply, ids), _by_item(db, FeedbackNote, ids)
+    images = _by_item(db, FeedbackAttachment, ids)
     data = {
         "site": access.site.name,
         "exported_at": utcnow().astimezone(UTC),
@@ -92,6 +94,11 @@ def export_person(
                     for r in replies.get(i.id, [])
                 ],
                 "notes": [{"created_at": n.created_at, "body": n.body} for n in notes.get(i.id, [])],
+                # The files themselves are not in the export: they are downloaded from the item's page.
+                "images": [
+                    {"id": a.id, "created_at": a.created_at, "content_type": a.content_type, "size": a.size}
+                    for a in images.get(i.id, [])
+                ],
             }
             for i in items
         ],
@@ -113,9 +120,10 @@ def erase_person(
     access: SiteAccess = Depends(site_access(Role.admin)),
     db: Session = Depends(get_db),
 ) -> ErasureResult:
-    """Delete every item from the address, with its replies, notes, tags and queued notifications."""
-    deleted = erase_email(db, access.site, body.email)
+    """Delete every item from the address, with its replies, notes, tags, images and queued notifications."""
+    deleted, files = erase_email(db, access.site, body.email)
     _audit(db, access, "privacy.erase", "Erased the data held", deleted)
     db.commit()
+    delete_files(files)
     menus.invalidate(access.site.id)
     return ErasureResult(deleted=deleted)

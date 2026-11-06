@@ -37,6 +37,9 @@ export interface Site {
   daily_limit: number;
   challenge_mode: string; // "off" or a verifier key
   challenge_config: Record<string, unknown>;
+  attachments_enabled: boolean;
+  attachment_max_count: number; // server-wide limits, read-only
+  attachment_max_bytes: number;
   retention_delete_days: number | null; // null: keep forever
   retention_strip_email_days: number | null;
   my_role: Role | null;
@@ -74,6 +77,15 @@ export interface Feedback {
   tags: string[];
   note_count: number;
   reply_count: number;
+  attachment_count: number;
+}
+export interface Attachment {
+  id: string;
+  content_type: string;
+  size: number;
+  width: number;
+  height: number;
+  created_at: string;
 }
 export interface Assignee {
   user_id: string;
@@ -317,6 +329,11 @@ export async function download(path: string, fallbackName: string, init: Request
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+/** Fetch a file with the session's credentials, e.g. an image the browser could not request itself (no cookies). */
+export async function fetchBlob(path: string): Promise<Blob> {
+  return (await request(path, {})).blob();
 }
 
 export const json = (method: string, body: unknown): RequestInit => ({

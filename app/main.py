@@ -6,6 +6,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.concurrency import run_in_threadpool
 
 from app.api import (
+    attachment_routes,
     audit_routes,
     auth_routes,
     avatar_routes,
@@ -82,7 +83,10 @@ app.add_middleware(
 app.add_middleware(
     BodySizeLimitMiddleware,
     max_bytes=settings.max_body_bytes,
-    overrides={"/avatar": settings.avatar_max_bytes + 1024},
+    overrides={
+        "/avatar": settings.avatar_max_bytes + 1024,
+        "/feedback/with-images": settings.attachment_request_bytes,
+    },
 )
 app.add_middleware(DynamicCORSMiddleware)
 
@@ -97,6 +101,7 @@ for module in (
     user_routes,
     site_routes,
     feedback_routes,
+    attachment_routes,
     privacy_routes,
     reply_routes,
     notification_routes,

@@ -116,11 +116,40 @@ class FeedbackReply(Base):
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
 
 
+class FeedbackAttachment(Base):
+    """An image sent with a feedback item. The bytes live in the storage backend under `storage_key`.
+
+    Deleting the item deletes these rows (database cascade), but not the files: whoever deletes feedback
+    collects the keys first and removes the files after the commit (app.core.attachments).
+    """
+
+    __tablename__ = "feedback_attachments"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    feedback_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("feedback.id", ondelete="CASCADE"), index=True)
+    site_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("sites.id", ondelete="CASCADE"), index=True)
+    storage_key: Mapped[str] = mapped_column(String(100), unique=True)
+    content_type: Mapped[str] = mapped_column(String(32))
+    size: Mapped[int]
+    width: Mapped[int]
+    height: Mapped[int]
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+
+
 # Counted in the same query as the item, so lists can show "3 notes" without opening each one.
 Feedback.note_count = column_property(
     select(func.count(FeedbackNote.id))
     .where(FeedbackNote.feedback_id == Feedback.id)
     .correlate_except(FeedbackNote)
+    .scalar_subquery(),
+    deferred=False,
+)
+
+
+Feedback.attachment_count = column_property(
+    select(func.count(FeedbackAttachment.id))
+    .where(FeedbackAttachment.feedback_id == Feedback.id)
+    .correlate_except(FeedbackAttachment)
     .scalar_subquery(),
     deferred=False,
 )

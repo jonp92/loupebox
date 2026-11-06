@@ -494,3 +494,18 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 .replies p.error:empty { display: none; }
 .reply-foot { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
 .replies-off { margin-top: .75rem; }
+
+/* Images sent with feedback: a thumbnail grid, and a viewer dialog for the full-size image. */
+.section-title { margin: 1rem 0 .25rem; font-size: .95rem; }
+.thumbs { display: flex; flex-wrap: wrap; gap: .5rem; margin: .5rem 0 1rem; }
+.thumb { padding: 0; width: 8rem; height: 6rem; overflow: hidden; background: var(--surface-2); display: grid; place-items: center; cursor: zoom-in; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+dialog.lightbox { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: .75rem; width: min(60rem, calc(100vw - 1rem)); height: min(48rem, calc(100dvh - 1rem)); max-width: none; max-height: none; margin: auto; }
+dialog.lightbox[open] { display: flex; flex-direction: column; }
+dialog.lightbox::backdrop { background: rgb(10 12 20 / 70%); }
+/* The picture is centered in whatever room is left under the buttons. */
+.lightbox-image { flex: 1; min-height: 0; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); place-items: center; }
+.lightbox-image img { max-width: 100%; max-height: 100%; display: block; object-fit: contain; }
+.lightbox-image .skeleton { width: 100%; height: 100%; }
+.lightbox-bar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; justify-content: space-between; margin-top: .75rem; }
+.lightbox-bar .row-actions { flex-wrap: wrap; }

@@ -16,6 +16,12 @@ export { defaultIssueTypes, LoupeboxConfigError } from "./options";
 export type {
   ColorName, ExtraField, FieldMode, IssueType, MetadataValue, SubmitPayload, WidgetOptions,
 } from "./options";
+export type { ImageLimits } from "./images";
 export { defaultStrings } from "./i18n";
 export type { Strings } from "./i18n";
 export { capabilities, VERSION } from "./version";
+
+import { autoInit } from "./auto";
+
+// `<script type="module" src=".../loupebox.js" data-key="pk_...">` starts a widget by itself.
+autoInit(import.meta.url);

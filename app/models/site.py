@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, Enum, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Enum, ForeignKey, Integer, String, UniqueConstraint, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -30,6 +30,8 @@ class Site(Base):
     # Public-ingest challenge: "off" or the key of a registered app.challenges verifier.
     challenge_mode: Mapped[str] = mapped_column(String(24), default="off", server_default="off")
     challenge_config: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    # Whether visitors may send images with their feedback (the server also needs a storage backend).
+    attachments_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     # Per-site retention, run by the worker. None keeps the data; days are counted from submission.
     retention_delete_days: Mapped[int | None] = mapped_column(Integer, default=None)
     retention_strip_email_days: Mapped[int | None] = mapped_column(Integer, default=None)

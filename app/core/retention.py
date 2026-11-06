@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
+from app.core.attachments import delete_files, keys_for
 from app.core.audit import audit
 from app.models import Feedback, NotificationOutbox, OutboxStatus, Site
 
@@ -20,36 +21,35 @@ FINISHED = [OutboxStatus.sent, OutboxStatus.failed]
 
 
 def _batched(db: Session, site: Site, where: list, act) -> int:
-    """Run `act(ids)` on the matching feedback ids, BATCH at a time, committing after each."""
+    """Run `act(ids)` on the matching feedback ids, BATCH at a time, committing after each. `act` may
+    return attachment keys; their files are removed once the batch is committed."""
     total = 0
     while True:
         ids = db.scalars(select(Feedback.id).where(Feedback.site_id == site.id, *where).limit(BATCH)).all()
         if not ids:
             return total
-        act(ids)
+        files = act(ids)
         db.commit()
+        delete_files(files or [])
         total += len(ids)
 
 
 def delete_older_than(db: Session, site: Site, cutoff: datetime) -> int:
-    return _batched(
-        db,
-        site,
-        [Feedback.created_at < cutoff],
-        lambda ids: db.execute(delete(Feedback).where(Feedback.id.in_(ids))),
-    )
+    def act(ids: list) -> list[str]:
+        files = keys_for(db, Feedback.id.in_(ids))
+        db.execute(delete(Feedback).where(Feedback.id.in_(ids)))
+        return files
+
+    return _batched(db, site, [Feedback.created_at < cutoff], act)
 
 
 def strip_email_older_than(db: Session, site: Site, cutoff: datetime) -> int:
     """Null the address and the dedupe hash derived from it (the hash is only used for minutes)."""
-    return _batched(
-        db,
-        site,
-        [Feedback.created_at < cutoff, Feedback.email.is_not(None)],
-        lambda ids: db.execute(
-            update(Feedback).where(Feedback.id.in_(ids)).values(email=None, content_hash="")
-        ),
-    )
+
+    def act(ids: list) -> None:
+        db.execute(update(Feedback).where(Feedback.id.in_(ids)).values(email=None, content_hash=""))
+
+    return _batched(db, site, [Feedback.created_at < cutoff, Feedback.email.is_not(None)], act)
 
 
 def scrub_outbox(db: Session, site: Site, cutoff: datetime) -> int:
@@ -111,11 +111,14 @@ def from_email(site_id: uuid.UUID, email: str) -> list:
     return [Feedback.site_id == site_id, func.lower(Feedback.email) == email.strip().lower()]
 
 
-def erase_email(db: Session, site: Site, email: str) -> int:
-    """Delete every item from this address (any status; replies, notes and tags go with it) and the
-    outbox copies of it, queued or finished. Unlike the sweep this does not commit: the admin
-    endpoint audits and commits, so the erase and its audit event stand or fall together."""
-    deleted = db.execute(delete(Feedback).where(*from_email(site.id, email))).rowcount
+def erase_email(db: Session, site: Site, email: str) -> tuple[int, list[str]]:
+    """Delete every item from this address (any status; replies, notes, tags and images go with it) and
+    the outbox copies of it, queued or finished. Unlike the sweep this does not commit: the admin
+    endpoint audits and commits, so the erase and its audit event stand or fall together. Returns the
+    count and the attachment keys, whose files the caller removes after the commit."""
+    where = from_email(site.id, email)
+    files = keys_for(db, *where)
+    deleted = db.execute(delete(Feedback).where(*where)).rowcount
     db.execute(
         delete(NotificationOutbox).where(
             NotificationOutbox.site_id == site.id,
@@ -123,4 +126,4 @@ def erase_email(db: Session, site: Site, email: str) -> int:
             func.lower(NotificationOutbox.payload["email"].as_string()) == email.strip().lower(),
         )
     )
-    return deleted
+    return deleted, files

@@ -9,14 +9,18 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from app.core.config import settings
 from app.core.origins import public_origins
 
-PUBLIC_PATHS = {f"{settings.api_prefix}/feedback", f"{settings.api_prefix}/feedback/challenge"}
+PUBLIC_PATHS = {
+    f"{settings.api_prefix}/feedback",
+    f"{settings.api_prefix}/feedback/challenge",
+    f"{settings.api_prefix}/feedback/config",
+    f"{settings.api_prefix}/feedback/with-images",
+}
 
 
 class DynamicCORSMiddleware(BaseHTTPMiddleware):
     """Two CORS policies:
 
-    * POST {api_prefix}/feedback and /feedback/challenge (public ingest): any origin registered on an
-      active site; no credentials.
+    * the public ingest paths (see PUBLIC_PATHS): any origin registered on an active site; no credentials.
     * everything else (admin API): only `settings.admin_origins`; credentials allowed for the
       refresh cookie.
     """
@@ -54,7 +58,7 @@ class DynamicCORSMiddleware(BaseHTTPMiddleware):
         if preflight:
             headers["Access-Control-Max-Age"] = "600"
             if public:
-                headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+                headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
                 headers["Access-Control-Allow-Headers"] = "Content-Type, X-API-Key"
             else:
                 headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"

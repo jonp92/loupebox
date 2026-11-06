@@ -106,6 +106,20 @@ class Settings(BaseSettings):
     # Audit log (admin actions). Events older than this are purged by the worker; 0 keeps them forever.
     audit_retention_days: int = 365
 
+    # Images sent with feedback (each site opts in). Files go through the storage backend; the local one
+    # writes under ATTACHMENTS_DIR, which the API and the worker must share (one volume, or one host).
+    storage_backend: str = "local"
+    attachments_dir: str = "data/attachments"
+    attachment_max_count: int = 3  # images per submission
+    attachment_max_bytes: int = 5 * 1024 * 1024  # per uploaded file
+    attachment_max_edge: int = 2048  # pixels on the longer side; larger images are scaled down
+    attachment_max_pixels: int = 20_000_000  # refused before decoding (decompression-bomb guard)
+
+    @property
+    def attachment_request_bytes(self) -> int:
+        """Largest body of a submission with images: every image at its cap, plus the JSON part."""
+        return self.attachment_max_count * self.attachment_max_bytes + 64 * 1024
+
     # Secrets the server must read back are encrypted at rest, one key per purpose (any string). Required in
     # production. Elsewhere each falls back to JWT_SECRET, and rotating that would make them unreadable.
     totp_encryption_key: str = ""  # two-factor seeds

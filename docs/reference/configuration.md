@@ -51,6 +51,21 @@ setting, and `setup.sh` fills in the secrets for you.
 | `NOTIFY_RETENTION_DAYS` | 30 | How long sent and failed alerts are kept. |
 | `PASSWORD_RESET_MINUTES` | 30 | How long a reset link works. |
 
+## Images
+
+See [Images with feedback](../manage/images.md). Each site also turns them on in its own settings.
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `ATTACHMENT_MAX_COUNT` | 3 | Images per submission |
+| `ATTACHMENT_MAX_BYTES` | 5242880 | Largest uploaded file, in bytes |
+| `ATTACHMENT_MAX_EDGE` | 2048 | Longer side in pixels; larger images are scaled down |
+| `ATTACHMENT_MAX_PIXELS` | 20000000 | Larger pictures are refused before they are decoded |
+| `STORAGE_BACKEND` | `local` | Where files go. Only `local` for now |
+| `ATTACHMENTS_DIR` | `data/attachments` (`/data/attachments` in the image) | The folder for `local`. The API and the worker must share it |
+
+Restart the API after changing these.
+
 ## Limits and retention
 
 | Setting | Default |

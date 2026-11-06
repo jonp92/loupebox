@@ -23,6 +23,14 @@ export interface Strings {
   errorInvalid: string;
   errorRateLimited: string;
   errorChallenge: string;
+  addImage: string;
+  imageHint: string;
+  imageCount: string;
+  imagesLabel: string;
+  removeImage: string;
+  errorImageType: string;
+  errorImageSize: string;
+  errorImageCount: string;
 }
 
 export const defaultStrings: Strings = {
@@ -49,6 +57,14 @@ export const defaultStrings: Strings = {
   errorInvalid: "Some of your answers weren't accepted. Please check them and try again.",
   errorRateLimited: "Too many submissions. Please try again in {seconds} seconds.",
   errorChallenge: "This form needs a newer version of the feedback widget. Please reload the page.",
+  addImage: "Add image",
+  imageHint: "You can also paste or drop an image.",
+  imageCount: "{count} of {max} images",
+  imagesLabel: "Attached images",
+  removeImage: "Remove image {n}",
+  errorImageType: "Only PNG, JPEG and WebP images can be attached.",
+  errorImageSize: "That image is too large. The limit is {mb} MB.",
+  errorImageCount: "You can attach up to {max} images.",
 };
 
 /** Replace `{name}` placeholders. */
