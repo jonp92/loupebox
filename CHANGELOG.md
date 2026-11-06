@@ -17,6 +17,10 @@ change between releases; breaking changes are called out below.
 ### Changed
 - "Latest unread" on the dashboard opens the feedback item itself, not the site's list.
 - Users who belong to a single site skip the Sites list and land on that site's feedback.
+- **Breaking:** with `ENVIRONMENT=production`, the API and worker refuse to start unless `TOTP_ENCRYPTION_KEY`,
+  `WEBHOOK_ENCRYPTION_KEY` and `SETTINGS_ENCRYPTION_KEY` are set; they no longer fall back to `JWT_SECRET`. Installs
+  made with `setup.sh` before this release need `SETTINGS_ENCRYPTION_KEY` added to `.env`. If you ran without the
+  other two, set them to your current `JWT_SECRET` so existing two-factor and webhook secrets stay readable.
 
 ### Fixed
 - The favicon is now a transparent glyph (SVG, `.ico` and 16/32px PNGs, all declared in `index.html`), so Safari
