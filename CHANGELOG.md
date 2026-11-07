@@ -45,6 +45,11 @@ change between releases; breaking changes are called out below.
   (`--profile redis`). Without `REDIS_URL` nothing changes.
 - Settings saved on the System page reach other API containers within 30 seconds.
 
+### Fixed
+- The admin app's Content-Security-Policy refused the blob: addresses the feedback gallery shows its images from,
+  so images did not appear on the item page. `img-src` now allows `blob:`. Only the page's own script can create
+  one, and scripts are still limited to the app itself. Run `docker compose pull` and restart the `web` container.
+
 ### Changed
 - Searching feedback on Postgres uses trigram indexes (migration `0017`, extension `pg_trgm`). On a benchmark
   database of 1.1 million items, a search for a rare word on the largest site (237,000 items) dropped from about
