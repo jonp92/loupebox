@@ -35,7 +35,7 @@ export function FeedbackBadges({ f }: { f: Feedback }) {
       {typeof f.metadata.issue_type === "string" && ISSUE_TYPE.test(f.metadata.issue_type) && (
         <Badge plain title="Type chosen by the visitor">{label(f.metadata.issue_type)}</Badge>
       )}
-      {f.rating && <span className="stars" title={`${f.rating} / 5`}>{"★".repeat(f.rating)}<span className="dim">{"★".repeat(5 - f.rating)}</span></span>}
+      {f.rating && <span className="stars" title={`${f.rating} / 5`}>{"★".repeat(f.rating)}<span className="dim">{"☆".repeat(5 - f.rating)}</span></span>}
     </>
   );
 }

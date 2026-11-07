@@ -194,7 +194,7 @@ export default function Users() {
                   <td className="user-actions">
                     <button onClick={() => setEditing(u.id)} aria-label={`Edit ${displayName(u)}`}>Edit</button>
                     {u.id !== me.id && (
-                      <button className="menu-btn" aria-label={`More actions for ${displayName(u)}`} aria-haspopup="menu" onClick={(e) => ctx.openAt(e.currentTarget, menuFor(u))}>⋯</button>
+                      <button className="menu-btn" aria-label={`More actions for ${displayName(u)}`} aria-haspopup="menu" onClick={(e) => ctx.openAt(e.currentTarget, menuFor(u))}><Icon name="more" /></button>
                     )}
                   </td>
                 </tr>
