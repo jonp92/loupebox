@@ -3,6 +3,9 @@ import { api, displayName, json, type Member, type Role, type Site } from "../ap
 import { Avatar, UserPicker } from "../components";
 import { useConfirm } from "../confirm";
 import { useToast } from "../toast";
+import { Icon } from "../icons";
+import { EmptyState } from "../ui/EmptyState";
+import { Sheet } from "../ui/Sheet";
 
 const ROLES: Role[] = ["viewer", "editor", "admin"];
 const ROLE_HELP: Record<Role, string> = {
@@ -18,6 +21,7 @@ export default function Members({ site }: { site: Site }) {
   const [error, setError] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<Role>("viewer");
+  const [adding, setAdding] = useState(false);
 
   const load = useCallback(
     () => api<Member[]>(`/sites/${site.id}/members`).then(setMembers).catch((e) => setError(e.message)),
@@ -33,7 +37,7 @@ export default function Members({ site }: { site: Site }) {
 
   async function add(e: FormEvent) {
     e.preventDefault();
-    if (email && (await upsert(email, role))) setEmail("");
+    if (email && (await upsert(email, role))) { setEmail(""); setAdding(false); }
   }
 
   async function remove(m: Member) {
@@ -45,25 +49,30 @@ export default function Members({ site }: { site: Site }) {
   return (
     <>
       {error && <p className="error" role="alert">{error}</p>}
-      <section className="card">
-        <h2>Add member</h2>
-        <form className="add-member" onSubmit={add}>
-          <UserPicker siteId={site.id} value={email} onSelect={setEmail} />
-          <select value={role} onChange={(e) => setRole(e.target.value as Role)} aria-label="Role">
-            {ROLES.map((r) => <option key={r}>{r}</option>)}
-          </select>
-          <button className="primary" disabled={!email}>Add</button>
+      <div className="section-head">
+        <h2>Members <span className="count">{members.length}</span></h2>
+        <button className="primary" onClick={() => setAdding(true)}><Icon name="plus" size={18} />Add member</button>
+      </div>
+      <Sheet open={adding} title="Add member" onClose={() => setAdding(false)}>
+        <form onSubmit={add}>
+          <div className="field"><span className="field-label">User</span><UserPicker siteId={site.id} value={email} onSelect={setEmail} /></div>
+          <label>Role
+            <select value={role} onChange={(e) => setRole(e.target.value as Role)}>
+              {ROLES.map((r) => <option key={r}>{r}</option>)}
+            </select>
+          </label>
+          <p className="hint muted">{ROLE_HELP[role]}. Pick an existing user from the list.</p>
+          <button className="primary block" disabled={!email}>Add member</button>
+          <button type="button" className="plain block" onClick={() => setAdding(false)}>Cancel</button>
         </form>
-        <p className="muted hint">{ROLE_HELP[role]}. Pick an existing user from the list.</p>
-      </section>
-      <h2 className="section">Members <span className="count">{members.length}</span></h2>
-      <ul className="list members">
+      </Sheet>
+      <ul className="ruled members">
         {members.map((m) => (
-          <li key={m.user_id}>
+          <li key={m.user_id} className="ruled-row member-row">
             <Avatar user={m} />
-            <span className="grow stack">
+            <span className="ruled-main-col">
               <strong>{displayName(m)}</strong>
-              {displayName(m) !== m.email && <span className="muted">{m.email}</span>}
+              {displayName(m) !== m.email && <span className="person">{m.email}</span>}
             </span>
             <select value={m.role} onChange={(e) => upsert(m.email, e.target.value)} aria-label={`Role for ${m.email}`}>
               {ROLES.map((r) => <option key={r}>{r}</option>)}
@@ -71,8 +80,8 @@ export default function Members({ site }: { site: Site }) {
             <button className="danger" onClick={() => remove(m)}>Remove</button>
           </li>
         ))}
-        {members.length === 0 && <li className="muted">No members yet. Superadmins always have access.</li>}
       </ul>
+      {members.length === 0 && <EmptyState>No members yet. Superadmins always have access.</EmptyState>}
     </>
   );
 }

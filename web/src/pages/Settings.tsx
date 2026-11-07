@@ -108,7 +108,7 @@ await fetch(API + "/feedback", {
 
   return (
     <>
-      <section className="card">
+      <section className="panel">
         <h2>Feedback widget</h2>
         <p>
           Paste this into any page to add a feedback button. Visitors can tag what kind of feedback it is (bug, idea,
@@ -137,7 +137,7 @@ await fetch(API + "/feedback", {
           The page must be on one of the site's allowed origins (scheme, host and port, e.g. <code>https://www.example.com</code>).
         </p>
       </section>
-      <section className="card">
+      <section className="panel">
         <h2>API key</h2>
         <p>This key is public by design: it identifies the site. Abuse is limited by allowed origins, rate limits and quotas.</p>
         <code className="key">{site.public_key}</code>
@@ -145,7 +145,7 @@ await fetch(API + "/feedback", {
         <pre>{snippet}</pre>
         <p className="muted">Include a hidden <code>website</code> field in your form and send it along as-is; bots fill it in and are silently dropped.</p>
       </section>
-      <form className="card" onSubmit={saveChallenge}>
+      <form className="panel" onSubmit={saveChallenge}>
         <h2>Bot protection</h2>
         <p className="muted">
           The API key is public, so anything can claim to be your site. A challenge makes each submission cost the sender a
@@ -163,7 +163,7 @@ await fetch(API + "/feedback", {
         <button className="primary">Save</button>
         {site.challenge_mode === "pow" && <pre>{chalSnippet}</pre>}
       </form>
-      <form className="card" onSubmit={save} key={site.public_key + site.name}>
+      <form className="panel" onSubmit={save} key={site.public_key + site.name}>
         <h2>Settings</h2>
         <label>Name<input name="name" defaultValue={site.name} required /></label>
         <label>Allowed origins<small> (one per line)</small>

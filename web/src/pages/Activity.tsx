@@ -184,12 +184,12 @@ function DataTable({ days }: { days: DayStats[] }) {
   );
 }
 
-function Tile({ label, value, note }: { label: string; value: string; note?: string }) {
+function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
-    <div className="tile">
-      <span className="tile-label">{label}</span>
-      <span className="tile-value">{value}</span>
-      {note && <span className="muted tile-note">{note}</span>}
+    <div>
+      <dt>{label}</dt>
+      <dd className="stat-num">{value}</dd>
+      {note && <dd className="stat-note">{note}</dd>}
     </div>
   );
 }
@@ -238,13 +238,13 @@ export default function Activity({ site }: { site: Site }) {
       {error && <p className="error" role="alert">{error}</p>}
       {days && (
         <div style={{ opacity: loading ? 0.6 : 1, transition: "opacity .15s" }}>
-          <div className="tiles">
-            <Tile label="Accepted" value={fmt.format(sums.accepted)} note="Stored as feedback" />
-            <Tile label="Quarantined as spam" value={fmt.format(sums.quarantined)} note="Stored, hidden by default" />
-            <Tile label="Blocked" value={fmt.format(sums.blocked)} note="Honeypot, origin, rate and daily limits" />
-            <Tile label="Junk share" value={`${junk}%`} note="Quarantined + blocked, of all attempts" />
-          </div>
-          <figure className="card viz-card">
+          <dl className="stat-rows">
+            <Stat label="Accepted" value={fmt.format(sums.accepted)} note="Stored as feedback" />
+            <Stat label="Quarantined as spam" value={fmt.format(sums.quarantined)} note="Stored, hidden by default" />
+            <Stat label="Blocked" value={fmt.format(sums.blocked)} note="Honeypot, origin, rate and daily limits" />
+            <Stat label="Junk share" value={`${junk}%`} note="Quarantined + blocked, of all attempts" />
+          </dl>
+          <figure className="viz-card">
             <figcaption>
               <div>
                 <h2>Submissions per day</h2>

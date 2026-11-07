@@ -9,6 +9,7 @@ import FeedbackList from "./FeedbackList";
 import Members from "./Members";
 import Notifications from "./Notifications";
 import Settings from "./Settings";
+import { Bar, Placeholder } from "../Skeleton";
 import { Badge } from "../ui/Badge";
 import { Status } from "../ui/Status";
 
@@ -23,7 +24,13 @@ export default function SiteDetail() {
   }, [siteId]);
 
   if (error) return <p className="error">{error}</p>;
-  if (!site) return <p className="muted">Loading…</p>;
+  if (!site) {
+    return (
+      <Placeholder label="Loading the site">
+        <div className="ph"><Bar w="6rem" h=".8rem" /><Bar w="14rem" h="2rem" /><Bar w="100%" h="2.75rem" /></div>
+      </Placeholder>
+    );
+  }
   const isAdmin = site.my_role === "admin";
   // Absolute links: inside the sites/:siteId/* route, relative ones resolve against the full URL.
   const base = `/sites/${site.id}`;
