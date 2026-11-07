@@ -14,7 +14,7 @@ from app.models import (
     OutboxStatus,
     Role,
 )
-from tests.conftest import add_member, login, make_site, make_user
+from tests.conftest import add_member, login, make_site, make_user, read_zip
 
 NOW = datetime(2026, 11, 6, 12, tzinfo=UTC)
 
@@ -232,9 +232,13 @@ def test_export_has_everything_about_the_address(client, db, admin):
     db.commit()
     url, body = person(site, "export")
     r = client.post(url, json=body, headers=h)
-    assert r.headers["content-disposition"].startswith("attachment")
+    assert r.headers["content-disposition"] == 'attachment; filename="person-export.zip"'
+    assert r.headers["content-type"] == "application/zip"
     assert r.headers["cache-control"] == "no-store"
-    data = r.json()
+    assert int(r.headers["content-length"]) == len(r.content)
+    files = read_zip(r.content)
+    assert list(files) == ["data.json"]  # a person with no images: just the description
+    data = json.loads(files["data.json"])
     (item,) = data["items"]
     assert (item["message"], item["name"], item["email"], item["metadata"]) == (
         "hi",
@@ -244,7 +248,7 @@ def test_export_has_everything_about_the_address(client, db, admin):
     )
     assert [n["body"] for n in item["notes"]] == ["internal"]
     assert [(x["body"], x["status"]) for x in item["replies"]] == [("thanks", "sent")]
-    assert "not hers" not in r.text
+    assert b"not hers" not in r.content and b"bob@example.com" not in r.content
 
 
 def test_erase_removes_the_items_and_outbox_copies_and_nothing_else(client, db, admin):
@@ -274,7 +278,7 @@ def test_audit_records_counts_never_the_address(client, db, admin):
     events = db.scalars(select(AuditEvent).where(AuditEvent.action.like("privacy.%"))).all()
     assert sorted(e.action for e in events) == ["privacy.erase", "privacy.export"]  # lookup changes nothing
     for e in events:
-        assert e.details == {"items": 1}
+        assert e.details == ({"items": 1, "images": 0} if e.action == "privacy.export" else {"items": 1})
         assert "ann" not in json.dumps(e.details) + e.summary + e.site_name.lower()
 
 

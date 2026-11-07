@@ -73,6 +73,7 @@ Restart the API after changing these.
 | `AUDIT_RETENTION_DAYS` | 365 (`0` keeps everything) |
 | `BULK_MAX_IDS` | 100 |
 | `EXPORT_MAX_ROWS` | 100,000 |
+| `PERSON_EXPORT_MAX_BYTES` | 524,288,000 (the personal-data zip stops adding pictures past this) |
 | `REPLY_MAX_PER_ITEM` | 5 |
 | `REPLY_SITE_HOURLY_LIMIT` | 30 |
 | `AVATAR_MAX_BYTES` | 65,536 |

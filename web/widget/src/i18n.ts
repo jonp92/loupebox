@@ -31,6 +31,22 @@ export interface Strings {
   errorImageType: string;
   errorImageSize: string;
   errorImageCount: string;
+  captureButton: string;
+  captureFailed: string;
+  editorTitle: string;
+  editorHelp: string;
+  editorHelpKeys: string;
+  editorCanvasLabel: string;
+  toolLabel: string;
+  toolHide: string;
+  toolMark: string;
+  undo: string;
+  clear: string;
+  cancel: string;
+  useCapture: string;
+  cornerSet: string;
+  penDown: string;
+  shapeAdded: string;
 }
 
 export const defaultStrings: Strings = {
@@ -65,6 +81,22 @@ export const defaultStrings: Strings = {
   errorImageType: "Only PNG, JPEG and WebP images can be attached.",
   errorImageSize: "That image is too large. The limit is {mb} MB.",
   errorImageCount: "You can attach up to {max} images.",
+  captureButton: "Capture this page",
+  captureFailed: "We couldn't capture the screen. You can still add an image.",
+  editorTitle: "Hide anything private",
+  editorHelp: "Drag over anything you don't want to share. Hidden areas are blacked out in the picture before it leaves your browser. Use the highlighter to point out the problem.",
+  editorHelpKeys: "With the keyboard: arrow keys move the cursor (Shift for bigger steps), Enter starts and finishes a shape, Escape cancels it.",
+  editorCanvasLabel: "The captured page. Draw on it to hide or highlight.",
+  toolLabel: "Tool",
+  toolHide: "Hide",
+  toolMark: "Highlight",
+  undo: "Undo",
+  clear: "Clear",
+  cancel: "Cancel",
+  useCapture: "Use screenshot",
+  cornerSet: "Corner set. Move to the opposite corner, then press Enter.",
+  penDown: "Highlighting. Move with the arrow keys, then press Enter to stop.",
+  shapeAdded: "Added.",
 };
 
 /** Replace `{name}` placeholders. */

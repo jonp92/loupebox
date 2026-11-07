@@ -27,6 +27,16 @@ from app.notifications.providers import brevo, smtp, webhook
 SITE_ORIGIN = "https://shop.example.com"
 
 
+def read_zip(content: bytes) -> dict[str, bytes]:
+    """The files of a zip response by name, after checking the archive itself is sound."""
+    import io
+    import zipfile
+
+    with zipfile.ZipFile(io.BytesIO(content)) as zf:
+        assert zf.testzip() is None
+        return {name: zf.read(name) for name in zf.namelist()}
+
+
 def _no_network(request: httpx.Request) -> httpx.Response:
     raise AssertionError(f"a test tried to reach the network: {request.method} {request.url}")
 

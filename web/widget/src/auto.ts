@@ -42,6 +42,7 @@ function optionsFrom(el: Element, scriptUrl: string): WidgetOptions | null {
     theme: text(el, "theme") as WidgetOptions["theme"],
     launcher: flag(el, "launcher"),
     images: flag(el, "images"),
+    capture: flag(el, "capture"),
     requireIssueType: flag(el, "require-issue-type"),
     defaultIssueType: text(el, "default-issue-type"),
     closeDelay: num(el, "close-delay"),

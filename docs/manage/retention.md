@@ -35,14 +35,16 @@ details sent with a message stay with the message until it is deleted.
 Under **Export or erase personal data**, enter an email address and choose **Look up**. The address matches regardless of
 upper or lower case, and spam is included. You can then:
 
-* **Export** (a JSON file): every message from that address with its name, page, tags, replies sent to them and
-  internal notes, plus a list of its images (type, size and date). The image files themselves are not in the
-  file; download them from the item's page.
+* **Export** (a zip file, `person-export.zip`): `data.json` with every message from that address (name, page, tags,
+  replies sent to them and internal notes), and an `images` folder with the pictures they sent, one folder per
+  message. Each image in `data.json` has a `file` that points to its place in the zip. If the zip would pass
+  `PERSON_EXPORT_MAX_BYTES` (500 MB), the remaining pictures are listed in `data.json` with a `note` instead of a
+  `file`, as is one whose file has gone missing from storage.
 * **Erase**: removes those messages with their replies, notes, tags and images, and the alerts that carry
   their address. This cannot be undone.
 
 Only admins of the site can do this. Each export and erase is recorded in the audit log with the number of
-messages, never the address. The address is sent in the request body, not in the URL, so it stays out of
+messages (and, for an export, pictures), never the address. The address is sent in the request body, not in the URL, so it stays out of
 access logs.
 
 An address someone typed differently (a different spelling, a plus tag) is a different address, so look up

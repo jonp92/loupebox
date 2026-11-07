@@ -17,4 +17,5 @@ export const capabilities: readonly string[] = [
   "headless-client",
   "images",
   "auto-init",
+  "capture",
 ];
