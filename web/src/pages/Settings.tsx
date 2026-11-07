@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { API_PREFIX, API_URL, api, json, type Site, type VerifierInfo } from "../api";
+import { useAuth } from "../auth";
 import { SchemaFields } from "../components";
 import { useConfirm } from "../confirm";
 import Privacy from "./Privacy";
@@ -8,6 +10,7 @@ import { useToast } from "../toast";
 export default function Settings({ site, onChange }: { site: Site; onChange: (s: Site) => void }) {
   const confirm = useConfirm();
   const toast = useToast();
+  const { me } = useAuth();
   const [verifiers, setVerifiers] = useState<VerifierInfo[]>([]);
   const [mode, setMode] = useState(site.challenge_mode);
   const [config, setConfig] = useState<Record<string, unknown>>(site.challenge_config);
@@ -171,8 +174,14 @@ await fetch(API + "/feedback", {
         <label className="inline"><input name="attachments_enabled" type="checkbox" defaultChecked={site.attachments_enabled} aria-describedby="attach-hint" /> Accept images with feedback</label>
         <p id="attach-hint" className="muted hint">
           Visitors can attach up to {site.attachment_max_count} images (PNG, JPEG or WebP, {Math.round(site.attachment_max_bytes / 1048576)} MB each).
-          They are re-encoded, stored on this server and visible to everyone with access to this site. The widget offers it automatically.
+          They are re-encoded, stored on the server's image storage and visible to everyone with access to this site. The widget offers it automatically.
         </p>
+        {site.attachments_enabled && !site.attachments_ready && (
+          <p className="error" role="alert">
+            The server's image storage is not set up yet, so images are not accepted.{" "}
+            {me?.is_superadmin ? <Link to="/system/storage">Set it up under System</Link> : "Ask a server administrator to set it up under System."}
+          </p>
+        )}
         <button className="primary">Save changes</button>
       </form>
       <Privacy site={site} onChange={onChange} />

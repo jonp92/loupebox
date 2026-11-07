@@ -21,6 +21,9 @@ keep them all. To write somewhere else, give a folder: `sh backup.sh /mnt/backup
     the `.env` itself. The keys are in it on purpose: without them, two-factor secrets and webhook secrets in a
     restored database cannot be read.
 
+Images kept in an [S3 bucket](image-storage.md) are not in the backup: the provider keeps those, so turn on its
+versioning or replication if you want a second copy.
+
 A backup on the same disk does not survive the disk failing. Copy the `backups` folder to another machine or to
 storage you trust.
 

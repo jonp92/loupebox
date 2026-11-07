@@ -23,6 +23,7 @@ from app.schemas.site import (
     UserSuggestion,
     VerifierOut,
 )
+from app.storage.registry import get_storage
 
 router = APIRouter(prefix="/sites", tags=["sites"])
 
@@ -62,6 +63,7 @@ def _out(site: Site, role: Role | None) -> SiteOut:
     out.my_role = role
     out.attachment_max_count = settings.attachment_max_count
     out.attachment_max_bytes = settings.attachment_max_bytes
+    out.attachments_ready = get_storage().is_configured()
     return out
 
 

@@ -129,6 +129,8 @@ class FeedbackAttachment(Base):
     feedback_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("feedback.id", ondelete="CASCADE"), index=True)
     site_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("sites.id", ondelete="CASCADE"), index=True)
     storage_key: Mapped[str] = mapped_column(String(100), unique=True)
+    # The backend that holds the file. Changing the setting only affects new files; old ones stay readable.
+    storage: Mapped[str] = mapped_column(String(16), default="local", server_default="local")
     content_type: Mapped[str] = mapped_column(String(32))
     size: Mapped[int]
     width: Mapped[int]

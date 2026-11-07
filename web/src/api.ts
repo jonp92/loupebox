@@ -38,6 +38,7 @@ export interface Site {
   challenge_mode: string; // "off" or a verifier key
   challenge_config: Record<string, unknown>;
   attachments_enabled: boolean;
+  attachments_ready: boolean; // false while the image storage is not fully set up
   attachment_max_count: number; // server-wide limits, read-only
   attachment_max_bytes: number;
   retention_delete_days: number | null; // null: keep forever
@@ -161,11 +162,33 @@ export interface SystemSetting {
   choices: string[] | null;
   secret: boolean;
   editable: boolean;
+  show_when: { key: string; value: string } | null; // only relevant while that setting has that value
   source: "default" | "env" | "ui";
   configured: boolean;
   value: unknown;
   env_value: unknown;
   default: unknown;
+}
+
+/** GET /system/storage: where images are kept. */
+export interface StorageStatus {
+  backend: string;
+  configured: boolean;
+  counts: Record<string, number>;
+  to_move: number;
+}
+export interface StorageTest {
+  status: "ok" | "failed";
+  backend: string;
+  error: string | null;
+}
+/** One round of POST /system/storage/move. */
+export interface StorageMove {
+  moved: number;
+  missing: number;
+  failed: number;
+  remaining: number;
+  error: string | null;
 }
 
 export type HealthStatus = "ok" | "warn" | "error";

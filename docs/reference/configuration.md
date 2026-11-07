@@ -62,9 +62,22 @@ See [Images with feedback](../manage/images.md). Each site also turns them on in
 | `ATTACHMENT_MAX_EDGE` | 2048 | Longer side in pixels; larger images are scaled down |
 | `ATTACHMENT_MAX_PIXELS` | 20000000 | Larger pictures are refused before they are decoded |
 | `STORAGE_BACKEND` | `local` | Where files go. Only `local` for now |
-| `ATTACHMENTS_DIR` | `data/attachments` (`/data/attachments` in the image) | The folder for `local`. The API and the worker must share it |
+| `ATTACHMENTS_DIR` | `data/attachments` (`/data/attachments` in the image) | The folder for `local`; also editable under System → Image storage. The API and the worker must share it |
 
 Restart the API after changing these.
+
+Where the files go is chosen in the admin app (System → Image storage), or here. See
+[Image storage](../install/image-storage.md).
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `STORAGE_BACKEND` | `local` | `local` or `s3` |
+| `S3_ENDPOINT_URL` | empty | Empty for Amazon S3; the provider's S3 address otherwise |
+| `S3_REGION` | empty | Empty means `us-east-1`; Cloudflare R2 uses `auto` |
+| `S3_BUCKET` | empty | The bucket name |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | empty | The access key (the secret is write-only in the admin app) |
+| `S3_PATH_STYLE` | `false` | `true` for MinIO and most self-hosted servers |
+| `S3_PREFIX` | empty | A folder inside the bucket |
 
 ## Limits and retention
 

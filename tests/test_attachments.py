@@ -70,7 +70,7 @@ def test_local_storage_refuses_keys_that_could_leave_the_folder(key):
 
 def test_unknown_backend_is_an_error(monkeypatch):
     monkeypatch.setattr(settings, "storage_backend", "nope")
-    with pytest.raises(RuntimeError, match="STORAGE_BACKEND"):
+    with pytest.raises(RuntimeError, match="storage backend"):
         get_storage()
 
 
@@ -234,11 +234,11 @@ def test_a_duplicate_stores_no_second_set_of_images(client, db, shop):
 def test_a_failed_write_leaves_nothing_behind(client, db, shop, monkeypatch):
     real, calls = LocalStorage.put, []
 
-    def flaky(self, key, data):
+    def flaky(self, key, data, content_type="application/octet-stream"):
         calls.append(key)
         if len(calls) == 2:
             raise OSError("disk full")
-        real(self, key, data)
+        real(self, key, data, content_type)
 
     monkeypatch.setattr(LocalStorage, "put", flaky)
     with pytest.raises(OSError):
@@ -464,26 +464,41 @@ def age(key, hours):
     os.utime(path, (old, old))
 
 
+def ours() -> str:
+    return f"{uuid.uuid4()}/{uuid.uuid4()}"  # the shape of every key the app writes
+
+
 def test_the_sweep_removes_only_old_files_nobody_refers_to(client, db, shop):
     send(client, [image()])
     (kept,) = stored_keys()
     storage = get_storage()
-    for key in ("site/old-orphan", "site/young-orphan", "_tmp/stale-write"):
+    old, young = ours(), ours()
+    for key in (old, young, "_tmp/" + "a" * 32):
         storage.put(key, b"x")
     age(kept, 48)
-    age("site/old-orphan", 2)
-    age("_tmp/stale-write", 2)
+    age(old, 2)
+    age("_tmp/" + "a" * 32, 2)
     assert sweep_orphans(db, datetime.now(UTC)) == 2
-    assert stored_keys() == sorted([kept, "site/young-orphan"])
+    assert stored_keys() == sorted([kept, young])
     assert timedelta(hours=1) == ORPHAN_GRACE
+
+
+def test_the_sweep_leaves_files_that_are_not_ours_alone(db):
+    storage = get_storage()
+    for key in ("someone-elses/report", "backups/2026/db"):
+        storage.put(key, b"x")
+        age(key, 48)
+    assert sweep_orphans(db, datetime.now(UTC)) == 0
+    assert stored_keys() == ["backups/2026/db", "someone-elses/report"]
 
 
 def test_the_sweep_handles_more_files_than_one_chunk(db, monkeypatch):
     monkeypatch.setattr("app.core.attachments.CHUNK", 2)
     storage = get_storage()
-    for i in range(5):
-        storage.put(f"site/o{i}", b"x")
-        age(f"site/o{i}", 2)
+    for _ in range(5):
+        key = ours()
+        storage.put(key, b"x")
+        age(key, 2)
     assert sweep_orphans(db, datetime.now(UTC)) == 5 and stored_keys() == []
 
 

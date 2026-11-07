@@ -55,10 +55,10 @@ public link to an image, so a copied address shows nothing to anyone else.
 
 ## Where the files are
 
-In the folder `ATTACHMENTS_DIR`. The Docker setup keeps it in a volume that the API and the worker share, and
-[backups](../install/backups-upgrades.md) include it. With a bare install, make sure the API and the worker use
-the same folder and back it up with the database.
+By default in a folder on the server (`ATTACHMENTS_DIR`, or **System → Image storage → Images folder**). The Docker setup keeps it in a volume that the API and the worker
+share, and [backups](../install/backups-upgrades.md) include it. That needs one disk that every API container and
+the worker can reach.
 
-The local folder is one of the storage backends (`STORAGE_BACKEND=local`). It needs one disk that every API
-container and the worker can reach, so running more than one API container on separate machines needs a shared
-volume. Other backends, such as S3, can be added without changing the rest.
+Or in an **S3 bucket**: Amazon S3 or any S3-compatible service (Cloudflare R2, Backblaze B2, DigitalOcean Spaces,
+MinIO and others), chosen in the admin app under System → Image storage. See [Image storage](../install/image-storage.md)
+for setup, the values for each provider, and moving images you already have.

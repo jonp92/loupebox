@@ -4,6 +4,7 @@ import { api, json, type SystemSetting } from "../api";
 import { useAuth } from "../auth";
 import { ScrollTabs } from "../components";
 import SystemHealth from "./SystemHealth";
+import SystemStorage from "./SystemStorage";
 import SystemTestEmail from "./SystemTestEmail";
 import { useConfirm } from "../confirm";
 import { useToast } from "../toast";
@@ -18,8 +19,14 @@ const TABS = [
   { path: "status", label: "Status", groups: ["Server"] },
   { path: "email", label: "Email & notifications", groups: ["Email", "Notifications"] },
   { path: "form", label: "Public form", groups: ["Public feedback form"] },
+  { path: "storage", label: "Image storage", groups: ["Image storage"] },
   { path: "accounts", label: "Accounts & limits", groups: ["Sign-in and accounts", "Replies and data"] },
 ] as const;
+
+/** Words for the values of a setting that has a fixed list of choices (the stored values stay as they are). */
+const CHOICE_LABELS: Record<string, Record<string, string>> = {
+  storage_backend: { local: "This server's disk", s3: "S3 bucket (or compatible)" },
+};
 
 function byGroup(items: SystemSetting[]): [string, SystemSetting[]][] {
   const groups = new Map<string, SystemSetting[]>();
@@ -65,7 +72,7 @@ function Field({ s, draft, setDraft }: { s: SystemSetting; draft: Draft; setDraf
       </label>
       {s.choices ? (
         <select {...common} value={String(value)} onChange={(e) => setDraft(s.key, e.target.value)}>
-          {s.choices.map((c) => <option key={c} value={c}>{c || "(first configured)"}</option>)}
+          {s.choices.map((c) => <option key={c} value={c}>{CHOICE_LABELS[s.key]?.[c] ?? (c || "(first configured)")}</option>)}
         </select>
       ) : s.secret ? (
         <input
@@ -155,7 +162,7 @@ export default function SystemSettings() {
         fields.some((s) => s.editable) ? (
           <form key={group} className="card system-settings" onSubmit={(e) => submit(e, fields)} aria-labelledby={`group-${group}`}>
             <h2 id={`group-${group}`}>{group}</h2>
-            {fields.map((s) => (
+            {fields.filter((s) => !s.show_when || String(draft[s.show_when.key] ?? items.find((i) => i.key === s.show_when!.key)?.value) === s.show_when.value).map((s) => (
               <div key={s.key} className="setting">
                 <Field s={s} draft={draft} setDraft={setDraft} />
                 <Source s={s} onReset={() => reset(s)} />
@@ -178,6 +185,7 @@ export default function SystemSettings() {
         ),
       )}
       {tab.path === "email" && <SystemTestEmail settings={items} />}
+      {tab.path === "storage" && <SystemStorage settings={items} />}
     </>
   );
 }

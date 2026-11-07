@@ -12,3 +12,4 @@ cryptography
 redis
 pillow
 python-multipart
+boto3

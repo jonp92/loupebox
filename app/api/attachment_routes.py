@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import SiteAccess, feedback_or_404, site_access
-from app.core.attachments import delete_files
+from app.core.attachments import StoredFile, delete_files
 from app.core.audit import audit
 from app.db.session import get_db
 from app.models import FeedbackAttachment, Role
@@ -57,7 +57,7 @@ def get_attachment(
 ) -> Response:
     found = _attachment_or_404(db, access, feedback_id, attachment_id)
     try:
-        data = get_storage().get(found.storage_key)
+        data = get_storage(found.storage).get(found.storage_key)
     except FileNotFoundError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Image not found") from None
     return Response(
@@ -82,7 +82,7 @@ def delete_attachment(
 ) -> None:
     """Remove one image and keep the message (an abusive or accidental screenshot)."""
     found = _attachment_or_404(db, access, feedback_id, attachment_id)
-    key = found.storage_key
+    file = StoredFile(found.storage, found.storage_key)
     audit(
         db,
         access.user,
@@ -95,4 +95,4 @@ def delete_attachment(
     )
     db.delete(found)
     db.commit()
-    delete_files([key])
+    delete_files([file])

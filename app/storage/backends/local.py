@@ -1,18 +1,15 @@
 """Files on a local disk, under ATTACHMENTS_DIR. One host, or one volume shared by the API and the worker."""
 
 import os
-import re
 import uuid
 from collections.abc import Iterable, Iterator
 from datetime import UTC, datetime
 from pathlib import Path
 
 from app.core.config import settings
-from app.storage.base import Storage
+from app.storage.base import Storage, valid_key
 from app.storage.registry import register_backend
 
-# Slash-separated names of letters, digits, "-" and "_": no dots and no empty parts, so a key can't climb out.
-_KEY = re.compile(r"^[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*$")
 _TMP = "_tmp"  # unfinished writes live here, and are listed (and swept) like any other key
 
 
@@ -24,11 +21,9 @@ class LocalStorage(Storage):
         self.root = Path(settings.attachments_dir).resolve()
 
     def _path(self, key: str) -> Path:
-        if not _KEY.match(key):
-            raise ValueError("invalid storage key")
-        return self.root / key
+        return self.root / valid_key(key)
 
-    def put(self, key: str, data: bytes) -> None:
+    def put(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> None:
         target = self._path(key)
         temp = self._path(f"{_TMP}/{uuid.uuid4().hex}")
         for path in (target, temp):
@@ -42,6 +37,13 @@ class LocalStorage(Storage):
     def delete(self, keys: Iterable[str]) -> None:
         for key in keys:
             self._path(key).unlink(missing_ok=True)
+
+    def explain(self, error: Exception) -> str:
+        if isinstance(error, PermissionError):
+            return "The server is not allowed to write to the images folder."
+        if isinstance(error, OSError):
+            return f"The images folder could not be used: {error.strerror or type(error).__name__}."
+        return super().explain(error)
 
     def entries(self) -> Iterator[tuple[str, datetime]]:
         for path in self.root.rglob("*") if self.root.exists() else ():
