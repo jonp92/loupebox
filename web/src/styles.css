@@ -210,6 +210,7 @@ dialog.sheet .hint { margin: calc(var(--space-2) * -1) 0 var(--space-5); }
 .status-muted, .status-read, .status-archived { color: var(--text-muted); }
 .empty-state { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-6) var(--space-2); border-block: 1px solid var(--border-row); color: var(--text-secondary); }
 .empty-state p { flex: 1; margin: 0; }
+.empty-state strong { display: block; color: var(--text); font-size: var(--text-body); font-weight: var(--weight-semibold); }
 .empty-gem { flex: none; color: var(--text-muted); }
 
 /* tabs: plain text, a 2px brass underline on the active one */
@@ -230,6 +231,34 @@ dialog.sheet .hint { margin: calc(var(--space-2) * -1) 0 var(--space-5); }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .75rem; margin-bottom: 1.5rem; }
 .stat { display: flex; flex-direction: column; gap: .15rem; padding: .9rem 1.1rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); }
 .stat strong { font-size: var(--text-stat); line-height: 1.1; }
+.stat-band { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: stretch; border-block: 1px solid var(--border-row); }
+.stat-received { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-6) var(--space-3) 0; border-right: 1px solid var(--border-row); }
+.stat-label { display: flex; flex-direction: column; color: var(--text-secondary); font-size: var(--text-ui); }
+.stat-label small { color: var(--text-muted); font-size: var(--text-data); }
+.stat-cells { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; }
+.stat-cells > div { display: flex; flex-direction: column; justify-content: space-between; padding: var(--space-4); }
+.stat-cells > div + div { border-left: 1px solid var(--border-row); }
+.stat-cells dt { color: var(--text-secondary); font-size: var(--text-ui); }
+.stat-cells dd { margin: var(--space-1) 0 0; font: var(--weight-medium) var(--text-stat)/1.15 var(--font-mono); }
+.stat-band + .empty-state { border-top: 0; }
+.medallion { flex: none; width: 5.5rem; height: auto; }
+.medallion-face { fill: var(--medallion-face); }
+.medallion-ring { fill: none; stroke: var(--accent); stroke-width: 5; }
+.medallion-handle { stroke: var(--accent-handle); stroke-width: 9; stroke-linecap: round; }
+.medallion-count { fill: var(--text); font-family: var(--font-mono); font-weight: var(--weight-medium); }
+@media (max-width: 719px) {
+  .stat-band { grid-template-columns: minmax(0, 1fr); }
+  .stat-received { padding: var(--space-3) 0; border-right: 0; border-bottom: 1px solid var(--border-row); }
+  .stat-cells > div:first-child { padding-left: 0; }
+}
+.section-label { display: flex; align-items: center; gap: var(--space-2); margin: var(--space-8) 0 var(--space-3); font: var(--weight-medium) var(--text-label)/1 var(--font-mono); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--text-muted); }
+.ruled-row { display: flex; align-items: center; gap: var(--space-3); padding-right: var(--space-2); }
+.ruled-row .ruled-link { flex: 1; min-width: 0; }
+.ruled-unread { box-shadow: inset 3px 0 0 var(--unread-edge); }
+.ruled-unread .ruled-link { padding-left: var(--space-4); }
+.feedback-link { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1); }
+.feedback-link .meta { font: var(--text-data) var(--font-mono); color: var(--text-muted); }
+.feedback-link .excerpt { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .checklist { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; gap: .5rem; }
 .checklist li { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .6rem; }
 .failures { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; gap: .75rem; }
@@ -240,7 +269,6 @@ dialog.sheet .hint { margin: calc(var(--space-2) * -1) 0 var(--space-5); }
 .checklist a { display: inline-flex; align-items: center; min-height: var(--target-min); }
 .checklist button { white-space: nowrap; }
 h2.section { margin-top: 1.5rem; }
-.unread .excerpt { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .fb { border-left: 4px solid var(--border); }
 .fb.new { border-left-color: var(--accent); }
 .fb.read { border-left-color: var(--ok); }

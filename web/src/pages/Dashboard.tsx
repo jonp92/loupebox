@@ -4,7 +4,9 @@ import { api, json, type Dashboard as DashboardData } from "../api";
 import { Bar, Placeholder } from "../Skeleton";
 import { useToast } from "../toast";
 import { EmptyState } from "../ui/EmptyState";
+import { Medallion } from "../ui/Medallion";
 import { Status } from "../ui/Status";
+import { Icon } from "../icons";
 
 export default function Dashboard() {
   const toast = useToast();
@@ -23,33 +25,40 @@ export default function Dashboard() {
   const sites = data?.sites;
   const role = (siteId: string) => sites?.find((s) => s.id === siteId)?.my_role;
 
+  const stats: [string, number][] = data ? [["Unread", data.new_total], ["Unread, last 24h", data.new_24h], ["Sites with unread", data.sites_with_new]] : [];
+  const caughtUp = data && data.new_total === 0 && sites && sites.length > 0;
+
   return (
     <>
       <div className="page-head"><h1>Dashboard</h1></div>
       {error && <p className="error">{error}</p>}
       {!data && !error && (
         <Placeholder label="Loading the dashboard">
-          <div className="stats">
-            {[0, 1, 2, 3].map((i) => <div key={i} className="stat"><Bar w="3rem" h="1.75rem" /><Bar w="7rem" h=".8rem" /></div>)}
-          </div>
+          <div className="stat-band">{[0, 1, 2, 3].map((i) => <div key={i} className="ph"><Bar w="6rem" h=".8rem" /><Bar w="3rem" h="2rem" /></div>)}</div>
         </Placeholder>
       )}
       {data && (
-        <div className="stats">
-          <div className="stat"><strong>{data.new_total}</strong><span className="muted">Unread</span></div>
-          <div className="stat"><strong>{data.new_24h}</strong><span className="muted">Unread, last 24h</span></div>
-          <div className="stat"><strong>{data.sites_with_new}</strong><span className="muted">Sites with unread</span></div>
-          <div className="stat"><strong>{data.received_total}</strong><span className="muted">Received, excl. spam</span></div>
-        </div>
+        <>
+          <div className="stat-band">
+            <div className="stat-received">
+              <Medallion count={data.received_total} label="received, excluding spam" />
+              <span className="stat-label">Received<small>excl. spam</small></span>
+            </div>
+            <dl className="stat-cells">
+              {stats.map(([label, n]) => <div key={label}><dt>{label}</dt><dd>{n.toLocaleString()}</dd></div>)}
+            </dl>
+          </div>
+          {caughtUp && <EmptyState title="All caught up">No unread feedback.</EmptyState>}
+        </>
       )}
       {data && data.assigned_total > 0 && (
         <>
-          <h2 className="section">Assigned to you <span className="count">{data.assigned_total}</span></h2>
-          <ul className="list unread">
+          <h2 className="section-label">Assigned to you <span className="count">{data.assigned_total}</span></h2>
+          <ul className="ruled">
             {data.assigned.map((f) => (
               <li key={f.id}>
-                <Link to={`/sites/${f.site_id}/feedback/${f.id}`} className="grow site-link">
-                  <span className="muted">{f.site_name} · {f.status} · {new Date(f.created_at).toLocaleString()}</span>
+                <Link to={`/sites/${f.site_id}/feedback/${f.id}`} className="ruled-link feedback-link">
+                  <span className="meta">{f.site_name} · {f.status} · {new Date(f.created_at).toLocaleString()}</span>
                   {/* Rendered as text by React; never as HTML. */}
                   <span className="excerpt">{f.message}</span>
                 </Link>
@@ -63,25 +72,25 @@ export default function Dashboard() {
       )}
       {data && data.new_total > 0 && (
         <>
-          <h2 className="section">Unread by site</h2>
-          <ul className="list unread">
+          <h2 className="section-label">Unread by site</h2>
+          <ul className="ruled">
             {sites?.filter((s) => s.new_count > 0).map((s) => (
               <li key={s.id}>
-                <Link to={`/sites/${s.id}?status=new`} className="grow site-link">
-                  <strong>{s.name}</strong>
+                <Link to={`/sites/${s.id}?status=new`} className="ruled-link">
+                  <strong className="ruled-title">{s.name}</strong>
+                  <span className="ruled-side"><Status tone="unread">{s.new_count} new</Status><Icon name="chevron" size={18} /></span>
                 </Link>
-                <Status tone="unread">{s.new_count} new</Status>
               </li>
             ))}
           </ul>
-          <h2 className="section">Latest unread</h2>
-          <ul className="list unread">
+          <h2 className="section-label">Latest unread</h2>
+          <ul className="ruled">
             {data.recent_new.map((f) => {
               const canEdit = role(f.site_id) !== "viewer";
               return (
-                <li key={f.id}>
-                  <Link to={`/sites/${f.site_id}/feedback/${f.id}`} className="grow site-link">
-                    <span className="muted">{f.site_name} · {new Date(f.created_at).toLocaleString()}</span>
+                <li key={f.id} className="ruled-row ruled-unread">
+                  <Link to={`/sites/${f.site_id}/feedback/${f.id}`} className="ruled-link feedback-link">
+                    <span className="meta">{f.site_name} · {new Date(f.created_at).toLocaleString()}</span>
                     {/* Rendered as text by React; never as HTML. */}
                     <span className="excerpt">{f.message}</span>
                   </Link>
@@ -96,7 +105,6 @@ export default function Dashboard() {
         </>
       )}
       {sites?.length === 0 && <EmptyState>You don't have access to any sites yet. Ask an admin to add you.</EmptyState>}
-      {data && data.new_total === 0 && sites && sites.length > 0 && <EmptyState>All caught up. No unread feedback.</EmptyState>}
     </>
   );
 }
