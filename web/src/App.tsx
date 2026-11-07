@@ -1,8 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Link, NavLink, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
-import { api, displayName, type Me } from "./api";
-import { Avatar, Logo, OfflineBanner } from "./components";
-import { useAuth } from "./auth";
+import { Navigate, Route, Routes } from "react-router-dom";
+import { OfflineBanner } from "./components";
 import Audit from "./pages/Audit";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
@@ -12,96 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Sites from "./pages/Sites";
 import SystemSettings from "./pages/SystemSettings";
 import Users from "./pages/Users";
-import { useTheme } from "./theme";
-
-const THEME_ICON = { system: "◐", light: "☀", dark: "☾" } as const;
-
-export function ThemeToggle() {
-  const [theme, cycle] = useTheme();
-  return (
-    <button className="icon" onClick={cycle} title={`Theme: ${theme} (click to change)`} aria-label={`Theme: ${theme}`}>
-      {THEME_ICON[theme]}
-    </button>
-  );
-}
-
-function UserMenu({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
-  const [open, setOpen] = useState(false);
-  const box = useRef<HTMLDivElement>(null);
-  const { pathname } = useLocation();
-
-  useEffect(() => setOpen(false), [pathname]);
-  useEffect(() => {
-    if (!open) return;
-    const away = (e: MouseEvent) => !box.current?.contains(e.target as Node) && setOpen(false);
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("mousedown", away);
-    document.addEventListener("keydown", esc);
-    return () => {
-      document.removeEventListener("mousedown", away);
-      document.removeEventListener("keydown", esc);
-    };
-  }, [open]);
-
-  return (
-    <div className="usermenu" ref={box}>
-      <button className="avatar-btn" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
-        <Avatar user={me} />
-        <span className="hide-sm">{me.first_name || me.email}</span>
-        <span className="caret" aria-hidden>▾</span>
-      </button>
-      {open && (
-        <div className="dropdown" role="menu">
-          <div className="dropdown-head">
-            <strong>{displayName(me)}</strong>
-            <span className="muted">{me.email}</span>
-          </div>
-          <Link to="/profile" role="menuitem">Profile &amp; password</Link>
-          <button role="menuitem" onClick={onSignOut}>Sign out</button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Footer() {
-  const [version, setVersion] = useState("");
-  useEffect(() => {
-    api<{ app_version: string }>("/version").then((v) => setVersion(v.app_version), () => {});
-  }, []);
-  return (
-    <footer className="appfooter muted">
-      Loupebox{version && ` ${version}`} ·{" "}
-      <a href="https://github.com/jonp92/loupebox" target="_blank" rel="noopener noreferrer" aria-label="Source code on GitHub (opens in a new tab)">Source</a>
-    </footer>
-  );
-}
-
-function Layout() {
-  const { me, loading, signOut } = useAuth();
-  if (loading) return <p className="center muted">Loading…</p>;
-  if (!me) return <Navigate to="/login" replace />;
-  return (
-    <>
-      <header className="topbar">
-        <NavLink to="/" className="brand" aria-label="Loupebox"><Logo wordmark /></NavLink>
-        <nav className="mainnav">
-          <NavLink to="/" end>Dashboard</NavLink>
-          {/* Sites stays highlighted on /sites/:id too (NavLink matches the prefix) */}
-          <NavLink to="/sites">Sites</NavLink>
-          {me.is_superadmin && <NavLink to="/users">Users</NavLink>}
-          {me.is_superadmin && <NavLink to="/audit">Audit</NavLink>}
-          {me.is_superadmin && <NavLink to="/system">System</NavLink>}
-        </nav>
-        <div className="spacer" />
-        <ThemeToggle />
-        <UserMenu me={me} onSignOut={signOut} />
-      </header>
-      <main><Outlet /></main>
-      <Footer />
-    </>
-  );
-}
+import { Layout } from "./shell";
 
 export default function App() {
   return (
