@@ -4,6 +4,9 @@ import { api, json, type Dashboard } from "../api";
 import { soleSiteId, useAuth } from "../auth";
 import { useToast } from "../toast";
 import { Bar, Placeholder } from "../Skeleton";
+import { Badge } from "../ui/Badge";
+import { EmptyState } from "../ui/EmptyState";
+import { Status } from "../ui/Status";
 
 export default function Sites() {
   const { me } = useAuth();
@@ -39,7 +42,7 @@ export default function Sites() {
           </ul>
         </Placeholder>
       )}
-      {sites?.length === 0 && <p className="empty-state">You don't have access to any sites yet. Ask an admin to add you.</p>}
+      {sites?.length === 0 && <EmptyState>You don't have access to any sites yet. Ask an admin to add you.</EmptyState>}
       <ul className="list">
         {sites?.map((s) => (
           <li key={s.id}>
@@ -51,9 +54,9 @@ export default function Sites() {
                   : <span className="muted">No allowed origins yet</span>}
               </span>
             </Link>
-            {s.new_count > 0 && <span className="badge new">{s.new_count} new</span>}
-            <span className="badge">{s.my_role}</span>
-            {!s.is_active && <span className="badge warn">disabled</span>}
+            {s.new_count > 0 && <Status tone="unread">{s.new_count} new</Status>}
+            <Badge>{s.my_role}</Badge>
+            {!s.is_active && <Status tone="danger">Disabled</Status>}
           </li>
         ))}
       </ul>

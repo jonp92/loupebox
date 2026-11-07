@@ -8,6 +8,8 @@ import SystemStorage from "./SystemStorage";
 import SystemTestEmail from "./SystemTestEmail";
 import { useConfirm } from "../confirm";
 import { useToast } from "../toast";
+import { Badge } from "../ui/Badge";
+import { Status } from "../ui/Status";
 
 type Draft = Record<string, string | boolean>;
 
@@ -42,7 +44,7 @@ function Source({ s, onReset }: { s: SystemSetting; onReset: () => void }) {
   }
   return (
     <p className="setting-source muted">
-      <span className="badge new">Override</span>
+      <Badge tone="brass">Override</Badge>
       {!s.secret && <span>.env value: {shown(s.env_value)}</span>}
       <button type="button" className="link" onClick={onReset} aria-label={`Reset ${s.label} to the .env value`}>
         Reset
@@ -68,7 +70,7 @@ function Field({ s, draft, setDraft }: { s: SystemSetting; draft: Draft; setDraf
     <>
       <label htmlFor={id}>
         {s.label}
-        {s.secret && <span className={`badge ${s.configured ? "read" : ""}`}>{s.configured ? "Set" : "Not set"}</span>}
+        {s.secret && <Status tone={s.configured ? "ok" : "muted"}>{s.configured ? "Set" : "Not set"}</Status>}
       </label>
       {s.choices ? (
         <select {...common} value={String(value)} onChange={(e) => setDraft(s.key, e.target.value)}>

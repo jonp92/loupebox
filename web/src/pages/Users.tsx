@@ -7,6 +7,9 @@ import { Avatar } from "../components";
 import { useConfirm } from "../confirm";
 import { useToast } from "../toast";
 import { useContextMenu, type MenuItem } from "../triage";
+import { Badge } from "../ui/Badge";
+import { EmptyState } from "../ui/EmptyState";
+import { Status } from "../ui/Status";
 
 const PAGE = 50;
 
@@ -146,7 +149,7 @@ export default function Users() {
       </div>
       {error && <p className="error" role="alert">{error}</p>}
       {page.items.length === 0 && !error ? (
-        <p className="empty-state">{q.trim() ? `No users match “${q.trim()}”.` : "No users yet."}</p>
+        <EmptyState>{q.trim() ? `No users match “${q.trim()}”.` : "No users yet."}</EmptyState>
       ) : (
         <table className="users-table">
           <caption className="sr-only">Users{q.trim() ? ` matching “${q.trim()}”` : ""}</caption>
@@ -184,9 +187,9 @@ export default function Users() {
                     </span>
                   </th>
                   <td className="user-email">{u.email}</td>
-                  <td data-label="Role">{u.is_superadmin ? <span className="badge">Superadmin</span> : <span className="muted">User</span>}</td>
-                  <td data-label="2FA">{u.totp_enabled ? <span className="badge read">On</span> : <span className="muted">Off</span>}</td>
-                  <td data-label="Status">{u.is_active ? <span className="muted">Active</span> : <span className="badge warn">Disabled</span>}</td>
+                  <td data-label="Role"><Badge tone={u.is_superadmin ? "brass" : "muted"}>{u.is_superadmin ? "Superadmin" : "User"}</Badge></td>
+                  <td data-label="2FA"><Status tone={u.totp_enabled ? "ok" : "danger"}>{u.totp_enabled ? "On" : "Off"}</Status></td>
+                  <td data-label="Status"><Status tone={u.is_active ? "ok" : "danger"}>{u.is_active ? "Active" : "Disabled"}</Status></td>
                   <td className="user-actions">
                     <button onClick={() => setEditing(u.id)} aria-label={`Edit ${displayName(u)}`}>Edit</button>
                     {u.id !== me.id && (

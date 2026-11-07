@@ -2,20 +2,21 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type HealthStatus, type InstanceHealth } from "../api";
 import { ago } from "../triage";
+import { Status, type StatusTone } from "../ui/Status";
 
 const REFRESH_MS = 30_000;
-// Text as well as color, and reuses the existing badge colors (ok / warn / danger).
-const BADGE: Record<HealthStatus, { cls: string; text: string }> = {
-  ok: { cls: "read", text: "Healthy" },
-  warn: { cls: "pending", text: "Attention" },
-  error: { cls: "failed", text: "Down" },
+// A mark and a word, never color alone. There is no warning color: caution is a muted mark with a label.
+const BADGE: Record<HealthStatus, { tone: StatusTone; text: string }> = {
+  ok: { tone: "ok", text: "Healthy" },
+  warn: { tone: "muted", text: "Attention" },
+  error: { tone: "danger", text: "Down" },
 };
 
 function Check({ title, status, children }: { title: string; status: HealthStatus; children: React.ReactNode }) {
   return (
     <div className="stat">
       <span className="muted">{title}</span>
-      <span><span className={`badge ${BADGE[status].cls}`}>{BADGE[status].text}</span></span>
+      <span><Status tone={BADGE[status].tone}>{BADGE[status].text}</Status></span>
       <span className="hint muted">{children}</span>
     </div>
   );
@@ -97,7 +98,7 @@ export default function SystemHealth() {
           <ul className="checklist" aria-labelledby="checklist-title">
             {health.checklist.map(({ id, done }) => (
               <li key={id}>
-                <span className={`badge ${done ? "read" : "pending"}`}>{done ? "Done" : "To do"}</span>
+                <Status tone={done ? "ok" : "muted"}>{done ? "Done" : "To do"}</Status>
                 {!done && STEPS[id].to ? <Link to={STEPS[id].to}>{STEPS[id].label}</Link> : <span>{STEPS[id].label}</span>}
               </li>
             ))}

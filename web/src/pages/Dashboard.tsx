@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { api, json, type Dashboard as DashboardData } from "../api";
 import { Bar, Placeholder } from "../Skeleton";
 import { useToast } from "../toast";
+import { EmptyState } from "../ui/EmptyState";
+import { Status } from "../ui/Status";
 
 export default function Dashboard() {
   const toast = useToast();
@@ -68,7 +70,7 @@ export default function Dashboard() {
                 <Link to={`/sites/${s.id}?status=new`} className="grow site-link">
                   <strong>{s.name}</strong>
                 </Link>
-                <span className="badge new">{s.new_count} new</span>
+                <Status tone="unread">{s.new_count} new</Status>
               </li>
             ))}
           </ul>
@@ -93,8 +95,8 @@ export default function Dashboard() {
           )}
         </>
       )}
-      {sites?.length === 0 && <p className="empty-state">You don't have access to any sites yet. Ask an admin to add you.</p>}
-      {data && data.new_total === 0 && sites && sites.length > 0 && <p className="empty-state">All caught up. No unread feedback.</p>}
+      {sites?.length === 0 && <EmptyState>You don't have access to any sites yet. Ask an admin to add you.</EmptyState>}
+      {data && data.new_total === 0 && sites && sites.length > 0 && <EmptyState>All caught up. No unread feedback.</EmptyState>}
     </>
   );
 }

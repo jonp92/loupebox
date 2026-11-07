@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api, type StorageMove, type StorageStatus, type StorageTest, type SystemSetting } from "../api";
 import { Bar, Placeholder } from "../Skeleton";
 import { useToast } from "../toast";
+import { Status } from "../ui/Status";
 
 const NAMES: Record<string, string> = { local: "this server's disk", s3: "the S3 bucket" };
 const name = (backend: string) => NAMES[backend] ?? backend;
@@ -80,7 +81,7 @@ export default function SystemStorage({ settings }: { settings: SystemSetting[] 
     <section className="card" aria-labelledby="storage-check-title" aria-busy={checking || moving !== null}>
       <h2 id="storage-check-title">Connection and stored images</h2>
       <p>
-        <span className={`badge ${status.configured ? "read" : "pending"}`}>{status.configured ? "Ready" : "Not set up"}</span>{" "}
+        <Status tone={status.configured ? "ok" : "muted"}>{status.configured ? "Ready" : "Not set up"}</Status>{" "}
         New images go to {name(status.backend)}.
         {!status.configured && " Fill in the settings above and save, and sites will not accept images until you do."}
       </p>

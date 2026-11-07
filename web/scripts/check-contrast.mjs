@@ -45,14 +45,16 @@ const ratio = (a, b) => {
 const TEXT = 4.5;
 const CONTROL = 3;
 // [foreground, background, minimum ratio]. Names are token names without the prefix.
+// Text sits on --bg, --surface and --bg-sidebar. On the tinted fills (--surface-selected, --surface-chip and the soft
+// tints) the UI uses --text or --text-secondary, never muted or colored text, so only those pairs are checked.
 const ADMIN = [
-  ...["bg", "surface", "surface-selected", "surface-chip"].flatMap((bg) => [["text", bg, TEXT], ["text-secondary", bg, TEXT], ["text-muted", bg, TEXT]]),
-  ["text-muted", "bg-sidebar", TEXT],
-  ["accent", "bg", TEXT], ["accent", "surface", TEXT], ["accent", "accent-soft", TEXT],
+  ...["bg", "surface", "bg-sidebar"].flatMap((bg) => [["text", bg, TEXT], ["text-secondary", bg, TEXT], ["text-muted", bg, TEXT]]),
+  ...["surface-selected", "surface-chip", "accent-soft", "ok-soft", "danger-soft"].flatMap((bg) => [["text", bg, TEXT], ["text-secondary", bg, TEXT]]),
+  ["accent", "bg", TEXT], ["accent", "surface", TEXT],
   ["on-accent", "accent", TEXT],
   ["unread-text", "bg", TEXT], ["unread-text", "surface", TEXT],
-  ["danger", "bg", TEXT], ["danger", "surface", TEXT], ["danger", "danger-soft", TEXT],
-  ["ok", "bg", TEXT], ["ok", "surface", TEXT], ["ok", "ok-soft", TEXT],
+  ["danger", "bg", TEXT], ["danger", "surface", TEXT],
+  ["ok", "bg", TEXT], ["ok", "surface", TEXT],
   ["border-control", "bg", CONTROL], ["border-control", "surface", CONTROL],
 ];
 const WIDGET = [

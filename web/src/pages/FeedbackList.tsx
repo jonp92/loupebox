@@ -5,6 +5,7 @@ import { useAuth } from "../auth";
 import { useConfirm } from "../confirm";
 import { useToast } from "../toast";
 import { Bar, Placeholder } from "../Skeleton";
+import { EmptyState } from "../ui/EmptyState";
 import {
   FeedbackBadges, TAG_PATTERN, ago, below, label, personName, recentAssignees, slug, useAssigneePicker, useContextMenu, type MenuItem,
 } from "../triage";
@@ -331,7 +332,7 @@ export default function FeedbackList({ site }: { site: Site }) {
           ))}
         </Placeholder>
       ) : (
-        <p className="empty-state">No feedback found.</p>
+        <EmptyState>No feedback found.</EmptyState>
       ))}
       <div className={loading ? "is-refreshing" : undefined} aria-busy={loading && items.length > 0}>
       {items.map((f) => (

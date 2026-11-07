@@ -12,6 +12,10 @@ import { SchemaFields } from "../components";
 import { useConfirm } from "../confirm";
 import { sendTest } from "../testSend";
 import { useToast } from "../toast";
+import { Badge } from "../ui/Badge";
+import { Status, type StatusTone } from "../ui/Status";
+
+const DELIVERY_TONE: Record<string, StatusTone> = { sent: "ok", failed: "danger" }; // held, pending and sending are muted
 
 const ROLES: Role[] = ["viewer", "editor", "admin"];
 // `machine` events only make sense for endpoints that feed other systems, not for email.
@@ -221,11 +225,11 @@ export default function Notifications({ site }: { site: Site }) {
                 <span className="grow stack">
                   <strong>{c.name}</strong>
                   <span className="origins">
-                    <span className="badge">{label(c.provider)}</span>
-                    <span className={`badge ${c.enabled ? "sent" : ""}`}>{c.enabled ? "enabled" : "disabled"}</span>
-                    {!configured(c.provider) && <span className="badge failed">not configured</span>}
-                    {info(c.provider)?.uses_recipients !== false && <span className="badge">{c.min_role}+</span>}
-                    {c.extra_recipients.length > 0 && <span className="badge">+{c.extra_recipients.length} extra</span>}
+                    <Badge>{label(c.provider)}</Badge>
+                    <Status tone={c.enabled ? "ok" : "muted"}>{c.enabled ? "enabled" : "disabled"}</Status>
+                    {!configured(c.provider) && <Status tone="danger">not configured</Status>}
+                    {info(c.provider)?.uses_recipients !== false && <Badge>{c.min_role}+</Badge>}
+                    {c.extra_recipients.length > 0 && <Badge>+{c.extra_recipients.length} extra</Badge>}
                   </span>
                 </span>
                 <button onClick={() => test(c)} disabled={testing === c.id || !configured(c.provider)}>
@@ -264,7 +268,7 @@ export default function Notifications({ site }: { site: Site }) {
                 <tr key={d.id}>
                   <td>{when(d.created_at)}</td>
                   <td>{d.channel_name ?? <span className="muted">deleted</span>}</td>
-                  <td><span className={`badge ${d.status}`}>{d.status}</span>{d.summary && <span className="badge"> summary</span>}</td>
+                  <td><Status tone={DELIVERY_TONE[d.status] ?? "muted"}>{d.status}</Status>{d.summary && <Badge>summary</Badge>}</td>
                   <td>{d.attempts}</td>
                   <td>{d.last_error ?? (d.sent_at ? `Sent ${when(d.sent_at)}` : "")}</td>
                 </tr>
