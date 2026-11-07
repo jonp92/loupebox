@@ -1,0 +1,173 @@
+/*
+ * Loupebox design tokens
+ * Single source of truth. Components use these variables only: no raw hex values.
+ * Dark is the default. Light applies via [data-theme="light"], or via the OS setting
+ * when no explicit theme is chosen.
+ *
+ * Fonts: self-host Hanken Grotesk (400/500/600/700) and IBM Plex Mono (400/500/600).
+ * Do not load them from a CDN at runtime.
+ */
+
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --bg: #0B1713;
+  --bg-sidebar: #0F1C17;
+  --surface: #111F1A;            /* feedback cards, sheets, menus only */
+  --surface-selected: #16281F;   /* active nav item, selected chip/segment */
+  --surface-chip: #1C2D26;       /* count chips, avatar fill */
+  --medallion-face: #0F241D;
+
+  /* Borders */
+  --border: #2A3B33;             /* section hairlines, header/sidebar edges */
+  --border-row: #22322B;         /* dividers between rows */
+  --border-control: #5E7467;     /* inputs, buttons, selects (3:1 against --bg) */
+  --border-tag: #3F5348;         /* badges, category chips */
+
+  /* Text */
+  --text: #EDE8DC;
+  --text-secondary: #B7C4BA;
+  --text-muted: #9DAEA3;
+
+  /* Brand / primary action (brass) */
+  --accent: #C9A25B;
+  --accent-handle: #8A6A2F;      /* lens handle shadow */
+  --on-accent: #0B1713;          /* text on filled brass */
+
+  /* State */
+  --unread: #F2A53A;             /* gem fill. Amber means unread and nothing else. */
+  --unread-text: #F2A53A;
+  --unread-edge: #F2A53A;
+  --ok: #7FB59A;
+  --danger: #E58A7B;
+
+  --scrim: rgba(3, 9, 6, 0.64);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #F5F2E9;
+  --bg-sidebar: #EDE9DC;
+  --surface: #FBFAF5;
+  --surface-selected: #E3DECC;
+  --surface-chip: #E3DECC;
+  --medallion-face: #FBFAF5;
+
+  --border: #CFC8B4;
+  --border-row: #DDD7C5;
+  --border-control: #6F8076;
+  --border-tag: #8A988E;
+
+  --text: #14201B;
+  --text-secondary: #44564B;
+  --text-muted: #5A6B61;
+
+  --accent: #8A6A1F;
+  --accent-handle: #5C4610;
+  --on-accent: #FBF8EE;
+
+  --unread: #E8870A;
+  --unread-text: #9A5B00;
+  --unread-edge: #D9830B;
+  --ok: #2F7A55;
+  --danger: #B5422F;
+
+  --scrim: rgba(20, 32, 27, 0.4);
+}
+
+/* Follow the OS when the user hasn't chosen a theme. Keep values identical to the light block above. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]):not([data-theme="light"]) {
+    color-scheme: light;
+
+    --bg: #F5F2E9;
+    --bg-sidebar: #EDE9DC;
+    --surface: #FBFAF5;
+    --surface-selected: #E3DECC;
+    --surface-chip: #E3DECC;
+    --medallion-face: #FBFAF5;
+
+    --border: #CFC8B4;
+    --border-row: #DDD7C5;
+    --border-control: #6F8076;
+    --border-tag: #8A988E;
+
+    --text: #14201B;
+    --text-secondary: #44564B;
+    --text-muted: #5A6B61;
+
+    --accent: #8A6A1F;
+    --accent-handle: #5C4610;
+    --on-accent: #FBF8EE;
+
+    --unread: #E8870A;
+    --unread-text: #9A5B00;
+    --unread-edge: #D9830B;
+    --ok: #2F7A55;
+    --danger: #B5422F;
+
+    --scrim: rgba(20, 32, 27, 0.4);
+  }
+}
+
+/* Theme-independent tokens */
+:root {
+  /* Type */
+  --font-sans: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --text-label: 11px;     /* uppercase mono labels, status, badges */
+  --text-data: 13px;      /* mono data: emails, IDs, times */
+  --text-ui: 14px;        /* controls, nav, secondary copy */
+  --text-body: 15px;
+  --text-row: 17px;       /* feedback/site titles on cards and rows */
+  --text-section: 18px;
+  --text-page: 28px;      /* page title */
+  --text-stat: 34px;      /* mono stat numerals */
+
+  --tracking-label: 0.12em;
+  --tracking-section: 0.14em;
+  --tracking-title: -0.02em;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  /* Spacing (4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* Radius */
+  --radius-tag: 3px;
+  --radius-control: 8px;
+  --radius-card: 10px;
+  --radius-sheet: 16px;
+  --radius-pill: 999px;
+
+  /* Sizes */
+  --target-min: 44px;     /* minimum touch target */
+  --input-height: 46px;
+  --sidebar-width: 232px;
+  --drawer-width: 300px;
+  --content-max: 1100px;
+  --content-max-narrow: 1000px;
+  /* Layout switch: sidebar at >= 1024px, drawer below. Media queries can't read vars; hardcode 1024px. */
+
+  /* Focus */
+  --focus-ring: 2px solid var(--accent);
+  --focus-offset: 2px;
+}
+
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}

@@ -85,7 +85,9 @@ def test_the_images_folder_can_be_changed_and_new_images_go_there(client, h, tmp
     get_storage("local").put("abc/def", b"x")
     assert (folder / "abc" / "def").read_bytes() == b"x"
     for bad in ("", "a;b", "x" * 201):
-        assert patch(client, h, attachments_dir=bad).status_code == 422, bad
+        r = patch(client, h, attachments_dir=bad)
+        assert r.status_code == 422, bad
+        assert "must be a folder path" in r.json()["detail"] and "pattern" not in r.json()["detail"], bad
 
 
 def test_saving_the_storage_takes_effect_at_once(client, h):

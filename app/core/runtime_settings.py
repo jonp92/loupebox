@@ -53,6 +53,7 @@ class Spec:
     minimum: int | None = None
     maximum: int | None = None
     pattern: str | None = None
+    hint: str = ""  # what a value matching `pattern` looks like, for the message when it does not
     choices: Callable[[], list[str]] | None = None  # Literal fields get theirs from the type
     secret: bool = False
     editable: bool = True  # False: shown for reference, changed in env only
@@ -79,13 +80,19 @@ SPECS: dict[str, Spec] = {
         "Sends password resets and replies. Empty: the first configured one.",
         choices=_mail_providers,
     ),
-    "notify_sender_email": Spec(_EMAIL, "Sender address", pattern=r"^$|^[^@\s]+@[^@\s]+$"),
+    "notify_sender_email": Spec(
+        _EMAIL,
+        "Sender address",
+        pattern=r"^$|^[^@\s]+@[^@\s]+$",
+        hint="an email address such as feedback@example.com",
+    ),
     "notify_sender_name": Spec(_EMAIL, "Sender name"),
     "public_url": Spec(
         _EMAIL,
         "Admin UI address",
         "Used for links in emails. Links are left out when empty.",
         pattern=r"^$|^https?://[^\s/]+(/\S*)?$",
+        hint="a web address starting with http:// or https://, or empty",
     ),
     "brevo_api_key": Spec(_EMAIL, "Brevo API key", secret=True),
     "smtp_host": Spec(_EMAIL, "SMTP host"),
@@ -151,6 +158,7 @@ SPECS: dict[str, Spec] = {
         "and with Docker it must be inside a mounted volume. Images already stored are not moved: copy "
         "them to the new folder first.",
         pattern=r"^[A-Za-z0-9._/ -]{1,200}$",
+        hint="a folder path of up to 200 letters, digits, spaces and . _ - /",
         show_when=_LOCAL,
     ),
     "s3_endpoint_url": Spec(
@@ -160,6 +168,7 @@ SPECS: dict[str, Spec] = {
         "https://ACCOUNT.r2.cloudflarestorage.com (Cloudflare R2), https://s3.REGION.backblazeb2.com "
         "(Backblaze B2), https://REGION.digitaloceanspaces.com (DigitalOcean), http://minio:9000 (MinIO).",
         pattern=r"^$|^https?://[^\s/@]+(/\S*)?$",
+        hint="a web address starting with http:// or https://, without a username, or empty",
         show_when=_S3,
     ),
     "s3_region": Spec(
@@ -167,10 +176,23 @@ SPECS: dict[str, Spec] = {
         "Region",
         "For example us-east-1 (empty means that). Cloudflare R2 uses auto.",
         pattern=r"^$|^[A-Za-z0-9-]{2,40}$",
+        hint="a region name such as us-east-1, or empty",
         show_when=_S3,
     ),
-    "s3_bucket": Spec(_STORAGE, "Bucket", pattern=r"^$|^[A-Za-z0-9][A-Za-z0-9._-]{1,254}$", show_when=_S3),
-    "s3_access_key_id": Spec(_STORAGE, "Access key ID", pattern=r"^$|^[\x21-\x7e]{1,128}$", show_when=_S3),
+    "s3_bucket": Spec(
+        _STORAGE,
+        "Bucket",
+        pattern=r"^$|^[A-Za-z0-9][A-Za-z0-9._-]{1,254}$",
+        hint="a bucket name of letters, digits, . _ - (at least 2, starting with a letter or digit)",
+        show_when=_S3,
+    ),
+    "s3_access_key_id": Spec(
+        _STORAGE,
+        "Access key ID",
+        pattern=r"^$|^[\x21-\x7e]{1,128}$",
+        hint="up to 128 characters with no spaces",
+        show_when=_S3,
+    ),
     "s3_secret_access_key": Spec(_STORAGE, "Secret access key", secret=True, show_when=_S3),
     "s3_path_style": Spec(
         _STORAGE,
@@ -183,6 +205,7 @@ SPECS: dict[str, Spec] = {
         "Folder in the bucket",
         "Optional. Lets the bucket be shared with other things.",
         pattern=r"^$|^[A-Za-z0-9._/-]{1,100}$",
+        hint="up to 100 letters, digits and . _ - /, or empty",
         show_when=_S3,
     ),
     # Server: read at startup or security-sensitive, so env only for now.
@@ -239,7 +262,10 @@ def validate(key: str, value: Any) -> Any:
     try:
         value = _adapter(key).validate_python(value)
     except ValidationError as e:
-        raise ValueError(e.errors()[0]["msg"]) from None
+        error = e.errors()[0]
+        if error["type"] == "string_pattern_mismatch" and spec.hint:
+            raise ValueError(f"must be {spec.hint}") from None
+        raise ValueError(error["msg"]) from None
     options = _choices(key)
     if options is not None and value not in options:
         raise ValueError(f"must be one of: {', '.join(repr(o) for o in options)}")
