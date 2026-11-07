@@ -98,6 +98,8 @@ class Settings(BaseSettings):
 
     # CSV export stops at this many rows per download.
     export_max_rows: int = 100_000
+    # The personal-data export (a zip with the images) stops adding image files past this many bytes.
+    person_export_max_bytes: int = 500 * 1024 * 1024
 
     # Webhook notifications. Targets must be public https hosts; turn this on to allow private,
     # loopback and plain-http targets (for a receiver on your own network).

@@ -2,6 +2,7 @@ import io
 import json
 import os
 import uuid
+import zipfile
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -11,10 +12,10 @@ from sqlalchemy import delete, select
 from app.core import retention
 from app.core.attachments import ORPHAN_GRACE, sweep_orphans
 from app.core.config import settings
-from app.models import AuditEvent, Feedback, FeedbackAttachment, Role
+from app.models import AuditEvent, Feedback, FeedbackAttachment, Role, User
 from app.storage.backends.local import LocalStorage
 from app.storage.registry import get_storage
-from tests.conftest import SITE_ORIGIN, add_member, login, make_site, make_user
+from tests.conftest import SITE_ORIGIN, add_member, login, make_site, make_user, read_zip
 from tests.test_challenge import pow_site
 
 HEADERS = {"X-API-Key": "pk_test_Shop", "Origin": SITE_ORIGIN}
@@ -379,16 +380,72 @@ def test_erasing_a_person_deletes_their_files(client, db, shop):
     assert r.json() == {"deleted": 1} and len(stored_keys()) == 1
 
 
-def test_the_person_export_lists_images_without_the_files(client, db, shop):
-    send(client, [image()], payload={"message": "m", "email": "ann@example.com"})
-    add_member(db, make_user(db, "a@example.com"), shop, Role.admin)
-    r = client.post(
-        f"/sites/{shop.id}/privacy/export",
-        json={"email": "ann@example.com"},
-        headers=login(client, "a@example.com"),
+def export(client, db, shop, email="ann@example.com"):
+    if not db.scalar(select(User).where(User.email == "a@example.com")):
+        add_member(db, make_user(db, "a@example.com"), shop, Role.admin)
+    return client.post(
+        f"/sites/{shop.id}/privacy/export", json={"email": email}, headers=login(client, "a@example.com")
     )
-    (img,) = r.json()["items"][0]["images"]
-    assert img["content_type"] == "image/png" and "storage_key" not in img
+
+
+def test_the_person_export_is_a_zip_with_the_pictures(client, db, shop):
+    first = send(
+        client, [image("PNG"), image("JPEG")], payload={"message": "one", "email": "Ann@example.com"}
+    )
+    send(client, [image("WEBP")], payload={"message": "two", "email": "ann@example.com"})
+    send(client, [image()], payload={"message": "not hers", "email": "bob@example.com"})
+    r = export(client, db, shop)
+    assert r.headers["content-type"] == "application/zip" and int(r.headers["content-length"]) == len(
+        r.content
+    )
+    files = read_zip(r.content)
+    data = json.loads(files["data.json"])
+    assert [i["message"] for i in data["items"]] == ["one", "two"]
+    paths = [img["file"] for item in data["items"] for img in item["images"]]
+    fid = first.json()["id"]
+    assert paths[:2] == [f"images/{fid}/1.png", f"images/{fid}/2.jpg"] and paths[2].endswith("/1.webp")
+    assert sorted(files) == sorted(["data.json", *paths])  # nothing of Bob's
+    for entry in (img for item in data["items"] for img in item["images"]):
+        key = db.scalar(
+            select(FeedbackAttachment.storage_key).where(FeedbackAttachment.id == uuid.UUID(entry["id"]))
+        )
+        assert files[entry["file"]] == get_storage().get(key) and entry["size"] == len(files[entry["file"]])
+        assert "storage_key" not in entry and "note" not in entry
+
+
+def test_pictures_are_stored_as_they_are_and_the_json_is_compressed(client, db, shop):
+    send(client, [image()], payload={"message": "m", "email": "ann@example.com"})
+    with zipfile.ZipFile(io.BytesIO(export(client, db, shop).content)) as zf:
+        by_name = {i.filename: i.compress_type for i in zf.infolist()}
+    assert by_name["data.json"] == zipfile.ZIP_DEFLATED
+    assert [t for n, t in by_name.items() if n.startswith("images/")] == [zipfile.ZIP_STORED]
+
+
+def test_a_picture_over_the_size_limit_is_listed_but_left_out(client, db, shop, monkeypatch):
+    send(client, [image(size=(300, 300))], payload={"message": "m", "email": "ann@example.com"})
+    monkeypatch.setattr(settings, "person_export_max_bytes", 10)
+    files = read_zip(export(client, db, shop).content)
+    assert list(files) == ["data.json"]
+    (img,) = json.loads(files["data.json"])["items"][0]["images"]
+    assert img["file"] is None and "size limit" in img["note"]
+
+
+def test_a_missing_file_does_not_break_the_export(client, db, shop):
+    send(client, [image(), image("JPEG")], payload={"message": "m", "email": "ann@example.com"})
+    first = db.scalars(select(FeedbackAttachment).order_by(FeedbackAttachment.created_at)).first()
+    get_storage().delete([first.storage_key])
+    files = read_zip(export(client, db, shop).content)
+    imgs = json.loads(files["data.json"])["items"][0]["images"]
+    assert sorted(i["file"] is None for i in imgs) == [False, True]
+    assert "missing" in next(i["note"] for i in imgs if i["file"] is None)
+    assert len(files) == 2
+
+
+def test_the_export_audit_counts_items_and_pictures_only(client, db, shop):
+    send(client, [image(), image()], payload={"message": "m", "email": "ann@example.com"})
+    export(client, db, shop)
+    event = db.scalar(select(AuditEvent).where(AuditEvent.action == "privacy.export"))
+    assert event.details == {"items": 1, "images": 2} and "ann" not in event.summary + str(event.details)
 
 
 def test_deleting_a_site_deletes_its_files(client, db, item):

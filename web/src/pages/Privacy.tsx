@@ -95,7 +95,7 @@ function Person({ site }: { site: Site }) {
           <p>{found.items === 0 ? "Nothing held for this address." : `${found.items} ${found.items === 1 ? "item" : "items"} found.`}</p>
           {found.items > 0 && (
             <div className="row-actions">
-              <button disabled={busy} onClick={() => run(() => download(path("export"), "person-export.json", body(found.email)))}>
+              <button disabled={busy} onClick={() => run(() => download(path("export"), "person-export.zip", body(found.email)))}>
                 Export
               </button>
               <button className="danger" disabled={busy} onClick={() => erase(found.email)}>Erase</button>

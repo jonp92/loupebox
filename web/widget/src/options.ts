@@ -62,6 +62,8 @@ export interface WidgetOptions {
   closeDelay?: number;
   /** Offer image upload when the site accepts images (default true). */
   images?: boolean;
+  /** Offer "Capture this page" (screen capture with a redact editor) where the browser can, when images are on (default true). */
+  capture?: boolean;
   /** Last look at what will be sent. Return a changed payload, or `false` to cancel. */
   beforeSubmit?: (payload: SubmitPayload) => SubmitPayload | false | Promise<SubmitPayload | false>;
 }
@@ -105,6 +107,7 @@ export interface ResolvedOptions {
   strings: Strings;
   closeDelay: number;
   images: boolean;
+  capture: boolean;
   beforeSubmit: WidgetOptions["beforeSubmit"];
 }
 
@@ -118,7 +121,7 @@ export const defaultIssueTypes: IssueType[] = [
 const KNOWN = new Set<string>([
   "url", "key", "mode", "target", "position", "launcher", "issueTypes", "defaultIssueType", "requireIssueType",
   "fields", "extraFields", "metadata", "pageUrl", "theme", "colors", "radius", "fontFamily", "zIndex", "strings",
-  "closeDelay", "images", "beforeSubmit",
+  "closeDelay", "images", "capture", "beforeSubmit",
 ]);
 const ID = /^[a-z0-9_-]{1,32}$/;
 const COLOR_NAMES: ColorName[] = ["accent", "accentText", "background", "text", "muted", "border"];
@@ -252,6 +255,7 @@ export function normalizeOptions(input: WidgetOptions): ResolvedOptions {
     strings,
     closeDelay,
     images: input.images ?? true,
+    capture: input.capture ?? true,
     beforeSubmit: input.beforeSubmit,
   };
 }

@@ -9,6 +9,10 @@ Open **Site → Settings** and tick **Accept images with feedback**. The hint un
 server. The [feedback widget](../collect/widget.md#images) then shows an **Add image** button, and accepts images
 pasted or dropped anywhere on its form. You do not need to change the snippet on your website.
 
+On desktop browsers the widget also offers [Capture this page](../collect/widget.md#capture-this-page): the visitor
+shares their screen, blacks out anything private in an editor and attaches the result. It needs nothing extra from
+you, and a page can turn it off with `capture: false`.
+
 If you build your own form, see [Sending images](../collect/api.md#sending-images).
 
 ## What visitors can send

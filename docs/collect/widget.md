@@ -48,7 +48,7 @@ Content-Security-Policy.
 | `data-url` | `url` | `https://api.example.com/v1/api` |
 | `data-mode`, `data-target` | `mode`, `target` | `inline`, `#feedback` |
 | `data-position`, `data-theme` | `position`, `theme` | `bottom-left`, `dark` |
-| `data-launcher`, `data-images` | `launcher`, `images` | `false` |
+| `data-launcher`, `data-images`, `data-capture` | `launcher`, `images`, `capture` | `false` |
 | `data-rating` | `fields.rating` | `true` |
 | `data-name`, `data-email` | `fields.name`, `fields.email` | `required`, `optional` or `false` |
 | `data-require-issue-type`, `data-default-issue-type` | `requireIssueType`, `defaultIssueType` | `true`, `bug` |
@@ -83,6 +83,7 @@ Everything except `url` and `key` is optional.
 | `strings` | English | Override any text (see `defaultStrings` for the keys), e.g. to translate |
 | `closeDelay` | `2500` | Milliseconds before the panel closes after sending; `0` keeps it open |
 | `images` | `true` | Offer image upload when the site accepts images; `false` never does |
+| `capture` | `true` | Offer "Capture this page" where the browser can share a screen (needs `images`); `false` hides it |
 | `beforeSubmit` | | `(payload) => payload \| false`, may be async: last look, change it or cancel |
 
 ### Issue-type badges
@@ -142,6 +143,33 @@ The thumbnails are shown from `blob:` addresses. A page with a strict `img-src` 
 them; without it the visitor sees an icon instead and everything else works. Set `images: false` (or
 `data-images="false"`) to turn the feature off for a page. The text is in `strings` (`addImage`, `imageHint`,
 `imageCount`, `removeImage`, `errorImageType`, `errorImageSize`, `errorImageCount`).
+
+### Capture this page
+
+On desktop browsers that can share a screen, the form also has a **Capture this page** button next to **Add image**.
+It is not shown on phones and tablets, which cannot do it, or when the page is not on HTTPS.
+
+1. The visitor picks what to share in the browser's own dialog. Chrome offers "this tab" first.
+2. The widget hides itself for the instant the picture is taken, so it is not in it, and the browser stops sharing
+   straight away.
+3. A full-screen editor opens over the page. The visitor drags to **Hide** anything private (a solid black box) and
+   can use the **Highlight** pen to point out the problem. **Undo** and **Clear** work as expected, **Use screenshot**
+   attaches the result and **Cancel** throws it away.
+
+The black boxes are burned into the picture in the visitor's browser before it is attached. The original capture is
+never sent and is released from memory when the editor closes. A highlight is only a marking: it does not hide
+anything. Nothing is uploaded until the visitor presses **Send**.
+
+The editor can be used without a mouse: Tab to the picture, move the cursor with the arrow keys (Shift for bigger
+steps), press Enter to start a shape and Enter again to finish it, and Escape to cancel the shape (a second Escape
+closes the editor). It also works with a finger or pen where the browser allows capture. The picture is saved as PNG,
+or JPEG if the PNG would be over the site's size limit, and counts toward the image limit like any other image.
+
+Turn it off for a page with `capture: false` (or `data-capture="false"`). The texts are in `strings` (`captureButton`,
+`captureFailed`, `editorTitle`, `editorHelp`, `editorHelpKeys`, `editorCanvasLabel`, `toolLabel`, `toolHide`,
+`toolMark`, `undo`, `clear`, `cancel`, `useCapture`, `cornerSet`, `penDown`, `shapeAdded`). Check for it with
+`widget.supports("capture")`. Cancelling the browser's dialog shows nothing; other failures say the screen could not
+be captured and leave **Add image** working.
 
 ## Controlling it from the page
 

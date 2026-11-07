@@ -7,6 +7,14 @@ change between releases; breaking changes are called out below.
 ## [Unreleased]
 
 ### Added
+- "Capture this page" in the widget, on desktop browsers that can share a screen (`capture: false` or
+  `data-capture="false"` turns it off; capability `capture`). The visitor picks what to share, the widget hides
+  itself for the moment the picture is taken, and a full-screen editor opens: solid black boxes hide anything private
+  (burned into the picture in the browser; the original is never sent), a highlighter points out the problem, with
+  undo and clear. It can be used with the keyboard as well as a pointer. The result is attached like any image.
+- The personal-data export is now a zip (`person-export.zip`): `data.json` plus the pictures the person sent, in an
+  `images` folder. Pictures past `PERSON_EXPORT_MAX_BYTES` (500 MB) are listed in `data.json` with a note instead.
+  **Changed:** the export used to be a JSON file.
 - Images with feedback, opt-in per site (Settings → "Accept images with feedback", migration `0019`). The widget
   gets an Add image button and takes pasted or dropped images; large ones are scaled down in the browser. The
   server accepts PNG, JPEG and WebP only, decodes and re-encodes every image (EXIF and anything hidden in the
@@ -45,11 +53,6 @@ change between releases; breaking changes are called out below.
   (`--profile redis`). Without `REDIS_URL` nothing changes.
 - Settings saved on the System page reach other API containers within 30 seconds.
 
-### Fixed
-- The admin app's Content-Security-Policy refused the blob: addresses the feedback gallery shows its images from,
-  so images did not appear on the item page. `img-src` now allows `blob:`. Only the page's own script can create
-  one, and scripts are still limited to the app itself. Run `docker compose pull` and restart the `web` container.
-
 ### Changed
 - Searching feedback on Postgres uses trigram indexes (migration `0017`, extension `pg_trgm`). On a benchmark
   database of 1.1 million items, a search for a rare word on the largest site (237,000 items) dropped from about
@@ -62,6 +65,9 @@ change between releases; breaking changes are called out below.
   already did. **API:** `POST /auth/me/totp/enable` now requires `password`.
 
 ### Fixed
+- The admin app's Content-Security-Policy refused the blob: addresses the feedback gallery shows its images from,
+  so images did not appear on the item page. `img-src` now allows `blob:`. Only the page's own script can create
+  one, and scripts are still limited to the app itself. Run `docker compose pull` and restart the `web` container.
 - A burst of requests could leave the API unresponsive for many minutes: requests waiting for a database
   connection filled every worker thread, and the requests holding the connections could not finish. The API
   now handles only as many requests at once as its database pool can serve, and the rest wait briefly or get

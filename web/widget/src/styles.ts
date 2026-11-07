@@ -98,6 +98,32 @@ textarea { min-height: 96px; resize: vertical; }
 }
 .thumbs .remove svg { width: 12px; height: 12px; }
 .panel[data-dragging="true"] { outline: 2px dashed var(--gm-accent); outline-offset: -6px; }
+.add-image svg, .tool svg { flex: none; }
+:host([data-capturing]) .panel, :host([data-capturing]) .launcher { visibility: hidden !important; }
+
+.editor {
+  position: fixed; inset: 0; z-index: calc(var(--gm-z) + 1); display: grid; place-items: center; padding: 8px;
+  background: rgba(10, 12, 20, .78);
+}
+.editor-box {
+  display: flex; flex-direction: column; gap: 8px; width: min(1100px, 100%); max-height: 100%; padding: 14px;
+  background: var(--gm-bg); color: var(--gm-text); border: 1px solid var(--gm-border); border-radius: var(--gm-radius);
+  box-shadow: 0 12px 40px rgba(0,0,0,.4);
+}
+.editor-box h2 { margin: 0; }
+.editor-box .hint { margin: 0; font-size: 12px; }
+.editor-stage { flex: 1; min-height: 0; display: grid; place-items: center; background: var(--gm-surface); border-radius: 8px; overflow: hidden; }
+.editor-canvas { max-width: 100%; max-height: calc(100vh - 220px); cursor: crosshair; touch-action: none; display: block; }
+.editor-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.editor-bar .tools, .editor-bar .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.tool, .plain {
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border: 1px solid var(--gm-border);
+  border-radius: calc(var(--gm-radius) / 1.6); background: var(--gm-surface); cursor: pointer; font-weight: 500;
+}
+.tool[aria-pressed="true"] { background: var(--gm-accent); border-color: var(--gm-accent); color: var(--gm-accent-text); }
+.plain[disabled] { opacity: .5; cursor: not-allowed; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+@media (max-width: 480px) { .editor-bar .actions { width: 100%; } .editor-bar .actions button { flex: 1; } }
 .honeypot { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 .status { margin: 0; min-height: 1.2em; font-size: 13px; }
 .status[data-kind="error"] { color: var(--gm-danger); }

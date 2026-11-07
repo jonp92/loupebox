@@ -1,4 +1,6 @@
 import { createClient, type SubmitResult } from "./client";
+import { canCapture, captureFrame } from "./capture";
+import { h } from "./dom";
 import { format } from "./i18n";
 import { icon } from "./icons";
 import { IMAGE_TYPES, prepareImage, type ImageLimits } from "./images";
@@ -11,6 +13,7 @@ import {
   type SubmitPayload,
   type WidgetOptions,
 } from "./options";
+import { openRedactor } from "./redact";
 import { css } from "./styles";
 import { capabilities, VERSION } from "./version";
 
@@ -36,28 +39,6 @@ export interface WidgetController {
   readonly isOpen: boolean;
   /** The `<loupebox-widget>` element that holds everything. */
   readonly element: HTMLElement;
-}
-
-type Child = Node | string | null | false | undefined;
-
-/**
- * Build an element. Attributes are plain strings; `style` and `on*` attributes are refused so nothing
- * here can create inline styles (blocked by strict page CSPs) or inline handlers.
- */
-function h<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  attrs: Record<string, string | boolean | undefined> = {},
-  ...children: Child[]
-): HTMLElementTagNameMap[K] {
-  const el = document.createElement(tag);
-  for (const [name, value] of Object.entries(attrs)) {
-    if (value === undefined || value === false) continue;
-    if (name === "style" || name.startsWith("on")) throw new Error(`refusing "${name}" attribute`);
-    if (name === "class") el.className = String(value);
-    else el.setAttribute(name, value === true ? "" : value);
-  }
-  for (const child of children) if (child) el.append(child);
-  return el;
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -95,6 +76,8 @@ export function createWidget(input: WidgetOptions): WidgetController {
   let limits: ImageLimits | null = null; // what the site accepts; null while unknown or when images are off
   let limitsRequested = false;
   const picked: { file: Blob; name: string; url: string }[] = [];
+  let capturing = false; // the browser's share picker or the redact editor is open
+  let closeEditor: (() => void) | null = null;
 
   // Refs filled by render().
   let launcher: HTMLButtonElement | null = null;
@@ -270,6 +253,48 @@ export function createWidget(input: WidgetOptions): WidgetController {
     paintImages();
   }
 
+  /** Share the screen, take one frame, let the visitor black out private parts, and attach the result. */
+  async function captureAndEdit(): Promise<void> {
+    if (!limits || busy || capturing) return;
+    const s = opts.strings;
+    capturing = true;
+    setFieldError("images", "");
+    setStatus("");
+    paintImages();
+    try {
+      // The widget hides itself for the moment the frame is taken, so it is not in the picture.
+      const shot = await captureFrame({
+        beforeGrab: () => host.setAttribute("data-capturing", ""),
+        afterGrab: () => host.removeAttribute("data-capturing"),
+      });
+      if (destroyed) return;
+      if (!shot.ok) {
+        if (shot.reason === "failed") setStatus(s.captureFailed, "error"); // cancelling the picker is not an error
+        return;
+      }
+      const editor = openRedactor({ frame: shot.frame, strings: s, limits, mount: shadow, id });
+      closeEditor = editor.cancel;
+      const out = await editor.result;
+      closeEditor = null;
+      if (destroyed || out === null) return;
+      if (out === "size") {
+        setFieldError("images", format(s.errorImageSize, { mb: Math.round(limits.maxBytes / 1048576) }));
+      } else if (picked.length >= limits.maxCount) {
+        setFieldError("images", format(s.errorImageCount, { max: limits.maxCount }));
+      } else {
+        const name = `screenshot.${out.type === "image/png" ? "png" : "jpg"}`;
+        const file = typeof File === "function" ? new File([out], name, { type: out.type }) : out;
+        picked.push({ file, name, url: URL.createObjectURL(file) });
+      }
+    } finally {
+      capturing = false;
+      if (!destroyed) {
+        paintImages();
+        shadow.querySelector<HTMLButtonElement>(".capture-image")?.focus();
+      }
+    }
+  }
+
   /** The "Add image" button, the thumbnails and their messages. Built once the site is known to accept images. */
   function mountImages(): void {
     imageSlot.replaceChildren();
@@ -279,9 +304,14 @@ export function createWidget(input: WidgetOptions): WidgetController {
     const s = opts.strings;
     const input = h("input", { type: "file", accept: IMAGE_TYPES.join(","), multiple: true, hidden: true, tabindex: "-1" });
     const add = h("button", { type: "button", class: "add-image", "aria-describedby": `${id}-images-hint` }, icon("image"), s.addImage);
+    // Only where the browser can share a screen (desktops, secure pages), when the page has not turned it off.
+    const capture = opts.capture && canCapture()
+      ? h("button", { type: "button", class: "add-image capture-image", "aria-describedby": `${id}-images-hint` }, icon("capture"), s.captureButton)
+      : null;
     const count = h("span", { class: "hint", "aria-live": "polite" });
     const list = h("ul", { class: "thumbs", "aria-label": s.imagesLabel });
     add.addEventListener("click", () => input.click());
+    capture?.addEventListener("click", () => void captureAndEdit());
     input.addEventListener("change", () => {
       const files = [...(input.files ?? [])];
       input.value = ""; // so choosing the same file again still fires
@@ -290,6 +320,7 @@ export function createWidget(input: WidgetOptions): WidgetController {
     paintImages = () => {
       list.hidden = picked.length === 0;
       add.disabled = picked.length >= max;
+      if (capture) capture.disabled = capturing || picked.length >= max;
       count.textContent = picked.length ? format(s.imageCount, { count: picked.length, max }) : "";
       list.replaceChildren(...picked.map((p, i) => {
         // The preview needs `img-src blob:` on strict pages; without it the picture is replaced by an icon.
@@ -308,7 +339,7 @@ export function createWidget(input: WidgetOptions): WidgetController {
       }));
     };
     imageSlot.append(
-      h("div", { class: "image-row" }, add, input, count),
+      h("div", { class: "image-row" }, add, capture, input, count),
       list,
       h("p", { class: "hint", id: `${id}-images-hint` }, s.imageHint),
       errorFor("images"),
@@ -640,11 +671,13 @@ export function createWidget(input: WidgetOptions): WidgetController {
       if (destroyed) return;
       destroyed = true;
       clearTimeout(closeTimer);
+      closeEditor?.();
       clearImages();
       host.remove();
       for (const set of Object.values(listeners)) set.clear();
     },
     update(changes) {
+      closeEditor?.(); // the form is rebuilt, which would strand an open editor
       raw = { ...raw, ...changes };
       opts = normalizeOptions(raw);
       if ("url" in changes || "key" in changes || "images" in changes) {
