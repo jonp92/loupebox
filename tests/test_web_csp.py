@@ -33,6 +33,11 @@ def test_pictures_fetched_with_the_login_token_may_be_shown(tmp_path):
     assert policy(tmp_path)["img-src"] == ["'self'", "blob:", API]
 
 
+def test_self_hosted_fonts_are_allowed_from_this_origin_only(tmp_path):
+    run(tmp_path)
+    assert policy(tmp_path)["font-src"] == ["'self'"]
+
+
 def test_everything_else_stays_closed(tmp_path):
     run(tmp_path)
     p = policy(tmp_path)

@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="web/public/brand/loupebox-wordmark-neon-dark.svg">
-    <img src="web/public/brand/loupebox-wordmark-neon-light.svg" alt="Loupebox" height="64">
+    <source media="(prefers-color-scheme: dark)" srcset="web/public/brand/loupebox-wordmark-dark.svg">
+    <img src="web/public/brand/loupebox-wordmark-light.svg" alt="Loupebox" height="64">
   </picture>
 </p>
 

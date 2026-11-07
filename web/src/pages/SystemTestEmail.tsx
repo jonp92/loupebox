@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, type ProviderInfo, type SystemSetting } from "../api";
 import { sendTest } from "../testSend";
 import { useToast } from "../toast";
+import { Status } from "../ui/Status";
 
 /** One "Send test" per email provider, to the signed-in superadmin. Reloads when settings are saved. */
 export default function SystemTestEmail({ settings }: { settings: SystemSetting[] | null }) {
@@ -26,7 +27,7 @@ export default function SystemTestEmail({ settings }: { settings: SystemSetting[
       <ul className="checklist">
         {providers.map((p) => (
           <li key={p.key}>
-            <span className={`badge ${p.configured ? "read" : "pending"}`}>{p.configured ? "Ready" : "Not set up"}</span>
+            <Status tone={p.configured ? "ok" : "muted"}>{p.configured ? "Ready" : "Not set up"}</Status>
             <span className="grow">{p.label}</span>
             <button type="button" onClick={() => test(p)} disabled={!p.configured || sending !== null}>
               {sending === p.key ? "Sending…" : "Send test to me"}

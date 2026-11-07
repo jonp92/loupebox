@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ThemeToggle } from "../App";
+import { ThemeToggle } from "../shell";
 import { api, json } from "../api";
 import { Logo } from "../components";
 

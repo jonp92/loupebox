@@ -9,6 +9,8 @@ import FeedbackList from "./FeedbackList";
 import Members from "./Members";
 import Notifications from "./Notifications";
 import Settings from "./Settings";
+import { Badge } from "../ui/Badge";
+import { Status } from "../ui/Status";
 
 export default function SiteDetail() {
   const { siteId } = useParams();
@@ -31,8 +33,8 @@ export default function SiteDetail() {
       {!soleSiteId(me) && <Link to="/sites" className="back">← All sites</Link>}
       <div className="page-head">
         <h1>{site.name}</h1>
-        <span className="badge">{site.my_role}</span>
-        {!site.is_active && <span className="badge warn">disabled</span>}
+        <Badge>{site.my_role}</Badge>
+        {!site.is_active && <Status tone="danger">Disabled</Status>}
       </div>
       <ScrollTabs>
         <NavLink to={base} end>Feedback</NavLink>

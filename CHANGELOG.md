@@ -6,6 +6,11 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+### Changed
+- The admin app has a new look: brass and sage palette from shared design tokens, Hanken Grotesk and IBM Plex Mono
+  (self-hosted, no CDN), a sidebar with a mobile drawer, and a redrawn logo in brass (same loupe, lettering in the UI
+  font). Favicons, app icons and the email logo were regenerated to match, from one script (`scripts/brand_art.py`).
+
 ### Added
 - Images can be stored in an S3 bucket: Amazon S3 or any S3-compatible service (Cloudflare R2, Backblaze B2,
   DigitalOcean Spaces, Wasabi, MinIO, Ceph and others). It is set up in the admin app under **System → Image

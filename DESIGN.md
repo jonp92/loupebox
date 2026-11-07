@@ -55,6 +55,15 @@ Not allowed: glassy gradients, cyan glow, a rounded card for every stat, decorat
 - **Empty state:** a hollow gem in `--text-muted`, a short plain sentence, and a mono "CLEAR" tag. No illustrations.
 - **Status in tables:** a dot plus mono uppercase label, left-aligned to the column start.
 
+## Additional tokens
+
+- **No warn token.** Amber is unread only. Problems use `--danger`; neutral caution uses `--text-muted` plus a label. Ask before adding a warning state.
+- **Soft tints:** `--ok-soft`, `--danger-soft`, `--accent-soft` (derived via color-mix). No amber tint.
+- **Star:** `--star` (brass). Filled when starred, outlined in `--border-control` when not. Never amber.
+- **Shadow:** `--shadow-pop` for menus, popovers and sheets only. Cards and rows stay flat.
+- **Charts:** `--chart-1..4` (brass, sage, steel, secondary text). Never amber. Label series directly or with a legend, never color alone. `--danger` only for failure series.
+- **Theme:** an explicit `data-theme` always wins; otherwise follow the OS; dark is the fallback.
+
 ## Accessibility
 
 - Text meets 4.5:1 in both themes, UI borders 3:1. Re-check any new color.

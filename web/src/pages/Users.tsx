@@ -7,6 +7,11 @@ import { Avatar } from "../components";
 import { useConfirm } from "../confirm";
 import { useToast } from "../toast";
 import { useContextMenu, type MenuItem } from "../triage";
+import { Badge } from "../ui/Badge";
+import { EmptyState } from "../ui/EmptyState";
+import { Sheet } from "../ui/Sheet";
+import { Status } from "../ui/Status";
+import { Icon } from "../icons";
 
 const PAGE = 50;
 
@@ -124,29 +129,28 @@ export default function Users() {
       <div className="page-head">
         <h1>Users</h1>
         <span className="count">{page.total}</span>
-        <button className="primary grow-end" onClick={() => setCreating(!creating)} aria-expanded={creating}>
-          {creating ? "Cancel" : "New user"}
-        </button>
+        <button className="primary grow-end" onClick={() => setCreating(true)}><Icon name="plus" size={18} />New user</button>
       </div>
-      {creating && (
-        <form className="card" onSubmit={create}>
-          <h2>New user</h2>
+      <Sheet open={creating} title="New user" onClose={() => setCreating(false)}>
+        <form onSubmit={create}>
           <div className="grid-2">
-            <label>First name<input name="first_name" required maxLength={100} autoFocus /></label>
+            <label>First name<input name="first_name" required maxLength={100} /></label>
             <label>Last name<input name="last_name" required maxLength={100} /></label>
           </div>
           <label>Email<input name="email" type="email" required /></label>
-          <label>Password <small>(12+ characters)</small><input name="password" type="password" minLength={12} required autoComplete="new-password" /></label>
+          <label>Password<input name="password" type="password" minLength={12} required autoComplete="new-password" aria-describedby="password-hint" /></label>
+          <p id="password-hint" className="hint muted">At least 12 characters.</p>
           <label className="inline"><input name="is_superadmin" type="checkbox" /> Superadmin</label>
-          <button className="primary">Create user</button>
+          <button className="primary block">Create user</button>
+          <button type="button" className="plain block" onClick={() => setCreating(false)}>Cancel</button>
         </form>
-      )}
+      </Sheet>
       <div className="toolbar">
         <input type="search" value={q} onChange={(e) => search(e.target.value)} placeholder="Search by name or email…" aria-label="Search users" maxLength={100} />
       </div>
       {error && <p className="error" role="alert">{error}</p>}
       {page.items.length === 0 && !error ? (
-        <p className="empty-state">{q.trim() ? `No users match “${q.trim()}”.` : "No users yet."}</p>
+        <EmptyState>{q.trim() ? `No users match “${q.trim()}”.` : "No users yet."}</EmptyState>
       ) : (
         <table className="users-table">
           <caption className="sr-only">Users{q.trim() ? ` matching “${q.trim()}”` : ""}</caption>
@@ -184,13 +188,13 @@ export default function Users() {
                     </span>
                   </th>
                   <td className="user-email">{u.email}</td>
-                  <td data-label="Role">{u.is_superadmin ? <span className="badge">Superadmin</span> : <span className="muted">User</span>}</td>
-                  <td data-label="2FA">{u.totp_enabled ? <span className="badge read">On</span> : <span className="muted">Off</span>}</td>
-                  <td data-label="Status">{u.is_active ? <span className="muted">Active</span> : <span className="badge warn">Disabled</span>}</td>
+                  <td data-label="Role"><Badge tone={u.is_superadmin ? "brass" : "muted"}>{u.is_superadmin ? "Superadmin" : "User"}</Badge></td>
+                  <td data-label="2FA"><Status tone={u.totp_enabled ? "ok" : "danger"}>{u.totp_enabled ? "On" : "Off"}</Status></td>
+                  <td data-label="Status"><Status tone={u.is_active ? "ok" : "danger"}>{u.is_active ? "Active" : "Disabled"}</Status></td>
                   <td className="user-actions">
                     <button onClick={() => setEditing(u.id)} aria-label={`Edit ${displayName(u)}`}>Edit</button>
                     {u.id !== me.id && (
-                      <button className="menu-btn" aria-label={`More actions for ${displayName(u)}`} aria-haspopup="menu" onClick={(e) => ctx.openAt(e.currentTarget, menuFor(u))}>⋯</button>
+                      <button className="menu-btn" aria-label={`More actions for ${displayName(u)}`} aria-haspopup="menu" onClick={(e) => ctx.openAt(e.currentTarget, menuFor(u))}><Icon name="more" /></button>
                     )}
                   </td>
                 </tr>

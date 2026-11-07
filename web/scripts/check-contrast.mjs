@@ -1,5 +1,5 @@
 // Fails when a color pair in the admin UI or widget themes drops below WCAG AA (4.5:1 text, 3:1 controls),
-// or when the dark tokens in the prefers-color-scheme block drift from the explicit dark theme.
+// or when the OS-light block in tokens.css drifts from the explicit light theme.
 // Plain node, no dependencies: `npm run check:contrast`.
 import { readFileSync } from "node:fs";
 
@@ -12,7 +12,23 @@ function tokens(src, selector) {
   const body = src.slice(start, src.indexOf("}", start));
   const out = {};
   for (const [, name, value] of body.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) out[name] = value.trim();
-  for (const name in out) out[name] = out[name].replace(/var\((--[\w-]+)\)/g, (_, ref) => out[ref] ?? "");
+  return out;
+}
+
+// Resolves var() references and `color-mix(in srgb, A n%, B)` to #rrggbb, given the theme's token map.
+function resolve(vars) {
+  const hex = (n) => Math.round(n).toString(16).padStart(2, "0");
+  const mix = (a, pct, b) => "#" + [1, 3, 5].map((i) => hex(parseInt(a.slice(i, i + 2), 16) * pct / 100 + parseInt(b.slice(i, i + 2), 16) * (100 - pct) / 100)).join("");
+  const out = {};
+  const value = (name, seen = []) => {
+    let v = vars[name] ?? "";
+    for (let n = 0; n < 5; n++) {
+      v = v.replace(/var\((--[\w-]+)\)/g, (_, ref) => value(ref));
+      v = v.replace(/color-mix\(in srgb,\s*(#\w{6})\s+(\d+)%,\s*(#\w{6})\)/g, (_, a, pct, b) => mix(a, Number(pct), b));
+    }
+    return v;
+  };
+  for (const name in vars) out[name] = value(name);
   return out;
 }
 
@@ -29,13 +45,16 @@ const ratio = (a, b) => {
 const TEXT = 4.5;
 const CONTROL = 3;
 // [foreground, background, minimum ratio]. Names are token names without the prefix.
+// Text sits on --bg, --surface and --bg-sidebar. On the tinted fills (--surface-selected, --surface-chip and the soft
+// tints) the UI uses --text or --text-secondary, never muted or colored text, so only those pairs are checked.
 const ADMIN = [
-  ...["bg", "surface", "surface-2"].flatMap((bg) => [["text", bg, TEXT], ["muted", bg, TEXT]]),
-  ["accent", "bg", TEXT], ["accent", "surface", TEXT], ["accent", "accent-soft", TEXT],
-  ["on-accent", "accent-fill", TEXT], ["on-accent", "accent-fill-hover", TEXT],
-  ["danger", "surface", TEXT], ["danger", "danger-soft", TEXT],
-  ["ok", "surface", TEXT], ["ok", "ok-soft", TEXT],
-  ["warn", "surface", TEXT], ["warn", "warn-soft", TEXT],
+  ...["bg", "surface", "bg-sidebar"].flatMap((bg) => [["text", bg, TEXT], ["text-secondary", bg, TEXT], ["text-muted", bg, TEXT]]),
+  ...["surface-selected", "surface-chip", "accent-soft", "ok-soft", "danger-soft"].flatMap((bg) => [["text", bg, TEXT], ["text-secondary", bg, TEXT]]),
+  ["accent", "bg", TEXT], ["accent", "surface", TEXT],
+  ["on-accent", "accent", TEXT],
+  ["unread-text", "bg", TEXT], ["unread-text", "surface", TEXT],
+  ["danger", "bg", TEXT], ["danger", "surface", TEXT],
+  ["ok", "bg", TEXT], ["ok", "surface", TEXT],
   ["border-control", "bg", CONTROL], ["border-control", "surface", CONTROL],
 ];
 const WIDGET = [
@@ -44,14 +63,16 @@ const WIDGET = [
   ["danger", "bg", TEXT], ["ok", "bg", TEXT],
 ];
 
-const css = read("../src/styles.css");
+const css = read("../src/tokens.css");
 const widget = read("../widget/src/styles.ts");
-const mediaDark = tokens(css, ':root:not([data-theme="light"])');
-const adminDark = tokens(css, ':root[data-theme="dark"], .topbar');
+const derived = tokens(css, ":root"); // theme-independent tints, resolved per theme
+const lightRaw = tokens(css, ':root[data-theme="light"]');
+const darkRaw = tokens(css, ':root[data-theme="dark"]');
+const mediaLight = tokens(css, ':root:not([data-theme="dark"]):not([data-theme="light"])');
 
 const themes = [
-  ["admin light", tokens(css, ":root"), "--", ADMIN],
-  ["admin dark", adminDark, "--", ADMIN],
+  ["admin light", resolve({ ...derived, ...lightRaw }), "--", ADMIN],
+  ["admin dark", resolve({ ...derived, ...darkRaw }), "--", ADMIN],
   ["widget light", tokens(widget, ":host"), "--gm-", WIDGET],
   ["widget dark", tokens(widget, ':host([data-theme="dark"])'), "--gm-", WIDGET],
 ];
@@ -69,8 +90,8 @@ for (const [theme, vars, prefix, pairs] of themes) {
     }
   }
 }
-for (const name of Object.keys(adminDark)) {
-  if (name in mediaDark && mediaDark[name] !== adminDark[name]) fail(`dark tokens differ: ${name}`);
+for (const name of Object.keys(mediaLight)) {
+  if (mediaLight[name] !== lightRaw[name]) fail(`OS-light tokens differ from the light theme: ${name}`);
 }
 
 if (failures) process.exit(1);

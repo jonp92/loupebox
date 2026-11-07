@@ -5,6 +5,8 @@ import { useAuth } from "../auth";
 import { useConfirm } from "../confirm";
 import { useToast } from "../toast";
 import { Bar, Placeholder } from "../Skeleton";
+import { EmptyState } from "../ui/EmptyState";
+import { Icon } from "../icons";
 import {
   FeedbackBadges, TAG_PATTERN, ago, below, label, personName, recentAssignees, slug, useAssigneePicker, useContextMenu, type MenuItem,
 } from "../triage";
@@ -227,7 +229,7 @@ export default function FeedbackList({ site }: { site: Site }) {
   /** The assignee on a card. Editors tap or click it (or press Enter) to change it right there. */
   function assigneeChip(f: Feedback) {
     const name = f.assignee_name;
-    if (!canEdit) return name && <span className="assignee" title="Assignee">👤 {name}</span>;
+    if (!canEdit) return name && <span className="assignee" title="Assignee"><Icon name="person" size={16} />{name}</span>;
     const change = (el: HTMLElement) => picker.open(below(el), f.assignee_id, (p) => patchItem(f.id, { assignee_id: p?.user_id ?? null }));
     return (
       <span
@@ -238,7 +240,7 @@ export default function FeedbackList({ site }: { site: Site }) {
         onClick={(e) => change(e.currentTarget)}
         onKeyDown={(e) => e.key === "Enter" && change(e.currentTarget)}
       >
-        👤 {name ?? "Unassigned"}
+        <Icon name="person" size={16} />{name ?? "Unassigned"}
       </span>
     );
   }
@@ -272,7 +274,7 @@ export default function FeedbackList({ site }: { site: Site }) {
           Filters{chips.length > 0 && ` (${chips.length})`}
         </button>
         <button className="menu-btn" aria-label="More actions" aria-haspopup="menu" disabled={total === 0}
-          onClick={(e) => ctx.openAt(e.currentTarget, moreMenu)}>⋯</button>
+          onClick={(e) => ctx.openAt(e.currentTarget, moreMenu)}><Icon name="more" /></button>
       </div>
       {chips.length > 0 && !filtersOpen && (
         <div className="active-chips">
@@ -331,33 +333,33 @@ export default function FeedbackList({ site }: { site: Site }) {
           ))}
         </Placeholder>
       ) : (
-        <p className="empty-state">No feedback found.</p>
+        <EmptyState>No feedback found.</EmptyState>
       ))}
       <div className={loading ? "is-refreshing" : undefined} aria-busy={loading && items.length > 0}>
       {items.map((f) => (
         <article key={f.id} className={`card fb compact ${f.status}${density === "compact" ? " dense" : ""}`} {...ctx.bind(() => menuFor(f))}>
           <header>
-            {canEdit && <input type="checkbox" checked={selected.has(f.id)} onChange={() => toggle(f.id)} aria-label="Select this feedback" />}
+            {canEdit && <label className="check"><input type="checkbox" checked={selected.has(f.id)} onChange={() => toggle(f.id)} aria-label="Select this feedback" /></label>}
             <span className="fb-badges"><FeedbackBadges f={f} /></span>
             <time className="muted grow-end" dateTime={f.created_at} title={new Date(f.created_at).toLocaleString()}>{ago(f.created_at)}</time>
-            <button className="menu-btn" aria-label="Actions" aria-haspopup="menu" onClick={(e) => ctx.openAt(e.currentTarget, menuFor(f))}>⋯</button>
+            <button className="menu-btn" aria-label="Actions" aria-haspopup="menu" onClick={(e) => ctx.openAt(e.currentTarget, menuFor(f))}><Icon name="more" /></button>
           </header>
           {/* Rendered as text by React; never as HTML. */}
           <p className="message"><a href={`/sites/${site.id}/feedback/${f.id}`} onClick={openOnPlainClick(f.id)}>{f.message}</a></p>
-          {(f.name || f.email) && <p className="muted">{[f.name, f.email].filter(Boolean).join(" · ")}</p>}
+          {(f.name || f.email) && <p className="person">{[f.name, f.email].filter(Boolean).join(" · ")}</p>}
           <div className="tags">
             {assigneeChip(f)}
             {f.tags.map((t) => <span key={t} className="tag static">{t}</span>)}
-            {f.reply_count > 0 && <span className="muted" title={`Replied ${f.reply_count} time${f.reply_count === 1 ? "" : "s"}`}>↩ Replied</span>}
+            {f.reply_count > 0 && <span className="replied" title={`Replied ${f.reply_count} time${f.reply_count === 1 ? "" : "s"}`}><Icon name="reply" size={16} />Replied</span>}
             {f.attachment_count > 0 && (
               <a className="note-count" href={`/sites/${site.id}/feedback/${f.id}`} onClick={openOnPlainClick(f.id)}
                 title={`${f.attachment_count} image${f.attachment_count === 1 ? "" : "s"}`}>
-                <span aria-hidden="true">📎</span> {f.attachment_count}<span className="sr-only"> image{f.attachment_count === 1 ? "" : "s"}</span>
+                <Icon name="clip" size={16} />{f.attachment_count}<span className="sr-only"> image{f.attachment_count === 1 ? "" : "s"}</span>
               </a>
             )}
             {f.note_count > 0 && (
               <a className="note-count" href={`/sites/${site.id}/feedback/${f.id}`} onClick={openOnPlainClick(f.id)}
-                title={`${f.note_count} internal note${f.note_count === 1 ? "" : "s"}`}>💬 {f.note_count}</a>
+                title={`${f.note_count} internal note${f.note_count === 1 ? "" : "s"}`}><Icon name="note" size={16} />{f.note_count}<span className="sr-only"> internal note{f.note_count === 1 ? "" : "s"}</span></a>
             )}
           </div>
         </article>
@@ -381,7 +383,7 @@ export default function FeedbackList({ site }: { site: Site }) {
       {picker.node}
       {!(loading && items.length === 0) && <div className="toolbar">
         <button disabled={offset === 0} onClick={() => setOffset(offset - pageSize)}>Previous</button>
-        <span className="muted">{total === 0 ? 0 : offset + 1}–{Math.min(offset + pageSize, total)} of {fmtCount(total, totalCapped)}</span>
+        <span className="muted num">{total === 0 ? 0 : offset + 1}–{Math.min(offset + pageSize, total)} of {fmtCount(total, totalCapped)}</span>
         <button disabled={!totalCapped && offset + pageSize >= total} onClick={() => setOffset(offset + pageSize)}>Next</button>
       </div>}
     </>

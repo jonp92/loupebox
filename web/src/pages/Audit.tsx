@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { api, type AuditEvent } from "../api";
 import { useAuth } from "../auth";
+import { Badge } from "../ui/Badge";
+import { EmptyState } from "../ui/EmptyState";
 
 const PAGE = 50;
 const GROUPS = [
@@ -79,7 +81,7 @@ export default function Audit() {
         </select>
       </div>
       {error && <p className="error" role="alert">{error}</p>}
-      {!error && items.length === 0 && <p className="empty-state">No events found.</p>}
+      {!error && items.length === 0 && <EmptyState>No events found.</EmptyState>}
       <ul className="list audit">
         {items.map((e) => (
           <li key={e.id}>
@@ -91,7 +93,7 @@ export default function Audit() {
               </span>
               <Details details={e.details} />
             </span>
-            <span className="badge">{e.action}</span>
+            <Badge>{e.action}</Badge>
           </li>
         ))}
       </ul>

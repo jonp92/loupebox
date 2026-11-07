@@ -1,11 +1,10 @@
-"""Render the app logos (SVG tiles and PNG icons) from the brand artwork in web/public/brand.
+"""Render the app logos (SVG tiles and PNG icons) from the icon artwork in web/public/brand.
 
     python -m scripts.generate_logos
 
 Needs `rsvg-convert` (macOS: brew install librsvg; Debian/Ubuntu: apt install librsvg2-bin).
-The sources are web/public/brand/loupebox-icon-neon-dark.svg (the tiles) and loupebox-icon-neon-light.svg (the
-favicon); see scripts/outline_brand.py for the brand files. Run this after changing them and commit the
-generated files.
+The sources are web/public/brand/loupebox-icon-dark.svg (the tiles) and loupebox-icon-light.svg (the favicon),
+written by scripts/brand_art.py: run that first, then this, and commit the generated files.
 """
 
 import re
@@ -18,24 +17,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 PUBLIC = ROOT / "web" / "public"
 DOCS_FAVICON = ROOT / "docs" / "assets" / "favicon.svg"
-ART = PUBLIC / "brand" / "loupebox-icon-neon-dark.svg"  # square, opaque dark background
-FAVICON_ART = PUBLIC / "brand" / "loupebox-icon-neon-light.svg"  # transparent, dark glyph
-BACKGROUND = re.compile(r'<rect width="250" height="250" fill="#0B0E14"\s*/>')
+ART = PUBLIC / "brand" / "loupebox-icon-dark.svg"  # square, opaque dark background
+FAVICON_ART = PUBLIC / "brand" / "loupebox-icon-light.svg"  # transparent, dark glyph
+BACKGROUND = re.compile(r'<rect width="250" height="250" fill="#[0-9A-Fa-f]{6}"\s*/>')
 ARTWORK_START = "<!-- Lens"  # everything from here on is the lens, check and handle
 NOTE = "<!-- Generated from {} by scripts/generate_logos.py. Do not edit. -->\n"
 
 TILE = "loupebox-icon.svg"  # rounded tile: PWA "any" icons and the email logo
 FAVICON = "favicon.svg"  # transparent: a dark tile shows as a ring on the light plate Safari draws
 MASKABLE = "loupebox-icon-maskable.svg"  # full-bleed with a safe zone, for maskable icons
-
-# The README wordmarks are 800x250 with the dark one on an opaque background. The app wants them transparent
-# and cropped to the artwork (measured: x 88-718, y 88-174, plus room for the neon glow).
-WORDMARK_BACKGROUND = '  <rect width="800" height="250" fill="#0B0E14" />\n'
-WORDMARK_VIEWBOX = ('viewBox="0 0 800 250"', 'viewBox="66 66 674 130"')
-
-# The app header shows the wordmark at 28-44px high. 176px keeps it sharp up to 4x displays, as the fallback
-# for browsers that can't use the SVG.
-WORDMARK_PNG_HEIGHT = 176
 
 ICO_SIZES = (16, 32, 48)  # favicon.ico, for browsers that ask for /favicon.ico by default
 
@@ -47,7 +37,7 @@ PNGS = [
     ("icon-512.png", TILE, 512),  # PWA manifest, purpose "any"
     ("icon-maskable-512.png", MASKABLE, 512),  # PWA manifest, purpose "maskable"
     # iOS rounds the corners itself and fills transparency with black, so it gets the square artwork.
-    ("apple-touch-icon.png", "brand/loupebox-icon-neon-dark.svg", 180),
+    ("apple-touch-icon.png", "brand/loupebox-icon-dark.svg", 180),
     # Emails: the admin UI serves this at PUBLIC_URL. 96px shows crisply at 48px on retina screens.
     ("email-logo.png", TILE, 96),
 ]
@@ -63,20 +53,6 @@ def derive(art: str) -> dict[str, str]:
     # The maskable safe zone is a central circle of 80% of the icon, so shrink the artwork inside it.
     shrink = f'<g transform="translate(125 125) scale(.8) translate(-125 -125)">\n{art_body}</g>\n</svg>\n'
     return {TILE: tile, MASKABLE: head + shrink}
-
-
-def derive_wordmarks() -> dict[str, str]:
-    """Transparent, cropped app wordmarks (brand/loupebox-wordmark-app-{light,dark}.svg), keyed by
-    output name."""
-    out = {}
-    for variant in ("light", "dark"):
-        art = (PUBLIC / "brand" / f"loupebox-wordmark-neon-{variant}.svg").read_text()
-        if WORDMARK_VIEWBOX[0] not in art:
-            raise SystemExit(f"loupebox-wordmark-neon-{variant}.svg no longer has the expected viewBox")
-        out[f"brand/loupebox-wordmark-app-{variant}.svg"] = art.replace(WORDMARK_BACKGROUND, "").replace(
-            *WORDMARK_VIEWBOX
-        )
-    return out
 
 
 def render(source: str, height: int, width: int | None = None) -> bytes:
@@ -108,7 +84,6 @@ def main() -> int:
     generated = [
         (derive(ART.read_text()), f"brand/{ART.name}"),
         ({FAVICON: FAVICON_ART.read_text()}, f"brand/{FAVICON_ART.name}"),
-        (derive_wordmarks(), "the brand wordmarks"),
     ]
     for svgs, source in generated:
         for name, svg in svgs.items():
@@ -121,10 +96,6 @@ def main() -> int:
     for name, source, size in PNGS:
         (PUBLIC / name).write_bytes(render(source, size, size))
         print(f"{name:24} {size}x{size}  from {source}")
-    for variant in ("light", "dark"):
-        name = f"brand/loupebox-wordmark-app-{variant}.png"
-        (PUBLIC / name).write_bytes(render(name.replace(".png", ".svg"), WORDMARK_PNG_HEIGHT))
-        print(f"{name:24} {WORDMARK_PNG_HEIGHT}px high")
     (PUBLIC / "favicon.ico").write_bytes(ico(ICO_SIZES))
     print(f"{'favicon.ico':24} {', '.join(map(str, ICO_SIZES))}")
     return 0
