@@ -15,4 +15,4 @@ printf 'window.__CONFIG__ = {"API_URL": "%s"};\n' "$API_ORIGIN" > "$OUT/config.j
 # No inline scripts or styles, no third-party hosts; images (avatars) and fetches go to the API origin only.
 # img-src also allows blob: for pictures the app fetches with the login token and shows from an object URL
 # (feedback images); only this page's own script can make a blob: address.
-printf 'add_header Content-Security-Policy "default-src '"'none'"'; script-src '"'self'"'; style-src '"'self'"'; img-src '"'self'"' blob: %s; connect-src '"'self'"' %s; manifest-src '"'self'"'; worker-src '"'self'"'; base-uri '"'self'"'; form-action '"'self'"'; frame-ancestors '"'none'"'; object-src '"'none'"'" always;\n' "$API_ORIGIN" "$API_ORIGIN" > "$OUT/csp.conf"
+printf 'add_header Content-Security-Policy "default-src '"'none'"'; script-src '"'self'"'; style-src '"'self'"'; font-src '"'self'"'; img-src '"'self'"' blob: %s; connect-src '"'self'"' %s; manifest-src '"'self'"'; worker-src '"'self'"'; base-uri '"'self'"'; form-action '"'self'"'; frame-ancestors '"'none'"'; object-src '"'none'"'" always;\n' "$API_ORIGIN" "$API_ORIGIN" > "$OUT/csp.conf"

@@ -5,6 +5,7 @@ import App from "./App";
 import { AuthProvider } from "./auth";
 import { ConfirmProvider } from "./confirm";
 import { ToastProvider } from "./toast";
+import "./fonts.css";
 import "./tokens.css";
 import "./styles.css";
 

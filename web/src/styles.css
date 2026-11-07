@@ -20,11 +20,12 @@
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 /* App-style touch: no double-tap-to-zoom (and no tap delay). Pinch zoom is deliberately left on. */
 html, body, #root, a, button, input, select, textarea, label, summary, [role="button"], [role="menuitem"], [role="option"] { touch-action: manipulation; }
-body { margin: 0; padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); -webkit-tap-highlight-color: transparent; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; transition: background .2s, color .2s; }
+body { margin: 0; padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); -webkit-tap-highlight-color: transparent; background: var(--bg); color: var(--text); font: var(--text-body)/1.5 var(--font-sans); transition: background .2s, color .2s; }
 h1 { font-size: 1.6rem; margin: 0; letter-spacing: -.02em; }
 h2 { font-size: 1.05rem; margin: 0 0 .75rem; }
 a { color: var(--accent); }
-code { font-family: ui-monospace, Menlo, monospace; }
+code, kbd, thead th, .badge { font-family: var(--font-mono); }
+input, select, textarea { font-family: inherit; }
 
 /* top bar */
 .topbar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: .75rem; padding: .6rem 1.25rem; background: var(--surface); color: var(--text); border-bottom: 1px solid var(--border); }
