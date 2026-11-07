@@ -4,9 +4,9 @@ import { api, type DayStats, type Site } from "../api";
 const RANGES = [7, 14, 30, 90];
 
 const SERIES = [
-  { key: "accepted", name: "Accepted", color: "var(--series-1)" },
-  { key: "quarantined", name: "Quarantined as spam", color: "var(--series-2)" },
-  { key: "blocked", name: "Blocked", color: "var(--series-3)" },
+  { key: "accepted", name: "Accepted", color: "var(--chart-1)" },
+  { key: "quarantined", name: "Quarantined as spam", color: "var(--chart-2)" },
+  { key: "blocked", name: "Blocked", color: "var(--chart-3)" },
 ] as const;
 type SeriesKey = (typeof SERIES)[number]["key"];
 

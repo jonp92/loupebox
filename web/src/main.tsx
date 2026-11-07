@@ -5,6 +5,7 @@ import App from "./App";
 import { AuthProvider } from "./auth";
 import { ConfirmProvider } from "./confirm";
 import { ToastProvider } from "./toast";
+import "./tokens.css";
 import "./styles.css";
 
 // Installable PWA + offline shell. Production only, so dev servers never serve stale assets.
