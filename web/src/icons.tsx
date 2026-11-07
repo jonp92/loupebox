@@ -14,6 +14,8 @@ const PATHS: Record<string, ReactNode> = {
   moon: <path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z" />,
   contrast: <><circle cx="12" cy="12" r="8" /><path d="M12 4a8 8 0 010 16z" fill="currentColor" /></>,
   caret: <path d="M6 9l6 6 6-6" />,
+  plus: <path d="M12 5v14M5 12h14" />,
+  chevron: <path d="M9 6l6 6-6 6" />,
 };
 
 export type IconName = keyof typeof PATHS;
