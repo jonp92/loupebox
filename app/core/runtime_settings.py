@@ -39,6 +39,12 @@ def _mail_providers() -> list[str]:
     return ["", *(p.key for p in all_providers() if p.uses_recipients)]
 
 
+def _storage_backends() -> list[str]:
+    from app.storage.registry import backend_names
+
+    return backend_names()
+
+
 @dataclass(frozen=True)
 class Spec:
     group: str
@@ -47,9 +53,13 @@ class Spec:
     minimum: int | None = None
     maximum: int | None = None
     pattern: str | None = None
+    hint: str = ""  # what a value matching `pattern` looks like, for the message when it does not
     choices: Callable[[], list[str]] | None = None  # Literal fields get theirs from the type
     secret: bool = False
     editable: bool = True  # False: shown for reference, changed in env only
+    show_when: tuple[str, str] | None = (
+        None  # (setting, value): only relevant while that setting has that value
+    )
 
 
 _EMAIL = "Email"
@@ -57,6 +67,9 @@ _NOTIFY = "Notifications"
 _INGEST = "Public feedback form"
 _SIGNIN = "Sign-in and accounts"
 _LIMITS = "Replies and data"
+_STORAGE = "Image storage"
+_S3 = ("storage_backend", "s3")
+_LOCAL = ("storage_backend", "local")
 _SERVER = "Server"
 
 SPECS: dict[str, Spec] = {
@@ -67,13 +80,19 @@ SPECS: dict[str, Spec] = {
         "Sends password resets and replies. Empty: the first configured one.",
         choices=_mail_providers,
     ),
-    "notify_sender_email": Spec(_EMAIL, "Sender address", pattern=r"^$|^[^@\s]+@[^@\s]+$"),
+    "notify_sender_email": Spec(
+        _EMAIL,
+        "Sender address",
+        pattern=r"^$|^[^@\s]+@[^@\s]+$",
+        hint="an email address such as feedback@example.com",
+    ),
     "notify_sender_name": Spec(_EMAIL, "Sender name"),
     "public_url": Spec(
         _EMAIL,
         "Admin UI address",
         "Used for links in emails. Links are left out when empty.",
         pattern=r"^$|^https?://[^\s/]+(/\S*)?$",
+        hint="a web address starting with http:// or https://, or empty",
     ),
     "brevo_api_key": Spec(_EMAIL, "Brevo API key", secret=True),
     "smtp_host": Spec(_EMAIL, "SMTP host"),
@@ -124,6 +143,71 @@ SPECS: dict[str, Spec] = {
     "bulk_max_ids": Spec(_LIMITS, "Items per bulk action", minimum=1, maximum=1000),
     "export_max_rows": Spec(_LIMITS, "Rows per CSV export", minimum=1),
     "audit_retention_days": Spec(_LIMITS, "Keep audit log (days)", "0 keeps it forever.", minimum=0),
+    # Image storage
+    "storage_backend": Spec(
+        _STORAGE,
+        "Where images are stored",
+        "On this server's disk, or in an S3 bucket. Images already stored stay where they are until you "
+        "move them.",
+        choices=_storage_backends,
+    ),
+    "attachments_dir": Spec(
+        _STORAGE,
+        "Images folder",
+        "A folder on this server, for example /data/attachments. The API and the worker must both reach it, "
+        "and with Docker it must be inside a mounted volume. Images already stored are not moved: copy "
+        "them to the new folder first.",
+        pattern=r"^[A-Za-z0-9._/ -]{1,200}$",
+        hint="a folder path of up to 200 letters, digits, spaces and . _ - /",
+        show_when=_LOCAL,
+    ),
+    "s3_endpoint_url": Spec(
+        _STORAGE,
+        "Endpoint address",
+        "Empty for Amazon S3. For another provider, its S3 address: "
+        "https://ACCOUNT.r2.cloudflarestorage.com (Cloudflare R2), https://s3.REGION.backblazeb2.com "
+        "(Backblaze B2), https://REGION.digitaloceanspaces.com (DigitalOcean), http://minio:9000 (MinIO).",
+        pattern=r"^$|^https?://[^\s/@]+(/\S*)?$",
+        hint="a web address starting with http:// or https://, without a username, or empty",
+        show_when=_S3,
+    ),
+    "s3_region": Spec(
+        _STORAGE,
+        "Region",
+        "For example us-east-1 (empty means that). Cloudflare R2 uses auto.",
+        pattern=r"^$|^[A-Za-z0-9-]{2,40}$",
+        hint="a region name such as us-east-1, or empty",
+        show_when=_S3,
+    ),
+    "s3_bucket": Spec(
+        _STORAGE,
+        "Bucket",
+        pattern=r"^$|^[A-Za-z0-9][A-Za-z0-9._-]{1,254}$",
+        hint="a bucket name of letters, digits, . _ - (at least 2, starting with a letter or digit)",
+        show_when=_S3,
+    ),
+    "s3_access_key_id": Spec(
+        _STORAGE,
+        "Access key ID",
+        pattern=r"^$|^[\x21-\x7e]{1,128}$",
+        hint="up to 128 characters with no spaces",
+        show_when=_S3,
+    ),
+    "s3_secret_access_key": Spec(_STORAGE, "Secret access key", secret=True, show_when=_S3),
+    "s3_path_style": Spec(
+        _STORAGE,
+        "Path-style addressing",
+        "Needed by MinIO and most self-hosted servers: https://host/bucket/file instead of https://bucket.host/file.",
+        show_when=_S3,
+    ),
+    "s3_prefix": Spec(
+        _STORAGE,
+        "Folder in the bucket",
+        "Optional. Lets the bucket be shared with other things.",
+        pattern=r"^$|^[A-Za-z0-9._/-]{1,100}$",
+        hint="up to 100 letters, digits and . _ - /, or empty",
+        show_when=_S3,
+    ),
     # Server: read at startup or security-sensitive, so env only for now.
     "environment": Spec(_SERVER, "Environment", editable=False),
     "admin_origins": Spec(_SERVER, "Admin UI origins", editable=False),
@@ -134,6 +218,10 @@ SPECS: dict[str, Spec] = {
     "webhook_allow_private": Spec(_SERVER, "Allow private webhook targets", editable=False),
     "max_body_bytes": Spec(_SERVER, "Largest request body (bytes)", editable=False),
     "avatar_max_bytes": Spec(_SERVER, "Largest avatar (bytes)", editable=False),
+    "attachment_max_count": Spec(_SERVER, "Images per submission", editable=False),
+    "attachment_max_bytes": Spec(_SERVER, "Largest image (bytes)", editable=False),
+    "attachment_max_edge": Spec(_SERVER, "Longest image side (pixels)", editable=False),
+    "attachment_max_pixels": Spec(_SERVER, "Most pixels in an image", editable=False),
 }
 
 _shadowed: dict[str, Any] = {}  # the env value each active override hides
@@ -174,7 +262,10 @@ def validate(key: str, value: Any) -> Any:
     try:
         value = _adapter(key).validate_python(value)
     except ValidationError as e:
-        raise ValueError(e.errors()[0]["msg"]) from None
+        error = e.errors()[0]
+        if error["type"] == "string_pattern_mismatch" and spec.hint:
+            raise ValueError(f"must be {spec.hint}") from None
+        raise ValueError(error["msg"]) from None
     options = _choices(key)
     if options is not None and value not in options:
         raise ValueError(f"must be one of: {', '.join(repr(o) for o in options)}")
@@ -224,6 +315,9 @@ def describe() -> list[dict[str, Any]]:
                 "choices": _choices(key),
                 "secret": spec.secret,
                 "editable": spec.editable,
+                "show_when": {"key": spec.show_when[0], "value": spec.show_when[1]}
+                if spec.show_when
+                else None,
                 "source": source,
                 "configured": bool(current),
                 "value": None if hide else current,

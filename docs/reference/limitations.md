@@ -4,8 +4,8 @@ Loupebox is alpha software. These are the limits to know about today.
 
 * **More than one API container needs Redis.** Rate limits live in the API's memory unless `REDIS_URL` is
   set. See [More than one API container](../install/production.md#more-than-one-api-container).
-* **Images need one shared disk.** The only storage backend today is a local folder, so every API container
-  and the worker must see the same folder. See [Images with feedback](../manage/images.md).
+* **Local image storage needs one shared disk.** With the default storage every API container and the worker
+  must see the same folder; an S3 bucket removes that. See [Image storage](../install/image-storage.md).
 * **Replies are one way.** Loupebox sends replies by email but does not read the answers. Replies from the
   person go to the editor's own inbox.
 * **It has not been load tested.** It is meant for small sites and tools. Benchmarks are planned.

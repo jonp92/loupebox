@@ -32,6 +32,9 @@ visitors get double the limit. To run more than one, keep the counts in Redis:
 1. Start the Redis service that comes with the compose file: `docker compose --profile redis up -d`.
 2. Add `REDIS_URL=redis://redis:6379/0` to `.env` and restart the API.
 
+Images kept on the server's disk must be on a disk every API container can reach; an
+[S3 bucket](image-storage.md) avoids that.
+
 Redis only holds rate-limit counters, so it needs no volume or backup. The keys are hashed, so it never
 stores email or IP addresses. If Redis goes down, each API container keeps counting in its own memory and
 tries Redis again a few seconds later.

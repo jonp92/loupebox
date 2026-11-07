@@ -21,6 +21,12 @@ argon2-cffi-bindings==26.1.0
     # via argon2-cffi
 async-timeout==5.0.1
     # via redis
+boto3==1.43.126
+    # via -r requirements.in
+botocore==1.43.126
+    # via
+    #   boto3
+    #   s3transfer
 certifi==2026.10.23
     # via
     #   httpcore
@@ -54,6 +60,10 @@ idna==3.20
     #   anyio
     #   email-validator
     #   httpx
+jmespath==1.1.0
+    # via
+    #   boto3
+    #   botocore
 mako==1.4.3
     # via alembic
 markupsafe==3.0.4
@@ -78,6 +88,8 @@ pydantic-settings==2.16.2
     # via -r requirements.in
 pyjwt==2.15.1
     # via -r requirements.in
+python-dateutil==2.9.0.post0
+    # via botocore
 python-dotenv==1.2.4
     # via
     #   pydantic-settings
@@ -88,6 +100,10 @@ pyyaml==6.0.3
     # via uvicorn
 redis==8.1.0
     # via -r requirements.in
+s3transfer==0.19.3
+    # via boto3
+six==1.17.0
+    # via python-dateutil
 sqlalchemy==2.1.8
     # via
     #   -r requirements.in
@@ -112,6 +128,8 @@ typing-inspection==0.4.5
     #   fastapi
     #   pydantic
     #   pydantic-settings
+urllib3==2.8.0
+    # via botocore
 uvicorn==0.54.0
     # via -r requirements.in
 uvloop==0.23.0

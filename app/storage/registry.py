@@ -21,10 +21,18 @@ def load_backends() -> None:
         importlib.import_module(f"{backends_pkg.__name__}.{mod.name}")
 
 
-def get_storage() -> Storage:
-    """The backend `STORAGE_BACKEND` names, built from the current settings (so keep construction cheap)."""
+def backend_names() -> list[str]:
     load_backends()
+    return sorted(_backends)
+
+
+def get_storage(name: str | None = None) -> Storage:
+    """The named backend (default: the one `STORAGE_BACKEND` selects), built from the current settings, so
+    keep construction cheap. Each attachment remembers its own backend, so old files stay reachable after the
+    setting changes."""
+    load_backends()
+    name = name or settings.storage_backend
     try:
-        return _backends[settings.storage_backend]()
+        return _backends[name]()
     except KeyError:
-        raise RuntimeError(f"unknown STORAGE_BACKEND {settings.storage_backend!r}") from None
+        raise RuntimeError(f"unknown storage backend {name!r}") from None

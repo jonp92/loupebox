@@ -7,6 +7,15 @@ change between releases; breaking changes are called out below.
 ## [Unreleased]
 
 ### Added
+- Images can be stored in an S3 bucket: Amazon S3 or any S3-compatible service (Cloudflare R2, Backblaze B2,
+  DigitalOcean Spaces, Wasabi, MinIO, Ceph and others). It is set up in the admin app under **System → Image
+  storage** (endpoint address, region, bucket, access key, secret key, path-style, folder; for local storage, the images folder; the secret is write-only
+  and stored encrypted), with a **Test connection** button that writes, reads back and deletes a probe file and says
+  what is wrong. Each image remembers where its file is (migration `0020`), so switching the storage never strands
+  existing images, and a **Move images** button copies them over a few at a time. Services without a bulk delete
+  (Scality CloudServer and others) are handled. Sites show a warning, and the widget offers no image upload, while
+  the chosen storage is not set up. New dependency: `boto3`. **API:** `GET /system/storage`,
+  `POST /system/test-storage`, `POST /system/storage/move`, `attachments_ready` on sites.
 - "Capture this page" in the widget, on desktop browsers that can share a screen (`capture: false` or
   `data-capture="false"` turns it off; capability `capture`). The visitor picks what to share, the widget hides
   itself for the moment the picture is taken, and a full-screen editor opens: solid black boxes hide anything private

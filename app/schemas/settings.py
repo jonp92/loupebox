@@ -14,6 +14,7 @@ class SettingOut(BaseModel):
     choices: list[str] | None
     secret: bool
     editable: bool
+    show_when: dict[str, str] | None = None  # relevant only while another setting has this value
     source: Literal["default", "env", "ui"]
     configured: bool
     # Secrets: always None, the API never returns them.

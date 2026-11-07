@@ -13,6 +13,7 @@ nav = [
     { "With Docker" = "install/docker.md" },
     { "First steps" = "install/first-steps.md" },
     { "Put it on the internet" = "install/reverse-proxy.md" },
+    { "Image storage" = "install/image-storage.md" },
     { "Backups and upgrades" = "install/backups-upgrades.md" },
     { "Production checklist" = "install/production.md" },
   ] },

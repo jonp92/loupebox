@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from starlette.datastructures import UploadFile  # the parser's class; fastapi's is a subclass
 
 from app.challenges.registry import OFF, get_verifier
-from app.core.attachments import delete_files
+from app.core.attachments import StoredFile, delete_files
 from app.core.config import settings
 from app.core.images import ImageRejected, StoredImage, process_image
 from app.core.rate_limit import client_ip, enforce
@@ -116,7 +116,7 @@ def get_challenge(site: Site = Depends(resolve_site_for_challenge)) -> dict[str,
 @router.get("/feedback/config")
 def get_config(site: Site = Depends(resolve_site_for_challenge)) -> dict[str, Any]:
     """What this site accepts, so the widget can offer image upload only where it will work."""
-    if not site.attachments_enabled:
+    if not site.attachments_enabled or not get_storage().is_configured():
         return {"attachments": {"enabled": False}}
     return {
         "attachments": {
@@ -150,6 +150,8 @@ async def read_multipart(
     Runs after `resolve_site`, so the key, origin and rate limits are checked before any of it is read."""
     if not site.attachments_enabled:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "This site does not accept images")
+    if not get_storage().is_configured():
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Image storage is not set up")
     length = request.headers.get("content-length", "")
     if not length.isdigit():
         raise HTTPException(status.HTTP_411_LENGTH_REQUIRED, "Content-Length is required")
@@ -262,20 +264,21 @@ def _accept(
 
 def _store_images(db: Session, item: Feedback, images: list[StoredImage]) -> None:
     """Write the files, then commit the item with its rows. If either fails nothing is left behind."""
-    written: list[str] = []
+    written: list[StoredFile] = []
     try:
         storage = get_storage()
         for image in images:
             attachment_id = uuid.uuid4()
             key = f"{item.site_id}/{attachment_id}"
-            storage.put(key, image.data)
-            written.append(key)
+            storage.put(key, image.data, image.content_type)
+            written.append(StoredFile(storage.key, key))
             db.add(
                 FeedbackAttachment(
                     id=attachment_id,
                     feedback_id=item.id,
                     site_id=item.site_id,
                     storage_key=key,
+                    storage=storage.key,
                     content_type=image.content_type,
                     size=len(image.data),
                     width=image.width,

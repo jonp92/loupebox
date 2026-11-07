@@ -28,7 +28,6 @@ def pack(data: dict, images: list[tuple[dict, FeedbackAttachment, str]]) -> tupl
     """Zip `data` and the images. Each image is (its entry in `data`, its row, its path in the zip); the entry
     gets `file` (the path) or, when the file could not be included, `file: null` and a `note` saying why.
     Returns the open zip positioned at the start, and the number of images included."""
-    storage = get_storage()
     budget = settings.person_export_max_bytes
     included = 0
     archive = tempfile.SpooledTemporaryFile(max_size=_SPOOL_BYTES)  # noqa: SIM115  (closed by the caller)
@@ -39,7 +38,7 @@ def pack(data: dict, images: list[tuple[dict, FeedbackAttachment, str]]) -> tupl
                 entry["note"] = "left out: the export reached its size limit"
                 continue
             try:
-                blob = storage.get(attachment.storage_key)
+                blob = get_storage(attachment.storage).get(attachment.storage_key)
             except FileNotFoundError:
                 entry["note"] = "left out: the file is missing from storage"
                 continue

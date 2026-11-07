@@ -58,6 +58,7 @@ class SiteOut(BaseModel):
     # Server-wide limits, read-only: shown next to the "accept images" switch.
     attachment_max_count: int = 0
     attachment_max_bytes: int = 0
+    attachments_ready: bool = True  # false while the image storage is not fully set up
 
 
 class VerifierOut(BaseModel):

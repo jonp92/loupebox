@@ -110,7 +110,17 @@ class Settings(BaseSettings):
 
     # Images sent with feedback (each site opts in). Files go through the storage backend; the local one
     # writes under ATTACHMENTS_DIR, which the API and the worker must share (one volume, or one host).
-    storage_backend: str = "local"
+    storage_backend: str = "local"  # "local" or "s3" (set in the admin UI under System -> Storage)
+    # S3, or any S3-compatible service: MinIO, Cloudflare R2, Backblaze B2, Wasabi, DigitalOcean Spaces...
+    s3_endpoint_url: str = ""  # empty: Amazon S3
+    s3_region: str = ""  # empty: us-east-1 (R2 uses "auto")
+    s3_bucket: str = ""
+    s3_access_key_id: str = ""
+    s3_secret_access_key: str = ""  # write-only in the admin UI, stored encrypted
+    s3_path_style: bool = (
+        False  # http://endpoint/bucket/key rather than bucket.endpoint: MinIO and most self-hosted
+    )
+    s3_prefix: str = ""  # a folder inside the bucket, to share it with other things
     attachments_dir: str = "data/attachments"
     attachment_max_count: int = 3  # images per submission
     attachment_max_bytes: int = 5 * 1024 * 1024  # per uploaded file
