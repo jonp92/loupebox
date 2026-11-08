@@ -43,7 +43,8 @@ class FeedbackCreated(BaseModel):
 
 
 class FeedbackReplied(BaseModel):
-    """A reply was emailed to the submitter. Ids and length only: the reply text is not kept in the outbox."""
+    """A reply was emailed to the submitter. Ids and length only: the reply text is not kept in the outbox.
+    A webhook channel that opts in gets it added at send time (dispatcher._with_reply_text)."""
 
     type: Literal["feedback.replied"] = "feedback.replied"
     feedback_id: str
