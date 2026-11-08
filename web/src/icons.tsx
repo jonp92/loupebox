@@ -21,6 +21,7 @@ const PATHS: Record<string, ReactNode> = {
   note: <path d="M5 5h14v10H10l-5 4z" />,
   person: <><circle cx="12" cy="8.5" r="3.2" /><path d="M5.5 19.5c.6-3.4 3.2-5.2 6.5-5.2s5.9 1.8 6.5 5.2" /></>,
   refresh: <path d="M20 5v5h-5M4 19v-5h5M18.2 9A7 7 0 006.3 7.3L4 10M5.8 15A7 7 0 0017.7 16.7L20 14" />,
+  "arrow-left": <path d="M11 6l-6 6 6 6M5 12h14" />,
   chevron: <path d="M9 6l6 6-6 6" />,
 };
 

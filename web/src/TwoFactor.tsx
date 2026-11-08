@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import qrcode from "qrcode-generator";
 import { api, json, totpChange, type Me } from "./api";
 import { useAuth } from "./auth";
+import { Status } from "./ui/Status";
 import { useToast } from "./toast";
 
 interface Setup { secret: string; uri: string }
@@ -97,7 +98,7 @@ export default function TwoFactor() {
   }
 
   return (
-    <section className="card">
+    <section className="panel">
       <h2>Two-factor authentication</h2>
       {!me.totp_enabled && !setup && (
         <>
@@ -122,7 +123,7 @@ export default function TwoFactor() {
 
       {me.totp_enabled && (
         <>
-          <p className="success">On. {me.recovery_codes_left} recovery code{me.recovery_codes_left === 1 ? "" : "s"} left.</p>
+          <p className="two-fa-state"><Status tone="ok">On</Status><span className="muted">{me.recovery_codes_left} recovery code{me.recovery_codes_left === 1 ? "" : "s"} left.</span></p>
           {codes && <RecoveryList codes={codes} />}
           {mode ? (
             <form onSubmit={proof} className="totp-proof">
