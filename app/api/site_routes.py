@@ -5,7 +5,7 @@ from pydantic import ValidationError
 from sqlalchemy import and_, or_, select, update
 from sqlalchemy.orm import Session
 
-from app.api.deps import SiteAccess, get_current_user, require_superadmin, site_access
+from app.api.deps import SiteAccess, get_current_user, require_superadmin, site_access, visible_sites
 from app.challenges.registry import OFF, all_verifiers, get_verifier
 from app.core.attachments import delete_files, keys_for
 from app.core.audit import audit, changed, snapshot
@@ -69,15 +69,7 @@ def _out(site: Site, role: Role | None) -> SiteOut:
 
 @router.get("")
 def list_sites(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> list[SiteOut]:
-    if user.is_superadmin:
-        return [_out(s, Role.admin) for s in db.scalars(select(Site).order_by(Site.name))]
-    rows = db.execute(
-        select(Site, Membership.role)
-        .join(Membership, Membership.site_id == Site.id)
-        .where(Membership.user_id == user.id)
-        .order_by(Site.name)
-    )
-    return [_out(site, role) for site, role in rows]
+    return [_out(site, role) for site, role in visible_sites(db, user)]
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)

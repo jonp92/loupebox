@@ -4,12 +4,11 @@ import json
 import re
 import uuid
 from collections.abc import Iterator
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import SiteAccess, feedback_or_404, site_access
@@ -17,12 +16,21 @@ from app.core.attachments import delete_files, keys_for
 from app.core.audit import audit
 from app.core.cache import menus
 from app.core.config import settings
+from app.core.feedback_query import (
+    ISSUE_TYPE,
+    TOTAL_CAP,
+    Filters,
+    assignable,
+    capped_count,
+    conditions,
+    filters,
+    issue_type_col,
+)
 from app.db.session import get_db, get_sessionmaker
 from app.models import (
     NOT_SPAM,
     Feedback,
     FeedbackNote,
-    FeedbackStatus,
     FeedbackTag,
     Membership,
     Role,
@@ -32,7 +40,6 @@ from app.models import (
 )
 from app.schemas.feedback import (
     MAX_TAGS,
-    TAG_PATTERN,
     Assignee,
     BulkResult,
     FeedbackBulk,
@@ -46,114 +53,10 @@ from app.schemas.feedback import (
 )
 
 router = APIRouter(prefix="/sites/{site_id}/feedback", tags=["feedback"])
-TOTAL_CAP = 10_000  # the list and the quick tabs stop counting here
-
-
-def _capped_count(db: Session, where: list, cap: int) -> tuple[int, bool]:
-    """How many rows match, counting at most `cap`; the flag says there are more. Counting every match costs
-    as much as the site is big."""
-    matches = select(Feedback.id).where(*where).limit(cap + 1).subquery()
-    counted = db.scalar(select(func.count()).select_from(matches))
-    return min(counted, cap), counted > cap
-
-
-_ISSUE_TYPE = r"^[a-z0-9_-]{1,32}$"  # what the widget's badges send as metadata.issue_type
-_issue_type_col = Feedback.meta["issue_type"].as_string()
-
-
-class Filters(BaseModel):
-    """The list's filters, shared by the list, the CSV export and (via the UI) bulk actions."""
-
-    status: FeedbackStatus | None = None
-    q: str | None = None
-    issue_type: str | None = None
-    rating: int | None = None
-    has_email: bool | None = None
-    created_from: date | None = None  # inclusive, UTC days
-    created_to: date | None = None
-    assignee: str | None = None  # a user id, or "none" for unassigned
-    tag: str | None = None
-
-
-def filters(
-    status_filter: FeedbackStatus | None = Query(default=None, alias="status"),
-    q: str | None = Query(default=None, max_length=200),
-    issue_type: str | None = Query(default=None, pattern=_ISSUE_TYPE),
-    rating: int | None = Query(default=None, ge=1, le=5),
-    has_email: bool | None = None,
-    created_from: date | None = None,
-    created_to: date | None = None,
-    assignee: str | None = Query(
-        default=None, pattern=r"^(none|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
-    ),
-    tag: str | None = Query(default=None, pattern=TAG_PATTERN),
-) -> Filters:
-    return Filters(
-        status=status_filter,
-        q=q,
-        issue_type=issue_type,
-        rating=rating,
-        has_email=has_email,
-        created_from=created_from,
-        created_to=created_to,
-        assignee=assignee,
-        tag=tag,
-    )
-
-
-def _day_start(day: date) -> datetime:
-    return datetime.combine(day, time.min, tzinfo=UTC)
-
-
-def _where(site_id: uuid.UUID, f: Filters) -> list:
-    where = [Feedback.site_id == site_id]
-    if f.issue_type:
-        where.append(_issue_type_col == f.issue_type)
-    if f.status:
-        where.append(Feedback.status == f.status)
-    else:
-        # Spam stays out of the default view; ask for status=spam to see it.
-        where.append(Feedback.status.in_(NOT_SPAM))
-    if f.rating:
-        where.append(Feedback.rating == f.rating)
-    if f.has_email is not None:
-        has = Feedback.email.is_not(None) & (Feedback.email != "")
-        where.append(has if f.has_email else ~has)
-    if f.created_from:
-        where.append(Feedback.created_at >= _day_start(f.created_from))
-    if f.created_to:
-        where.append(Feedback.created_at < _day_start(f.created_to + timedelta(days=1)))
-    if f.assignee == "none":
-        where.append(Feedback.assignee_id.is_(None))
-    elif f.assignee:
-        where.append(Feedback.assignee_id == uuid.UUID(f.assignee))
-    if f.tag:
-        where.append(Feedback.id.in_(select(FeedbackTag.feedback_id).where(FeedbackTag.tag == f.tag)))
-    if f.q:
-        where.append(
-            or_(
-                Feedback.message.icontains(f.q, autoescape=True),
-                Feedback.email.icontains(f.q, autoescape=True),
-                Feedback.name.icontains(f.q, autoescape=True),
-            )
-        )
-    return where
-
-
-def _assignable(site_id: uuid.UUID):
-    return (
-        select(User)
-        .join(Membership, Membership.user_id == User.id)
-        .where(
-            Membership.site_id == site_id,
-            Membership.role.in_([Role.editor, Role.admin]),
-            User.is_active.is_(True),
-        )
-    )
 
 
 def _check_assignee(db: Session, site_id: uuid.UUID, user_id: uuid.UUID | None) -> None:
-    if user_id is not None and db.scalar(_assignable(site_id).where(User.id == user_id)) is None:
+    if user_id is not None and db.scalar(assignable(site_id).where(User.id == user_id)) is None:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_CONTENT, "Assignee must be an editor or admin of this site"
         )
@@ -171,9 +74,9 @@ def list_feedback(
     limit: int = Query(default=25, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
 ) -> FeedbackPage:
-    where = _where(access.site.id, f)
+    where = conditions(f, Feedback.site_id == access.site.id)
     # Stop counting at the cap, or at the end of the page being viewed if that is further.
-    total, capped = _capped_count(db, where, max(TOTAL_CAP, offset + limit))
+    total, capped = capped_count(db, where, max(TOTAL_CAP, offset + limit))
     rows = db.scalars(
         select(Feedback).where(*where).order_by(Feedback.created_at.desc()).limit(limit).offset(offset)
     )
@@ -208,7 +111,7 @@ def csv_cell(value: object) -> object:
 
 def _issue_type_of(item: Feedback) -> str | None:
     value = (item.meta or {}).get("issue_type")
-    return value if isinstance(value, str) and re.match(_ISSUE_TYPE, value) else None
+    return value if isinstance(value, str) and re.match(ISSUE_TYPE, value) else None
 
 
 def _csv_rows(site_id: uuid.UUID, where: list) -> Iterator[str]:
@@ -272,16 +175,16 @@ def issue_types(
 
     def compute() -> list[dict]:
         rows = db.execute(
-            select(_issue_type_col, func.count())
+            select(issue_type_col, func.count())
             .where(
                 Feedback.site_id == access.site.id,
                 Feedback.status.in_(NOT_SPAM),
-                _issue_type_col.is_not(None),
+                issue_type_col.is_not(None),
             )
-            .group_by(_issue_type_col)
+            .group_by(issue_type_col)
             .order_by(func.count().desc())
         )
-        return [{"id": value, "count": count} for value, count in rows if re.match(_ISSUE_TYPE, value or "")]
+        return [{"id": value, "count": count} for value, count in rows if re.match(ISSUE_TYPE, value or "")]
 
     return menus.get((access.site.id, "issue_types"), compute)
 
@@ -312,8 +215,8 @@ def counts(
 ) -> QuickCounts:
     """Sizes of the list's quick tabs: what is assigned to the caller and what is nobody's (spam excluded)."""
 
-    def count(*where) -> tuple[int, bool]:
-        return _capped_count(db, [*_where(access.site.id, Filters()), *where], TOTAL_CAP)
+    def count(*extra) -> tuple[int, bool]:
+        return capped_count(db, conditions(Filters(), Feedback.site_id == access.site.id, *extra), TOTAL_CAP)
 
     mine, mine_capped = count(Feedback.assignee_id == access.user.id)
     unassigned, unassigned_capped = count(Feedback.assignee_id.is_(None))
@@ -331,7 +234,7 @@ def assignees(
 ) -> list[Assignee]:
     """The picker's search: editors and admins of the site whose name or email contains `q`. Never the whole
     member list, which can be long."""
-    stmt = _assignable(access.site.id)
+    stmt = assignable(access.site.id)
     if q.strip():
         stmt = stmt.where(user_matches(q))
     rows = db.execute(
@@ -347,7 +250,7 @@ def export_feedback(
     f: Filters = Depends(filters),
 ) -> StreamingResponse:
     """The same filters as the list, as a CSV download (capped at `EXPORT_MAX_ROWS` rows)."""
-    where = _where(access.site.id, f)
+    where = conditions(f, Feedback.site_id == access.site.id)
     total = db.scalar(select(func.count()).select_from(Feedback).where(*where)) or 0
     audit(  # bulk personal data leaving the system; the contents are not recorded
         db,

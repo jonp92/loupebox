@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation } from "react-router-dom";
 import { api, displayName, type Me } from "./api";
 import { Avatar, Logo } from "./components";
-import { useAuth } from "./auth";
+import { hasInbox, useAuth } from "./auth";
 import { Icon, type IconName } from "./icons";
 import { useTheme } from "./theme";
 
@@ -122,6 +122,7 @@ export function Layout() {
         <nav className="sidebar-nav" aria-label="Primary">
           <p className="nav-group">Triage</p>
           <NavItem to="/" end icon="dashboard">Dashboard</NavItem>
+          {hasInbox(me) && <NavItem to="/inbox" icon="inbox">Inbox</NavItem>}
           <NavItem to="/sites" icon="sites">Sites</NavItem>
           {me.is_superadmin && (
             <>

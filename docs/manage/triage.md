@@ -5,6 +5,21 @@ Open a site and choose **Feedback** to see its inbox.
 ![The feedback list](../images/feedback-list-dark.png#only-dark)
 ![The feedback list](../images/feedback-list-light.png#only-light)
 
+## The inbox across all sites
+
+If you are on more than one site (or you are a superadmin), **Inbox** in the sidebar lists the feedback of every
+site you can see, newest first, each item labelled with its site. It has the same filters as a site's list, plus a
+**Site** filter, and the tabs **All**, **Unread**, **My work** and **Unassigned**. The tag, issue type and assignee
+filters appear once you pick a single site, because they belong to one site.
+
+You can change an item's status or assign it to yourself from the inbox, one at a time or for several at once.
+Only items on sites where you are an editor or admin can be changed; the rest show no checkbox. To tag, assign to
+someone else, delete or export, open the site's own list.
+
+API: `GET /v1/api/inbox` takes the same filters as a site's list plus `site_id`; `GET /v1/api/inbox/counts` gives the
+tab counts; `POST /v1/api/inbox/bulk` takes `{ids, action}` where action is `set_status` (with `status`), `assign_me`
+or `unassign`, and skips items you may not change.
+
 ## Filters
 
 You can narrow the list by:

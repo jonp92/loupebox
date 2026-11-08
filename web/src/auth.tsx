@@ -19,6 +19,9 @@ export const useAuth = () => useContext(Ctx);
 export const soleSiteId = (me: Me | null) =>
   me && !me.is_superadmin && me.memberships.length === 1 ? me.memberships[0].site_id : null;
 
+/** The inbox only adds something over a site's own list when there is more than one site to look across. */
+export const hasInbox = (me: Me | null) => Boolean(me && (me.is_superadmin || me.memberships.length > 1));
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [me, setMe] = useState<Me | null>(null);
   const [loading, setLoading] = useState(true);

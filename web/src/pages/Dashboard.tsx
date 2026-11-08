@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { hasInbox, useAuth } from "../auth";
 import { api, json, type Dashboard as DashboardData } from "../api";
 import { Bar, Placeholder } from "../Skeleton";
 import { useToast } from "../toast";
@@ -23,6 +24,7 @@ export default function Dashboard() {
   }
 
   const sites = data?.sites;
+  const inbox = hasInbox(useAuth().me);
   const role = (siteId: string) => sites?.find((s) => s.id === siteId)?.my_role;
 
   const stats: [string, number][] = data ? [["Unread", data.new_total], ["Unread, last 24h", data.new_24h], ["Sites with unread", data.sites_with_new]] : [];
@@ -66,7 +68,10 @@ export default function Dashboard() {
             ))}
           </ul>
           {data.assigned_total > data.assigned.length && (
-            <p className="muted">Showing {data.assigned.length} of {data.assigned_total}. Open a site and use "My work" to see the rest.</p>
+            <p className="muted">
+              Showing {data.assigned.length} of {data.assigned_total}.{" "}
+              {inbox ? <Link to="/inbox?assignee=me">See all in the inbox</Link> : 'Open a site and use "My work" to see the rest.'}
+            </p>
           )}
         </>
       )}
@@ -100,7 +105,10 @@ export default function Dashboard() {
             })}
           </ul>
           {data.new_total > data.recent_new.length && (
-            <p className="muted">Showing {data.recent_new.length} of {data.new_total}. Open a site to see the rest.</p>
+            <p className="muted">
+              Showing {data.recent_new.length} of {data.new_total}.{" "}
+              {inbox ? <Link to="/inbox?status=new">See all unread in the inbox</Link> : "Open a site to see the rest."}
+            </p>
           )}
         </>
       )}

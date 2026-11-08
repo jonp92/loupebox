@@ -280,6 +280,8 @@ dialog.sheet .hint { margin: calc(var(--space-2) * -1) 0 var(--space-5); }
 .fb.spam { border-left-color: var(--danger); }
 .check { display: inline-flex; align-items: center; justify-content: center; flex: none; width: var(--target-min); height: var(--target-min); margin: calc(var(--space-2) * -1) 0 calc(var(--space-2) * -1) calc(var(--space-3) * -1); cursor: pointer; }
 .check input { margin: 0; }
+.fb-site { flex: 1 1 6rem; min-width: 0; font: var(--text-data)/1.4 var(--font-mono); color: var(--text-secondary); overflow-wrap: anywhere; }
+.fb.with-site .fb-badges { flex: 0 1 auto; }
 .person { margin: 0; font: var(--text-data)/1.4 var(--font-mono); color: var(--text-secondary); overflow-wrap: anywhere; }
 .replied { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--text-data); color: var(--accent); }
 .icon-svg { flex: none; }
@@ -491,6 +493,13 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
   .fb.dense header > .check { grid-area: 1 / 1; margin: 0 0 0 calc(var(--space-2) * -1); }
   .fb.dense .fb-badges { grid-area: 1 / 2; flex-wrap: nowrap; gap: .35rem; overflow: hidden; }
   .fb.dense .stars { font-size: var(--text-data); }
+  /* The inbox gives the site its own column so a name is not cut to fit the badges. */
+  .fb.dense.with-site { grid-template-columns: auto 16rem 14rem minmax(0, 1fr) auto auto; }
+  .fb.dense.with-site .fb-site { grid-area: 1 / 3; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .fb.dense.with-site .message { grid-area: 1 / 4; }
+  .fb.dense.with-site time { grid-area: 1 / 5; }
+  .fb.dense.with-site .menu-btn { grid-area: 1 / 6; }
+  .fb.dense.with-site .tags { grid-area: 2 / 3 / 3 / 7; }
   .fb.dense .message { grid-area: 1 / 3; margin: 0; font-size: var(--text-body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .fb.dense time { grid-area: 1 / 4; }
   .fb.dense .menu-btn { grid-area: 1 / 5; }

@@ -5,21 +5,14 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, visible_sites
 from app.db.session import get_db
-from app.models import NOT_SPAM, Feedback, FeedbackStatus, Membership, Role, Site, User
+from app.models import NOT_SPAM, Feedback, FeedbackStatus, Site, User
 from app.models.user import utcnow
 from app.schemas.dashboard import Dashboard, DashboardItem, DashboardSite
-from app.schemas.feedback import FeedbackOut
 from app.schemas.site import SiteOut
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
-
-
-def _item(f: Feedback, site_name: str) -> DashboardItem:
-    fields = FeedbackOut.model_validate(f).model_dump()
-    fields["meta"] = fields.pop("metadata")  # FeedbackOut validates `metadata` from the ORM's `meta`
-    return DashboardItem(**fields, site_id=f.site_id, site_name=site_name)
 
 
 @router.get("")
@@ -29,15 +22,7 @@ def dashboard(
     limit: int = Query(default=10, ge=1, le=50),
 ) -> Dashboard:
     """Unread (status `new`) and total non-spam feedback across every site the caller can see."""
-    if user.is_superadmin:
-        rows = [(s, Role.admin) for s in db.scalars(select(Site).order_by(Site.name))]
-    else:
-        rows = db.execute(
-            select(Site, Membership.role)
-            .join(Membership, Membership.site_id == Site.id)
-            .where(Membership.user_id == user.id)
-            .order_by(Site.name)
-        ).all()
+    rows = visible_sites(db, user)
     site_ids = [s.id for s, _ in rows]
     # One pass over the caller's sites for the three counts (instead of one scan each).
     day_ago = utcnow() - timedelta(hours=24)
@@ -105,7 +90,7 @@ def dashboard(
         received_total=received_total,
         sites_with_new=len(per_site),
         sites=sites,
-        recent_new=[_item(f, name) for f, name in recent],
+        recent_new=[DashboardItem.of(f, name) for f, name in recent],
         assigned_total=assigned_total,
-        assigned=[_item(f, name) for f, name in assigned],
+        assigned=[DashboardItem.of(f, name) for f, name in assigned],
     )
