@@ -7,6 +7,9 @@ Open a site and choose **Feedback** to see its inbox.
 
 ## The inbox across all sites
 
+![The inbox across all sites](../images/inbox-dark.png#only-dark)
+![The inbox across all sites](../images/inbox-light.png#only-light)
+
 If you are on more than one site (or you are a superadmin), **Inbox** in the sidebar lists the feedback of every
 site you can see, newest first, each item labelled with its site. It has the same filters as a site's list, plus a
 **Site** filter, and the tabs **All**, **Unread**, **My work** and **Unassigned**. The tag, issue type and assignee

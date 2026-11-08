@@ -280,7 +280,7 @@ dialog.sheet .hint { margin: calc(var(--space-2) * -1) 0 var(--space-5); }
 .fb.spam { border-left-color: var(--danger); }
 .check { display: inline-flex; align-items: center; justify-content: center; flex: none; width: var(--target-min); height: var(--target-min); margin: calc(var(--space-2) * -1) 0 calc(var(--space-2) * -1) calc(var(--space-3) * -1); cursor: pointer; }
 .check input { margin: 0; }
-.fb-site { flex: 1 1 6rem; min-width: 0; font: var(--text-data)/1.4 var(--font-mono); color: var(--text-secondary); overflow-wrap: anywhere; }
+.fb-site { flex: 1 1 6rem; align-self: center; min-width: 0; font: var(--text-data)/1.4 var(--font-mono); color: var(--text-secondary); overflow-wrap: anywhere; }
 .fb.with-site .fb-badges { flex: 0 1 auto; }
 .person { margin: 0; font: var(--text-data)/1.4 var(--font-mono); color: var(--text-secondary); overflow-wrap: anywhere; }
 .replied { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--text-data); color: var(--accent); }
@@ -513,6 +513,10 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
   .fb.compact > .person { margin: 0; }
   .fb.compact .tags { margin-top: .35rem; font-size: var(--text-data); }
   .fb-badges { gap: .5rem; }
+  /* The site gets a row of its own under the badges instead of a sliver beside them. */
+  .fb.with-site header { flex-wrap: wrap; }
+  .fb.with-site .fb-badges { flex: 1 1 0; }
+  .fb.with-site .fb-site { order: 1; flex: 1 0 100%; align-self: auto; }
   .density { display: none; }
 }
 .assignee { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--text-data); color: var(--text-secondary); user-select: none; }
