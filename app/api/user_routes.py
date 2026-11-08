@@ -7,9 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.api.avatar_routes import clear_avatar, raw_body, store_avatar
 from app.api.deps import require_superadmin
-from app.core.accounts import clear_totp, revoke_sessions
+from app.core.accounts import clear_totp, new_password_hash, revoke_sessions
 from app.core.audit import audit, changed, snapshot
-from app.core.security import hash_password
 from app.db.session import get_db
 from app.models import User, user_matches
 from app.schemas.auth import UserCreate, UserOut, UserPage, UserUpdate
@@ -79,7 +78,7 @@ def create_user(
         first_name=body.first_name.strip(),
         last_name=body.last_name.strip(),
         email=body.email.lower(),
-        password_hash=hash_password(body.password),
+        password_hash=new_password_hash(body.password),
         is_superadmin=body.is_superadmin,
     )
     db.add(user)
@@ -124,7 +123,7 @@ def update_user(
     if body.is_superadmin is not None:
         user.is_superadmin = body.is_superadmin
     if body.password is not None:
-        user.password_hash = hash_password(body.password)
+        user.password_hash = new_password_hash(body.password)
     _audit_user_update(db, actor, user, before, password_reset=body.password is not None)
     if body.password is not None or body.is_active is False:
         revoke_sessions(db, user.id)  # force re-login everywhere

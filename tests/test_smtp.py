@@ -270,7 +270,7 @@ def test_password_reset_can_use_smtp(client, db, serve, monkeypatch):
     monkeypatch.setattr(settings, "public_url", "https://admin.example.com")
     monkeypatch.setattr(settings, "mail_provider", "smtp")
     make_user(db, "a@example.com")
-    assert client.get("/auth/features").json() == {"password_reset": True}
+    assert client.get("/auth/features").json()["password_reset"] is True
     assert client.post("/auth/password-reset/request", json={"email": "a@example.com"}).status_code == 202
     [received] = server.messages
     assert received.rcpt == ["a@example.com"] and received.tls

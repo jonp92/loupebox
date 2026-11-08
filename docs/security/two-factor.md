@@ -37,6 +37,21 @@ docker compose run --rm api python -m scripts.reset_totp user@example.com
 
 Either way the person is signed out everywhere. There is no other way back in without a code.
 
+## Requiring 2FA for everyone
+
+A superadmin with 2FA on can turn on **Require two-factor authentication** under System, Accounts & limits
+(or set `REQUIRE_TOTP=true`). It applies at once to every account, with no grace period. Someone without
+2FA can still sign in or reset their password, but then sees only the Profile page until they set 2FA up, and
+nobody can turn it off while the setting is on. Resetting a user's 2FA sends them back to that setup.
+
+If the setting itself has to come off, for example because no superadmin can get a code, run:
+
+```bash
+docker compose run --rm api python -m scripts.reset_totp --stop-requiring
+```
+
+That removes the setting saved on the System page. If `REQUIRE_TOTP=true` is in your `.env`, remove it too.
+
 ## For developers
 
 * `POST /v1/api/auth/login` answers `{"mfa_required": true, "mfa_token": "..."}` instead of tokens.

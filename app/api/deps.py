@@ -6,6 +6,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.security import decode_access_token
 from app.db.session import get_db
 from app.models import ROLE_RANK, Feedback, Membership, Role, Site, User
@@ -14,7 +15,7 @@ from app.notifications.base import NotificationProvider
 _bearer = HTTPBearer(auto_error=False)
 
 
-def get_current_user(
+def get_session_user(
     creds: HTTPAuthorizationCredentials | None = Depends(_bearer),
     db: Session = Depends(get_db),
 ) -> User:
@@ -27,6 +28,14 @@ def get_current_user(
     user = db.get(User, user_id) if user_id else None
     if user is None or not user.is_active:
         raise unauthorized
+    return user
+
+
+def get_current_user(user: User = Depends(get_session_user)) -> User:
+    """The signed-in user. While two-factor is required and the account has none, nothing else works:
+    only the routes that use `get_session_user` (me, password, 2FA setup) stay reachable."""
+    if settings.require_totp and not user.totp_enabled:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Two-factor authentication must be turned on first")
     return user
 
 

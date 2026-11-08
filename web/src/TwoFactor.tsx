@@ -5,6 +5,7 @@ import { api, json, totpChange, type Me } from "./api";
 import { useAuth } from "./auth";
 import { Status } from "./ui/Status";
 import { useToast } from "./toast";
+import { usePolicy } from "./passwordPolicy";
 
 interface Setup { secret: string; uri: string }
 
@@ -46,6 +47,7 @@ function RecoveryList({ codes }: { codes: string[] }) {
 
 export default function TwoFactor() {
   const { me, setMe } = useAuth();
+  const { requireTotp } = usePolicy();
   const [setup, setSetup] = useState<Setup | null>(null);
   const [codes, setCodes] = useState<string[] | null>(null);
   const [mode, setMode] = useState<"disable" | "regenerate" | null>(null);
@@ -141,7 +143,7 @@ export default function TwoFactor() {
           ) : (
             <div className="avatar-row">
               <button disabled={busy} onClick={() => setMode("regenerate")}>New recovery codes</button>
-              <button className="danger" disabled={busy} onClick={() => { setMode("disable"); setCodes(null); }}>Turn off</button>
+              {!requireTotp && <button className="danger" disabled={busy} onClick={() => { setMode("disable"); setCodes(null); }}>Turn off</button>}
             </div>
           )}
         </>

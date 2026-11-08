@@ -5,9 +5,9 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
 from app.api.avatar_routes import clear_avatar, raw_body, store_avatar
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_session_user
 from app.core import totp
-from app.core.accounts import clear_totp, revoke_sessions
+from app.core.accounts import clear_totp, new_password_hash, revoke_sessions
 from app.core.audit import audit
 from app.core.config import settings
 from app.core.rate_limit import (
@@ -21,7 +21,6 @@ from app.core.security import (
     create_access_token,
     create_mfa_token,
     decode_mfa_token,
-    hash_password,
     hash_token,
     new_refresh_token,
     verify_password,
@@ -219,13 +218,14 @@ def _me(db: Session, user: User) -> MeResponse:
         avatar_url=user.avatar_url,
         is_superadmin=user.is_superadmin,
         totp_enabled=user.totp_enabled,
+        totp_required=settings.require_totp and not user.totp_enabled,
         recovery_codes_left=_recovery_codes_left(db, user) if user.totp_enabled else 0,
         memberships=[MembershipOut(site_id=m.site_id, role=m.role) for m in user.memberships],
     )
 
 
 @router.get("/me")
-def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> MeResponse:
+def me(user: User = Depends(get_session_user), db: Session = Depends(get_db)) -> MeResponse:
     return _me(db, user)
 
 
@@ -253,7 +253,7 @@ def delete_avatar(user: User = Depends(get_current_user), db: Session = Depends(
 def change_password(
     body: PasswordChange,
     response: Response,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_session_user),
     db: Session = Depends(get_db),
 ) -> TokenResponse:
     enforce(f"pw-change:{user.id}", settings.login_account_limit, settings.login_window_seconds)
@@ -262,7 +262,7 @@ def change_password(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Current password is incorrect")
     if body.new_password == body.current_password:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "New password must differ from the current one")
-    user.password_hash = hash_password(body.new_password)
+    user.password_hash = new_password_hash(body.new_password)
     # Sign out every other session; this one continues with a fresh refresh token.
     revoke_sessions(db, user.id)
     audit(  # self-service, but a password change is what an account takeover looks like
@@ -302,7 +302,7 @@ def _require_proof(db: Session, user: User, body: TotpProof) -> str:
 
 
 @router.post("/me/totp/setup")
-def totp_setup(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> TotpSetup:
+def totp_setup(user: User = Depends(get_session_user), db: Session = Depends(get_db)) -> TotpSetup:
     """Start (or restart) enrollment. TOTP only takes effect once `enable` confirms a code."""
     if user.totp_enabled:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "TOTP is already enabled")
@@ -317,7 +317,7 @@ def totp_setup(user: User = Depends(get_current_user), db: Session = Depends(get
 def totp_enable(
     body: TotpConfirm,
     response: Response,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_session_user),
     db: Session = Depends(get_db),
 ) -> TotpEnabled:
     _require_password(user, body.password)
@@ -352,6 +352,8 @@ def totp_disable(
 ) -> TokenResponse:
     if not user.totp_enabled:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "TOTP is not enabled")
+    if settings.require_totp:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Two-factor authentication is required here")
     _require_proof(db, user, body)
     clear_totp(db, user)
     revoke_sessions(db, user.id)

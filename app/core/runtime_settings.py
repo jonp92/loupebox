@@ -133,6 +133,18 @@ SPECS: dict[str, Spec] = {
     "login_failure_window_seconds": Spec(_SIGNIN, "Lockout window (seconds)", minimum=1),
     "mfa_token_minutes": Spec(_SIGNIN, "Time to enter a 2FA code (minutes)", minimum=1, maximum=30),
     "mfa_hourly_limit": Spec(_SIGNIN, "2FA attempts per user per hour", minimum=1),
+    "password_min_length": Spec(
+        _SIGNIN,
+        "Minimum password length",
+        "Applies when a password is next set; existing passwords keep working.",
+        minimum=8,
+        maximum=128,
+    ),
+    "require_totp": Spec(
+        _SIGNIN,
+        "Require two-factor authentication",
+        "Everyone must turn on 2FA. Users without it can only set it up, and can't turn it off.",
+    ),
     "totp_issuer": Spec(_SIGNIN, "Authenticator app label", "Changing it only affects new 2FA setups."),
     "password_reset_minutes": Spec(_SIGNIN, "Reset link lifetime (minutes)", minimum=5, maximum=1440),
     "password_reset_email_limit": Spec(_SIGNIN, "Reset emails per address per hour", minimum=1),
@@ -338,6 +350,8 @@ def save(db: Session, actor: User, changes: dict[str, Any]) -> list[str]:
         except ValueError as e:
             label = SPECS[key].label if key in SPECS else key
             raise ValueError(f"{label}: {e}") from None
+    if clean.get("require_totp") and not actor.totp_enabled:
+        raise ValueError("Require two-factor authentication: turn on your own 2FA first")
     rows = {r.key: r for r in db.scalars(select(AppSetting).where(AppSetting.key.in_(clean)))}
     details: dict[str, Any] = {}
     for key, value in clean.items():

@@ -6,6 +6,10 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+### Added
+- System settings: minimum password length, and an option to require two-factor authentication for everyone.
+  `python -m scripts.reset_totp --stop-requiring` removes the requirement if no one can sign in.
+
 ## [0.1.0-alpha.12] - 2026-11-07
 
 ### Added

@@ -25,6 +25,7 @@ export interface Me extends Profile {
   id: string;
   is_superadmin: boolean;
   totp_enabled: boolean;
+  totp_required: boolean; // 2FA is required and this account has none: only setup is open
   recovery_codes_left: number;
   memberships: { site_id: string; role: Role }[];
 }

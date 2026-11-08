@@ -3,9 +3,12 @@
 import uuid
 from datetime import UTC, datetime
 
+from fastapi import HTTPException
 from sqlalchemy import delete, update
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
+from app.core.security import hash_password
 from app.models import RecoveryCode, RefreshToken, User
 
 
@@ -16,6 +19,16 @@ def revoke_sessions(db: Session, user_id: uuid.UUID) -> None:
         .where(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
         .values(revoked_at=datetime.now(UTC))
     )
+
+
+def new_password_hash(password: str) -> str:
+    """Hash a password someone is setting now, after the minimum length (a setting) is met."""
+    if len(password) < settings.password_min_length:
+        raise HTTPException(
+            422,
+            f"Password must be at least {settings.password_min_length} characters",
+        )
+    return hash_password(password)
 
 
 def clear_totp(db: Session, user: User) -> None:

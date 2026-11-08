@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent } from "react";
+import { usePolicy } from "../passwordPolicy";
 import { api, changePassword, displayName, type Me } from "../api";
 import { useAuth } from "../auth";
 import { AVATAR_SIZE, toAvatarBlob } from "../avatar";
@@ -11,6 +12,7 @@ export default function Profile() {
   const fileInput = useRef<HTMLInputElement>(null);
   const toast = useToast();
   const [busy, setBusy] = useState(false);
+  const min = usePolicy().passwordMinLength;
   if (!me) return null;
 
   async function saveAvatar(image: Blob | null) {
@@ -64,7 +66,14 @@ export default function Profile() {
         </div>
       </section>
 
-      <section className="panel">
+      {me.totp_required && (
+        <p className="error" role="alert">
+          Your administrator requires two-factor authentication. Set it up to continue.
+        </p>
+      )}
+      {me.totp_required && <TwoFactor />}
+
+      {!me.totp_required && <section className="panel">
         <h2>Avatar</h2>
         <div className="avatar-row">
           <Avatar user={me} size="lg" />
@@ -73,18 +82,18 @@ export default function Profile() {
           {me.avatar_url && <button className="danger" disabled={busy} onClick={() => saveAvatar(null)}>Remove</button>}
         </div>
         <p className="muted hint">Images are cropped to a square and resized to {AVATAR_SIZE}×{AVATAR_SIZE}.</p>
-      </section>
+      </section>}
 
       <form className="panel" onSubmit={submitPassword}>
         <h2>Change password</h2>
         <label>Current password<input name="current" type="password" autoComplete="current-password" required /></label>
-        <label>New password<input name="new" type="password" autoComplete="new-password" minLength={12} required aria-describedby="new-pw-hint" /></label>
-        <p id="new-pw-hint" className="hint muted">At least 12 characters.</p>
-        <label>Confirm new password<input name="confirm" type="password" autoComplete="new-password" minLength={12} required /></label>
+        <label>New password<input name="new" type="password" autoComplete="new-password" minLength={min} required aria-describedby="new-pw-hint" /></label>
+        <p id="new-pw-hint" className="hint muted">At least {min} characters.</p>
+        <label>Confirm new password<input name="confirm" type="password" autoComplete="new-password" minLength={min} required /></label>
         <button className="primary" disabled={busy}>Change password</button>
       </form>
 
-      <TwoFactor />
+      {!me.totp_required && <TwoFactor />}
     </>
   );
 }

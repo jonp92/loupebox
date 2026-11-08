@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { usePolicy } from "../passwordPolicy";
 import { Navigate } from "react-router-dom";
 import { api, displayName, json, type User } from "../api";
 import { useAuth } from "../auth";
@@ -16,6 +17,7 @@ import { Icon } from "../icons";
 const PAGE = 50;
 
 export default function Users() {
+  const min = usePolicy().passwordMinLength;
   const confirm = useConfirm();
   const toast = useToast();
   const ctx = useContextMenu();
@@ -139,8 +141,8 @@ export default function Users() {
             <label>Last name<input name="last_name" required maxLength={100} /></label>
           </div>
           <label>Email<input name="email" type="email" required /></label>
-          <label>Password<input name="password" type="password" minLength={12} required autoComplete="new-password" aria-describedby="password-hint" /></label>
-          <p id="password-hint" className="hint muted">At least 12 characters.</p>
+          <label>Password<input name="password" type="password" minLength={min} required autoComplete="new-password" aria-describedby="password-hint" /></label>
+          <p id="password-hint" className="hint muted">At least {min} characters.</p>
           <label className="inline"><input name="is_superadmin" type="checkbox" /> Superadmin</label>
           <button className="primary block">Create user</button>
           <button type="button" className="plain block" onClick={() => setCreating(false)}>Cancel</button>

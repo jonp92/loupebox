@@ -110,6 +110,8 @@ export function Layout() {
 
   if (loading) return <p className="center muted">Loading…</p>;
   if (!me) return <Navigate to="/login" replace />;
+  // Required 2FA and none yet: the API refuses everything but setup, so only Profile is offered.
+  if (me.totp_required && pathname !== "/profile") return <Navigate to="/profile" replace />;
   return (
     <div className="shell">
       <a className="skip-link" href="#main">Skip to content</a>
@@ -119,7 +121,7 @@ export function Layout() {
           <NavLink to="/" className="brand" aria-label="Loupebox"><Logo wordmark /></NavLink>
           <button className="icon drawer-close" onClick={() => setDrawer(false)} aria-label="Close menu"><Icon name="close" /></button>
         </div>
-        <nav className="sidebar-nav" aria-label="Primary">
+        {!me.totp_required && <nav className="sidebar-nav" aria-label="Primary">
           <p className="nav-group">Triage</p>
           <NavItem to="/" end icon="dashboard">Dashboard</NavItem>
           {hasInbox(me) && <NavItem to="/inbox" icon="inbox">Inbox</NavItem>}
@@ -132,15 +134,15 @@ export function Layout() {
               <NavItem to="/system" icon="system">System</NavItem>
             </>
           )}
-        </nav>
+        </nav>}
         <SidebarFooter />
       </aside>
       {open && <div className="scrim" onClick={() => setDrawer(false)} aria-hidden />}
       <div className="shell-main" inert={open}>
         <header className="appbar">
-          <button ref={menuBtn} className="icon menu-btn" onClick={() => setDrawer(true)} aria-label="Open menu" aria-expanded={open} aria-controls="sidebar">
+          {!me.totp_required && <button ref={menuBtn} className="icon menu-btn" onClick={() => setDrawer(true)} aria-label="Open menu" aria-expanded={open} aria-controls="sidebar">
             <Icon name="menu" />
-          </button>
+          </button>}
           <NavLink to="/" className="brand brand-bar" aria-label="Loupebox"><Logo wordmark /></NavLink>
           <div className="spacer" />
           <ThemeToggle />

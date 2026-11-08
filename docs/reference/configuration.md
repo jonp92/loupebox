@@ -92,6 +92,8 @@ Where the files go is chosen in the admin app (System → Image storage), or her
 | `AVATAR_MAX_BYTES` | 65,536 |
 | `PASSWORD_RESET_EMAIL_LIMIT`, `PASSWORD_RESET_IP_LIMIT` | 3 and 10 per hour |
 | `LOGIN_ACCOUNT_LIMIT` | 5 sign-in attempts per minute |
+| `PASSWORD_MIN_LENGTH` | 12 (shortest allowed when a password is next set; minimum 8) |
+| `REQUIRE_TOTP` | false ([everyone must use 2FA](../security/two-factor.md#requiring-2fa-for-everyone)) |
 | `LOGIN_FAILURE_LIMIT`, `LOGIN_FAILURE_WINDOW_SECONDS` | 10 wrong passwords per email per 15 minutes, from any IP. A successful sign-in or password reset clears them. |
 | `MFA_HOURLY_LIMIT` | 20 two-factor attempts per hour |
 

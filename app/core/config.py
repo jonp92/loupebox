@@ -138,6 +138,8 @@ class Settings(BaseSettings):
     webhook_encryption_key: str = ""  # webhook signing secrets
     settings_encryption_key: str = ""  # provider secrets set in the admin UI (System settings)
     totp_issuer: str = "Loupebox"
+    password_min_length: int = 12  # applies when a password is next set; existing passwords stay valid
+    require_totp: bool = False  # everyone must have two-factor on; those without can only set it up
     mfa_token_minutes: int = 5  # how long the password step stays valid while the code is entered
     mfa_hourly_limit: int = (
         20  # second-factor attempts per user per hour (the per-minute cap is login_account_limit)

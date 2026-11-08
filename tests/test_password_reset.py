@@ -48,15 +48,19 @@ def confirm(client, token, password=NEW):
 # --- availability -------------------------------------------------------------------------------
 
 
+def reset_offered(client) -> bool:
+    return client.get("/auth/features").json()["password_reset"]
+
+
 def test_features_reflect_configuration(client, monkeypatch):
-    assert client.get("/auth/features").json() == {"password_reset": False}  # nothing configured
+    assert reset_offered(client) is False  # nothing configured
     provider = FakeProvider()
     monkeypatch.setitem(registry._providers, "fake", provider)
-    assert client.get("/auth/features").json() == {"password_reset": False}  # no PUBLIC_URL
+    assert reset_offered(client) is False  # no PUBLIC_URL
     monkeypatch.setattr(settings, "public_url", PUBLIC)
-    assert client.get("/auth/features").json() == {"password_reset": True}
+    assert reset_offered(client) is True
     provider.configured = False
-    assert client.get("/auth/features").json() == {"password_reset": False}  # nothing can send
+    assert reset_offered(client) is False  # nothing can send
 
 
 def test_request_is_refused_when_unavailable(client, db):
