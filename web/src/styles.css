@@ -172,8 +172,8 @@ label + button { margin-top: var(--space-2); } /* the label already has its own 
 .ruled { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--border-row); }
 .ruled > li { border-bottom: 1px solid var(--border-row); }
 .ruled > li.ph { padding: var(--space-4) 0; }
-.ruled-link { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-1) var(--space-3); min-height: var(--target-min); padding: var(--space-4) var(--space-2); color: var(--text); text-decoration: none; border-radius: var(--radius-control); }
-.ruled-link:hover { background: var(--surface-selected); }
+.ruled-link { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-1) var(--space-3); min-height: var(--target-min); padding: var(--space-4) var(--space-2); color: var(--text); text-decoration: none; }
+.ruled > li:has(> .ruled-link):hover { background: var(--surface); }
 .ruled-main { display: contents; }
 .ruled-main > :not(.ruled-title) { grid-column: 1 / -1; }
 .ruled-title { grid-column: 1; font-size: var(--text-row); font-weight: var(--weight-semibold); overflow-wrap: anywhere; }
@@ -276,9 +276,7 @@ dialog.sheet .hint { margin: calc(var(--space-2) * -1) 0 var(--space-5); }
 .hint + .ruled { margin-top: var(--space-3); }
 .checklist a { display: inline-flex; align-items: center; min-height: var(--target-min); }
 .checklist button { white-space: nowrap; }
-.fb { border-left: 3px solid var(--border); box-shadow: none; }
-.fb.new { border-left-color: var(--unread-edge); }
-.fb.spam { border-left-color: var(--danger); }
+.fb { box-shadow: none; }
 .check { display: inline-flex; align-items: center; justify-content: center; flex: none; width: var(--target-min); height: var(--target-min); margin: calc(var(--space-2) * -1) 0 calc(var(--space-2) * -1) calc(var(--space-3) * -1); cursor: pointer; }
 .check input { margin: 0; }
 .fb-site { flex: 1 1 6rem; align-self: center; min-width: 0; font: var(--text-data)/1.4 var(--font-mono); color: var(--text-secondary); overflow-wrap: anywhere; }
@@ -473,9 +471,14 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 .fb.compact .message a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
 .fb.compact .check, .fb.compact button, .fb.compact .assignee, .fb.compact .note-count { position: relative; z-index: 1; }
 .assignee.editable::after, .note-count::after { content: ""; position: absolute; inset: -12px -6px; } /* a 44px touch target without a tall row */
-.fb.compact:hover { border-top-color: var(--accent); border-right-color: var(--accent); border-bottom-color: var(--accent); }
+.fb.compact { margin: 0; background: none; border: 0; border-bottom: 1px solid var(--border-row); border-radius: 0; }
+.fb.compact:first-child { border-top: 1px solid var(--border-row); }
+.fb.compact.new { box-shadow: inset 3px 0 0 var(--unread-edge); }
+.fb.compact:hover { background: var(--surface); }
+.fb-ph { padding: .8rem 1.25rem; border-bottom: 1px solid var(--border-row); } /* loading skeleton: same rows as the list */
+.fb-ph:first-child { border-top: 1px solid var(--border-row); }
 .fb.compact .message a:focus-visible { outline: none; }
-.fb.compact:has(.message a:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fb.compact:has(.message a:focus-visible) { outline: 2px solid var(--accent); outline-offset: -2px; }
 .fb.compact .tags { margin: .3rem 0 0; }
 .fb-badges { display: inline-flex; flex: 1 1 auto; min-width: 0; min-height: var(--target-min); align-content: center; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
 .list-head { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin: 1rem 0 0; }
@@ -487,7 +490,7 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 .density label:has(input:focus-visible) { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 /* Compact rows: two short lines, columns aligned down the list. Wide screens only; phones keep cards. */
 @media (min-width: 641px) {
-  .fb.dense { display: grid; grid-template-columns: auto 16rem minmax(0, 1fr) auto auto; align-items: center; gap: .1rem .75rem; margin: .35rem 0; padding: .45rem .9rem .45rem .75rem; box-shadow: none; }
+  .fb.dense { display: grid; grid-template-columns: auto 16rem minmax(0, 1fr) auto auto; align-items: center; gap: .1rem .75rem; margin: 0; padding: .45rem .9rem .45rem .75rem; box-shadow: none; }
   .fb.dense header { display: contents; }
   .fb.dense header > .check { grid-area: 1 / 1; margin: 0 0 0 calc(var(--space-2) * -1); }
   .fb.dense .fb-badges { grid-area: 1 / 2; flex-wrap: nowrap; gap: .35rem; overflow: hidden; }

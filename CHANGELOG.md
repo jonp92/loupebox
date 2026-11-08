@@ -9,12 +9,17 @@ change between releases; breaking changes are called out below.
 ### Changed
 - Feedback detail: customer replies, replies sent by email and internal notes now share one conversation
   timeline. A selector on the form chooses between "Reply to customer (email)" and "Internal note".
+- Admin UI: feedback lists are ruled rows instead of cards, with a straight amber bar on unread items. Hovering a
+  row (here and on the dashboard) fills the whole row with square corners, so the bar is no longer cut off.
 - Audit log: the type and action filters now list what is actually in the log, so exports, personal data,
   retention and image storage events can be filtered, and new audited actions need no UI change.
 
 ### Added
 - System settings: minimum password length, and an option to require two-factor authentication for everyone.
   `python -m scripts.reset_totp --stop-requiring` removes the requirement if no one can sign in.
+- Webhook channels can include the reply text in `feedback.replied` events (off by default).
+- Notification channels can be limited to the items they care about: issue type, rating range, whether an
+  email was left, and part of the page address. Migration `0021`.
 
 ## [0.1.0-alpha.12] - 2026-11-07
 

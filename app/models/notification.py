@@ -32,6 +32,7 @@ class NotificationChannel(Base):
     config: Mapped[dict] = mapped_column(_JSON, default=dict)  # provider settings, never secrets
     events: Mapped[list[str]] = mapped_column(JSON, default=list)
     min_role: Mapped[Role] = mapped_column(Enum(Role, native_enum=False, length=16), default=Role.admin)
+    filters: Mapped[dict] = mapped_column(_JSON, default=dict)  # app.notifications.filters; {} = everything
     extra_recipients: Mapped[list[str]] = mapped_column(JSON, default=list)
     # Signing secret for providers that sign (webhooks), encrypted with app.core.crypto.
     secret: Mapped[str | None] = mapped_column(String(255), default=None)

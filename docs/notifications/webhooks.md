@@ -33,6 +33,12 @@ webhook-signature: v1,K5oZ...       base64 HMAC-SHA256, see below
 `type` is `feedback.created` (`data` as above; `url` is null unless `PUBLIC_URL` is set), or `test`, which
 is what **Send test** posts (`data.message`). The message text is cut to 500 characters and includes whatever the submitter typed, so treat it as untrusted input.
 
+`feedback.replied` is sent when a [reply](../manage/replies.md) is emailed. Its `data` has `feedback_id`,
+`reply_id` and `length`. Turn on **Include the text of replies** on the channel to add `text`, the reply
+itself. It is off by default because replies are private to your team and the person who wrote in. The text
+is read when the event is sent and never stored in the queue, so a reply deleted in the meantime goes
+without it.
+
 The scheme is [Standard Webhooks](https://www.standardwebhooks.com/), so any library for it works.
 
 ## Verifying

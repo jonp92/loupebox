@@ -402,7 +402,7 @@ export default function FeedbackList({ site }: { site?: Site }) {
       {items.length === 0 && !error && (loading ? (
         <Placeholder label="Loading feedback">
           {[70, 85, 60, 78, 65].map((w, i) => (
-            <div key={i} className="card ph"><Bar w="7rem" h=".8rem" /><Bar w={`${w}%`} /></div>
+            <div key={i} className="fb-ph ph"><Bar w="7rem" h=".8rem" /><Bar w={`${w}%`} /></div>
           ))}
         </Placeholder>
       ) : (

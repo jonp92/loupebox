@@ -8,13 +8,13 @@ from app.models import Feedback
 EXCERPT_CHARS = 500
 
 
-_ISSUE_TYPE = re.compile(r"^[a-z0-9_-]{1,32}$")
+ISSUE_TYPE = re.compile(r"^[a-z0-9_-]{1,32}$")
 
 
-def _issue_type(item: Feedback) -> str | None:
+def issue_type_of(item: Feedback) -> str | None:
     """Client-supplied, so only a plain id gets into emails and webhooks."""
     value = (item.meta or {}).get("issue_type")
-    return value if isinstance(value, str) and _ISSUE_TYPE.match(value) else None
+    return value if isinstance(value, str) and ISSUE_TYPE.match(value) else None
 
 
 class FeedbackCreated(BaseModel):
@@ -38,12 +38,13 @@ class FeedbackCreated(BaseModel):
             name=item.name,
             email=item.email,
             page_url=item.page_url,
-            issue_type=_issue_type(item),
+            issue_type=issue_type_of(item),
         )
 
 
 class FeedbackReplied(BaseModel):
-    """A reply was emailed to the submitter. Ids and length only: the reply text is not kept in the outbox."""
+    """A reply was emailed to the submitter. Ids and length only: the reply text is not kept in the outbox.
+    A webhook channel that opts in gets it added at send time (dispatcher._with_reply_text)."""
 
     type: Literal["feedback.replied"] = "feedback.replied"
     feedback_id: str
