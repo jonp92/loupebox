@@ -3,6 +3,7 @@ import {
   api,
   json,
   type Channel,
+  type ChannelFilters,
   type Delivery,
   type ProviderInfo,
   type Role,
@@ -24,6 +25,22 @@ const ROLES: Role[] = ["viewer", "editor", "admin"];
 // `machine` events only make sense for endpoints that feed other systems, not for email.
 const EVENTS = [{ key: "feedback.created", label: "New feedback", machine: false }, { key: "feedback.replied", label: "A reply was sent", machine: true }];
 const SPLIT = /[\s,;]+/;
+const NO_TYPE = "(none)";
+const NO_FILTERS: ChannelFilters = { issue_types: [], rating_min: null, rating_max: null, has_email: null, page_contains: "" };
+const RATINGS = [1, 2, 3, 4, 5];
+
+/** The filter in words, for the channel list. Empty when the channel hears about everything. */
+function filterSummary(f: ChannelFilters): string {
+  const parts = [];
+  if (f.issue_types.length) parts.push(f.issue_types.map((t) => (t === NO_TYPE ? "no type" : t)).join(", "));
+  if (f.rating_min || f.rating_max) {
+    const [lo, hi] = [f.rating_min ?? 1, f.rating_max ?? 5];
+    parts.push(lo === hi ? `rating ${lo}` : f.rating_max === null ? `rating ${lo}+` : f.rating_min === null ? `rating up to ${hi}` : `rating ${lo}–${hi}`);
+  }
+  if (f.has_email !== null) parts.push(f.has_email ? "left an email" : "no email");
+  if (f.page_contains) parts.push(`page contains "${f.page_contains}"`);
+  return parts.join(" · ");
+}
 
 const when = (iso: string) => new Date(iso).toLocaleString();
 
@@ -57,10 +74,19 @@ function ChannelForm({ siteId, providers, channel, onSaved, onCancel }: {
   const [config, setConfig] = useState<Record<string, unknown>>(channel?.config ?? {});
   const [events, setEvents] = useState<string[]>(channel?.events ?? ["feedback.created"]);
   const [minRole, setMinRole] = useState<Role>(channel?.min_role ?? "admin");
+  const [filters, setFilters] = useState<ChannelFilters>(channel?.filters ?? NO_FILTERS);
+  const [seenTypes, setSeenTypes] = useState<string[]>([]);
   const [extra, setExtra] = useState((channel?.extra_recipients ?? []).join("\n"));
   const [enabled, setEnabled] = useState(channel?.enabled ?? true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    api<{ id: string }[]>(`/sites/${siteId}/feedback/issue-types`).then((r) => setSeenTypes(r.map((t) => t.id)), () => {});
+  }, [siteId]);
+  const setFilter = <K extends keyof ChannelFilters>(key: K, value: ChannelFilters[K]) => setFilters((f) => ({ ...f, [key]: value }));
+  const typeChoices = [...new Set([...seenTypes, ...filters.issue_types.filter((t) => t !== NO_TYPE)])];
+  const numberOrNull = (v: string) => (v === "" ? null : Number(v));
 
   const info = providers.find((p) => p.key === provider);
   const blocked = info !== undefined && !info.configured;
@@ -74,6 +100,7 @@ function ChannelForm({ siteId, providers, channel, onSaved, onCancel }: {
       config,
       events,
       min_role: minRole,
+      filters: { ...filters, page_contains: filters.page_contains.trim() },
       enabled: enabled && !blocked,
       extra_recipients: extra.split(SPLIT).filter(Boolean),
     };
@@ -116,6 +143,45 @@ function ChannelForm({ siteId, providers, channel, onSaved, onCancel }: {
             /> {ev.label}
           </label>
         ))}
+      </fieldset>
+      <fieldset>
+        <legend>Only notify when</legend>
+        <p className="hint muted">Leave everything empty to hear about every item. Several choices must all match.</p>
+        {[...typeChoices, NO_TYPE].map((t) => (
+          <label key={t} className="inline">
+            <input
+              type="checkbox"
+              checked={filters.issue_types.includes(t)}
+              onChange={(e) => setFilter("issue_types", e.target.checked ? [...filters.issue_types, t] : filters.issue_types.filter((x) => x !== t))}
+            /> {t === NO_TYPE ? "No issue type" : `Type: ${t}`}
+          </label>
+        ))}
+        <div className="grid-2">
+          <label>Lowest rating
+            <select value={filters.rating_min ?? ""} onChange={(e) => setFilter("rating_min", numberOrNull(e.target.value))}>
+              <option value="">Any</option>
+              {RATINGS.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </label>
+          <label>Highest rating
+            <select value={filters.rating_max ?? ""} onChange={(e) => setFilter("rating_max", numberOrNull(e.target.value))}>
+              <option value="">Any</option>
+              {RATINGS.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </label>
+        </div>
+        <div className="grid-2">
+          <label>Email address
+            <select value={filters.has_email === null ? "" : String(filters.has_email)} onChange={(e) => setFilter("has_email", e.target.value === "" ? null : e.target.value === "true")}>
+              <option value="">Either</option>
+              <option value="true">Left one</option>
+              <option value="false">Did not leave one</option>
+            </select>
+          </label>
+          <label>Page address contains
+            <input value={filters.page_contains} onChange={(e) => setFilter("page_contains", e.target.value)} maxLength={200} placeholder="e.g. /pricing" />
+          </label>
+        </div>
       </fieldset>
       {recipients && (
         <>
@@ -236,6 +302,7 @@ export default function Notifications({ site }: { site: Site }) {
                 <Status tone={c.enabled ? "ok" : "muted"}>{c.enabled ? "enabled" : "disabled"}</Status>
                 {!configured(c.provider) && <Status tone="danger">not configured</Status>}
               </span>
+              {filterSummary(c.filters) && <span className="muted check-detail">Only when: {filterSummary(c.filters)}</span>}
             </span>
             <span className="row-actions">
               <button onClick={() => test(c)} disabled={testing === c.id || !configured(c.provider)}>
