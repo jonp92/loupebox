@@ -187,9 +187,15 @@ export default function Users() {
                     </span>
                   </th>
                   <td className="user-email">{u.email}</td>
-                  <td data-label="Role"><Badge tone={u.is_superadmin ? "brass" : "muted"}>{u.is_superadmin ? "Superadmin" : "User"}</Badge></td>
-                  <td data-label="2FA"><Status tone={u.totp_enabled ? "ok" : "danger"}>{u.totp_enabled ? "On" : "Off"}</Status></td>
-                  <td data-label="Status"><Status tone={u.is_active ? "ok" : "danger"}>{u.is_active ? "Active" : "Disabled"}</Status></td>
+                  {/* Only what stands out is drawn: the common case (a plain, active user) is spoken, not shown.
+                      On a phone the badge has no "Role" label and sits after 2FA on the same line. */}
+                  <td data-label="Role" className={u.is_superadmin ? undefined : "quiet"}>
+                    {u.is_superadmin ? <Badge tone="brass">Superadmin</Badge> : "User"}
+                  </td>
+                  <td data-label="2FA"><Status tone={u.totp_enabled ? "ok" : "muted"}>{u.totp_enabled ? "On" : "Off"}</Status></td>
+                  <td data-label="Status" className={u.is_active ? "quiet" : undefined}>
+                    {u.is_active ? "Active" : <Status tone="danger">Disabled</Status>}
+                  </td>
                   <td className="user-actions">
                     <button onClick={() => setEditing(u.id)} aria-label={`Edit ${displayName(u)}`}>Edit</button>
                     {u.id !== me.id && (
