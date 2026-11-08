@@ -210,7 +210,7 @@ dialog.sheet .hint { margin: calc(var(--space-2) * -1) 0 var(--space-5); }
 /* badges and tags: outlined, mono uppercase. Status (a mark plus a label) is a separate primitive. */
 .badge { display: inline-flex; align-items: center; min-height: 22px; padding: 0 var(--space-2); border: 1px solid var(--border-tag); border-radius: var(--radius-tag); color: var(--text-secondary); font: var(--weight-medium) var(--text-label)/1 var(--font-mono); letter-spacing: var(--tracking-label); text-transform: uppercase; white-space: nowrap; }
 .badge-brass { border-color: var(--accent); color: var(--accent); }
-.badge-plain { text-transform: none; letter-spacing: 0; font-family: var(--font-sans); font-size: var(--text-data); border-radius: var(--radius-pill); padding: 0 var(--space-3); }
+.badge-plain { gap: var(--space-1); text-transform: none; letter-spacing: 0; font-family: var(--font-sans); font-size: var(--text-data); border-radius: var(--radius-pill); padding: 0 var(--space-3); }
 .status { display: inline-flex; align-items: center; gap: var(--space-2); white-space: nowrap; }
 .status-mark { flex: none; }
 .status-label { font: var(--weight-medium) var(--text-label)/1.2 var(--font-mono); letter-spacing: var(--tracking-label); text-transform: uppercase; }
@@ -557,13 +557,20 @@ button.menu-btn { padding: 0; min-width: var(--target-min); }
 
 .convo { margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--border); }
 .convo h2 { font-size: var(--text-body); margin: 0 0 .5rem; }
-.convo ul { list-style: none; margin: 0 0 .6rem; padding: 0; }
-.convo li { margin: .4rem 0; padding: .5rem .7rem; background: var(--surface-selected); border-radius: var(--radius-control); border-left: 3px solid var(--accent); }
-.convo li.convo-note { border-left-style: dashed; border-left-color: var(--text-muted); }
-.convo li.convo-inbound { border-left-color: var(--text-secondary); }
-.convo li.failed { border-left-color: var(--danger); }
+.convo ul { list-style: none; margin: 0 0 .6rem; padding: 0; border-top: 1px solid var(--border); }
+/* Ruled rows, square. Customer messages and replies are plain; a private note has a gray bar and a fill, a failed send a red bar. */
+.convo li { padding: .6rem var(--space-3); border-bottom: 1px solid var(--border); }
+.convo li.convo-note { background: var(--surface); box-shadow: inset 3px 0 0 var(--text-muted); }
+.convo li.failed { box-shadow: inset 3px 0 0 var(--danger); }
 .convo li p { margin: .2rem 0; white-space: pre-wrap; word-break: break-word; }
 .convo-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .6rem; }
+/* 44px hit area, but the header row keeps the height of its text. */
+.convo-del { margin: -.6rem -.5rem -.6rem auto; color: var(--text-secondary); }
+@media (max-width: 640px) {
+  /* Phones: badge and delete share the first line, who and when take the second. */
+  .convo-meta .convo-del { order: 2; }
+  .convo-meta > .muted { order: 3; flex-basis: 100%; }
+}
 .convo-kind { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .6rem; }
 .convo-kind select { width: auto; margin: 0; }
 .convo textarea { width: 100%; min-height: 6rem; margin: .25rem 0; }

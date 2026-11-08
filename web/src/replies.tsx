@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { api, json, type Feedback, type Note, type Reply, type ReplyThread } from "./api";
+import { Icon } from "./icons";
 import { Bar, Placeholder } from "./Skeleton";
 import { useToast } from "./toast";
 import { Badge } from "./ui/Badge";
@@ -134,9 +135,13 @@ function Item({ e, canEdit, canDelete, busy, onRetry, onDelete }: {
   return (
     <li className={`convo-${e.kind === "note" ? "note" : e.direction}${e.kind === "reply" && e.status === "failed" ? " failed" : ""}`}>
       <span className="convo-meta">
-        <Badge plain>{label}</Badge>
-        <span className="muted">{who && `${who} · `}{new Date(e.created_at).toLocaleString()}</span>
-        {canDelete && <button type="button" className="link" onClick={() => onDelete(e.id)}>Delete</button>}
+        <Badge plain><Icon name={e.kind === "note" ? "note" : e.direction === "inbound" ? "person" : "reply"} size={14} />{label}</Badge>
+        <span className="muted" title={new Date(e.created_at).toLocaleString()}>
+          {who && `${who} · `}{new Date(e.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+        </span>
+        {canDelete && (
+          <button type="button" className="icon plain convo-del" aria-label="Delete note" onClick={() => onDelete(e.id)}><Icon name="trash" size={18} /></button>
+        )}
       </span>
       {/* Rendered as text by React; never as HTML. */}
       <p>{e.body}</p>
