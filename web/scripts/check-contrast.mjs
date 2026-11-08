@@ -61,6 +61,7 @@ const WIDGET = [
   ...["bg", "surface"].flatMap((bg) => [["text", bg, TEXT], ["muted", bg, TEXT]]),
   ["accent", "bg", TEXT], ["accent-text", "accent", TEXT],
   ["danger", "bg", TEXT], ["ok", "bg", TEXT],
+  ["border", "bg", CONTROL],
 ];
 
 const css = read("../src/tokens.css");

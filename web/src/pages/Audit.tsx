@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { api, type AuditEvent } from "../api";
 import { useAuth } from "../auth";
+import { Bar, Placeholder } from "../Skeleton";
 import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
 
@@ -49,18 +50,24 @@ export default function Audit() {
   const [group, setGroup] = useState("");
   const [q, setQ] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const latest = useRef(0);
 
   const load = useCallback(() => {
     const params = new URLSearchParams({ limit: String(PAGE), offset: String(offset) });
     if (group) params.set("group", group);
     if (q) params.set("q", q);
+    const mine = ++latest.current; // only the newest request ends the loading state
+    setLoading(true);
     api<{ items: AuditEvent[]; total: number }>(`/audit?${params}`)
       .then((r) => {
+        if (mine !== latest.current) return;
         setItems(r.items);
         setTotal(r.total);
         setError("");
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => mine === latest.current && setError(e.message))
+      .finally(() => mine === latest.current && setLoading(false));
   }, [offset, group, q]);
   useEffect(load, [load]);
 
@@ -73,6 +80,7 @@ export default function Audit() {
       <div className="toolbar">
         <input
           placeholder="Search summary or admin email"
+          aria-label="Search the audit log"
           value={q}
           onChange={(e) => { setQ(e.target.value); setOffset(0); }}
         />
@@ -81,13 +89,20 @@ export default function Audit() {
         </select>
       </div>
       {error && <p className="error" role="alert">{error}</p>}
-      {!error && items.length === 0 && <EmptyState>No events found.</EmptyState>}
-      <ul className="list audit">
+      {loading && items.length === 0 && !error && (
+        <Placeholder label="Loading the audit log">
+          <ul className="ruled">
+            {[0, 1, 2, 3].map((i) => <li key={i} className="ph"><Bar w="60%" /><Bar w="40%" h=".8rem" /></li>)}
+          </ul>
+        </Placeholder>
+      )}
+      {!loading && !error && items.length === 0 && <EmptyState>No events found.</EmptyState>}
+      <ul className={`ruled audit${loading && items.length > 0 ? " is-refreshing" : ""}`} aria-busy={loading && items.length > 0}>
         {items.map((e) => (
-          <li key={e.id}>
-            <span className="grow stack">
+          <li key={e.id} className="audit-row">
+            <span className="ruled-main-col">
               <strong>{e.summary}</strong>
-              <span className="muted">
+              <span className="check-detail">
                 {e.actor_email} · {when(e.created_at)}
                 {e.site_name && <> · {e.site_name}</>}
               </span>
@@ -97,11 +112,13 @@ export default function Audit() {
           </li>
         ))}
       </ul>
-      <div className="toolbar">
-        <button disabled={offset === 0} onClick={() => setOffset(offset - PAGE)}>Previous</button>
-        <span className="muted">{total === 0 ? 0 : offset + 1}–{Math.min(offset + PAGE, total)} of {total}</span>
-        <button disabled={offset + PAGE >= total} onClick={() => setOffset(offset + PAGE)}>Next</button>
-      </div>
+      {!(loading && items.length === 0) && (
+        <div className="toolbar">
+          <button disabled={offset === 0} onClick={() => setOffset(offset - PAGE)}>Previous</button>
+          <span className="muted num">{total === 0 ? 0 : offset + 1}–{Math.min(offset + PAGE, total)} of {total}</span>
+          <button disabled={offset + PAGE >= total} onClick={() => setOffset(offset + PAGE)}>Next</button>
+        </div>
+      )}
     </>
   );
 }
