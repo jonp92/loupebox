@@ -6,6 +6,8 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+## [0.1.0-alpha.11] - 2026-11-07
+
 ### Changed
 - The admin app has a new look: brass and sage palette from shared design tokens, Hanken Grotesk and IBM Plex Mono
   (self-hosted, no CDN), a sidebar with a mobile drawer, and a redrawn logo in brass (same loupe, lettering in the UI
@@ -93,6 +95,7 @@ change between releases; breaking changes are called out below.
   fixes origins already stored.
 - The daily feedback limit can no longer be overshot by submissions arriving at the same moment.
 - The light theme's selected-row background is a touch lighter so the accent text on it meets 4.5:1 contrast.
+- Phones no longer pop up the on-screen keyboard when a sheet or sign-in page opens (autofocus now applies to devices with a mouse or trackpad only), and spacing under key, hint and save controls is tighter. The "Assigned to me" tab is now "My work".
 
 ## [0.1.0-alpha.10] - 2026-11-06
 
