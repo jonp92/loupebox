@@ -122,6 +122,7 @@ export default function Users() {
     { label: u.is_active ? "Disable" : "Enable", onSelect: () => toggle(u), danger: u.is_active },
   ];
 
+  const editUser = page.items.find((u) => u.id === editing);
   const search = (value: string) => { setQ(value); setOffset(0); };
 
   return (
@@ -145,6 +146,25 @@ export default function Users() {
           <button type="button" className="plain block" onClick={() => setCreating(false)}>Cancel</button>
         </form>
       </Sheet>
+      <Sheet open={editing !== null && editUser !== undefined} title="Edit user" onClose={() => setEditing(null)}>
+        {editUser && (
+          <form onSubmit={(e) => saveEdit(e, editUser)}>
+            <div className="grid-2">
+              <label>First name<input name="first_name" defaultValue={editUser.first_name} required maxLength={100} /></label>
+              <label>Last name<input name="last_name" defaultValue={editUser.last_name} required maxLength={100} /></label>
+            </div>
+            <label>Email<input name="email" type="email" defaultValue={editUser.email} required /></label>
+            <div className="avatar-row">
+              <Avatar user={editUser} size="lg" />
+              <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => saveAvatar(editUser, e.target.files?.[0] ?? null)} />
+              <button type="button" onClick={() => fileInput.current?.click()}>Upload avatar</button>
+              {editUser.avatar_url && <button type="button" className="danger" onClick={() => saveAvatar(editUser, null)}>Remove avatar</button>}
+            </div>
+            <button className="primary block">Save</button>
+            <button type="button" className="plain block" onClick={() => setEditing(null)}>Cancel</button>
+          </form>
+        )}
+      </Sheet>
       <div className="toolbar">
         <input type="search" value={q} onChange={(e) => search(e.target.value)} placeholder="Search by name or email…" aria-label="Search users" maxLength={100} />
       </div>
@@ -158,28 +178,7 @@ export default function Users() {
             <tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Role</th><th scope="col">2FA</th><th scope="col">Status</th><th scope="col"><span className="sr-only">Actions</span></th></tr>
           </thead>
           <tbody>
-            {page.items.map((u) =>
-              editing === u.id ? (
-                <tr key={u.id} className="editing">
-                  <td colSpan={6}>
-                    <form className="edit-user" onSubmit={(e) => saveEdit(e, u)}>
-                      <label>First name<input name="first_name" defaultValue={u.first_name} required maxLength={100} autoFocus /></label>
-                      <label>Last name<input name="last_name" defaultValue={u.last_name} required maxLength={100} /></label>
-                      <label className="wide">Email<input name="email" type="email" defaultValue={u.email} required /></label>
-                      <div className="wide avatar-row">
-                        <Avatar user={u} size="lg" />
-                        <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => saveAvatar(u, e.target.files?.[0] ?? null)} />
-                        <button type="button" onClick={() => fileInput.current?.click()}>Upload avatar</button>
-                        {u.avatar_url && <button type="button" className="danger" onClick={() => saveAvatar(u, null)}>Remove avatar</button>}
-                      </div>
-                      <div className="row-actions">
-                        <button type="button" onClick={() => setEditing(null)}>Cancel</button>
-                        <button className="primary">Save</button>
-                      </div>
-                    </form>
-                  </td>
-                </tr>
-              ) : (
+            {page.items.map((u) => (
                 <tr key={u.id} className={u.is_active ? undefined : "inactive"}>
                   <th scope="row">
                     <span className="user-name">
@@ -198,8 +197,7 @@ export default function Users() {
                     )}
                   </td>
                 </tr>
-              ),
-            )}
+            ))}
           </tbody>
         </table>
       )}
