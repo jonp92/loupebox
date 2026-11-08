@@ -31,7 +31,7 @@ router = APIRouter(tags=["notifications"])
 
 # Provider settings and recipient addresses can be sensitive: the log records that they changed,
 # not the values.
-_CHANNEL_FIELDS = ("name", "enabled", "events", "min_role", "extra_recipients", "config")
+_CHANNEL_FIELDS = ("name", "enabled", "events", "min_role", "filters", "extra_recipients", "config")
 _CHANNEL_REDACTED = ("config", "extra_recipients")
 
 MAX_CHANNELS_PER_SITE = 10
@@ -130,6 +130,7 @@ def create_channel(
         config=config,
         events=body.events,
         min_role=body.min_role,
+        filters=body.filters.model_dump(),
         extra_recipients=body.extra_recipients,
     )
     secret = provider.new_secret() if provider.signs else None
@@ -162,7 +163,7 @@ def update_channel(
     channel = _channel(db, access, channel_id)
     provider = _provider(channel.provider)
     changes = body.model_dump(exclude_unset=True)
-    for field in ("name", "enabled", "events", "min_role", "extra_recipients", "config"):
+    for field in ("name", "enabled", "events", "min_role", "filters", "extra_recipients", "config"):
         if changes.get(field, 0) is None:  # an explicit null means "leave as is", like site PATCH
             changes.pop(field)
     if "config" in changes:

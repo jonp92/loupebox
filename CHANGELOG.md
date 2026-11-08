@@ -13,6 +13,8 @@ change between releases; breaking changes are called out below.
 ### Added
 - System settings: minimum password length, and an option to require two-factor authentication for everyone.
   `python -m scripts.reset_totp --stop-requiring` removes the requirement if no one can sign in.
+- Notification channels can be limited to the items they care about: issue type, rating range, whether an
+  email was left, and part of the page address. Migration `0021`.
 
 ## [0.1.0-alpha.12] - 2026-11-07
 

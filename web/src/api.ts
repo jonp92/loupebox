@@ -392,6 +392,13 @@ export interface VerifierInfo {
   label: string;
   config_schema: ConfigSchema;
 }
+export interface ChannelFilters {
+  issue_types: string[]; // "(none)" stands for items without a type
+  rating_min: number | null;
+  rating_max: number | null;
+  has_email: boolean | null;
+  page_contains: string;
+}
 export interface Channel {
   id: string;
   provider: string;
@@ -400,6 +407,7 @@ export interface Channel {
   config: Record<string, unknown>;
   events: string[];
   min_role: Role;
+  filters: ChannelFilters;
   extra_recipients: string[];
   has_secret: boolean;
   created_at: string;

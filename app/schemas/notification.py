@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.models import OutboxStatus, Role
 from app.notifications.events import EVENT_TYPES
+from app.notifications.filters import ChannelFilters
 
 MAX_EXTRA_RECIPIENTS = 20
 
@@ -39,6 +40,7 @@ class ChannelCreate(_ChannelFields):
     config: dict = {}
     events: list[str] = ["feedback.created"]
     min_role: Role = Role.admin
+    filters: ChannelFilters = ChannelFilters()
     extra_recipients: list[EmailStr] = []
 
 
@@ -48,6 +50,7 @@ class ChannelUpdate(_ChannelFields):
     config: dict | None = None
     events: list[str] | None = None
     min_role: Role | None = None
+    filters: ChannelFilters | None = None
     extra_recipients: list[EmailStr] | None = None
 
 
@@ -61,6 +64,7 @@ class ChannelOut(BaseModel):
     config: dict
     events: list[str]
     min_role: Role
+    filters: ChannelFilters
     extra_recipients: list[str]
     has_secret: bool  # the secret itself is only returned once, when it is created or rotated
     created_at: datetime
