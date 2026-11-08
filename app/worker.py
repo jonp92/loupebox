@@ -11,6 +11,8 @@ from app.core.audit import purge_expired as purge_audit
 from app.core.config import settings
 from app.core.retention import sweep as sweep_retention
 from app.db.session import get_sessionmaker
+from app.inbound.base import PollingSource
+from app.inbound.registry import all_sources, load_sources
 from app.models.user import utcnow
 from app.notifications.dispatcher import process_due, purge_finished
 from app.notifications.registry import load_providers
@@ -27,11 +29,32 @@ def _request_stop(*_: object) -> None:
     _stop = True
 
 
+_last_inbound = float("-inf")
+
+
+def poll_inbound(db) -> int:
+    """Ask every configured polling source for mail, at most every IMAP_POLL_SECONDS. One failing mailbox
+    must not stop the rest of the pass."""
+    global _last_inbound
+    if time.monotonic() - _last_inbound < settings.imap_poll_seconds:
+        return 0
+    _last_inbound = time.monotonic()
+    handled = 0
+    for source in all_sources():
+        if isinstance(source, PollingSource) and source.is_configured():
+            try:
+                handled += source.poll(db)
+            except Exception:
+                log.exception("inbound source %s failed", source.key)
+    return handled
+
+
 def run() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     signal.signal(signal.SIGTERM, _request_stop)
     signal.signal(signal.SIGINT, _request_stop)
     load_providers()
+    load_sources()
     log.info("worker started, polling every %ss", settings.worker_poll_seconds)
     last_purge = last_beat = last_orphans = float("-inf")  # everything sweeps at startup
     while not _stop:
@@ -42,6 +65,7 @@ def run() -> None:
                 if time.monotonic() - last_beat >= health.HEARTBEAT_EVERY:
                     last_beat = time.monotonic()
                     health.beat(db, utcnow())
+                handled += poll_inbound(db)
                 if time.monotonic() - last_purge >= PURGE_EVERY:
                     last_purge = time.monotonic()
                     removed = purge_finished(db, utcnow())

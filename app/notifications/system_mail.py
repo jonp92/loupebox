@@ -114,10 +114,12 @@ def _html_text(text: str) -> str:
     return escape(text).replace("\n", "<br>")
 
 
-def reply_message(site: str, body: str, original: str, replier: str) -> tuple[str, str, str]:
+def reply_message(site: str, body: str, original: str, replier: str | None) -> tuple[str, str, str]:
     """A team member's answer to feedback, with the original quoted. All inputs are plain text."""
     site = " ".join(site.split())
-    footer = f"You get this because you sent feedback on {site}. Reply to this email to answer {replier}."
+    # With inbound email on, the answer goes to the team's mailbox, not to one person.
+    to = replier or f"the {site} team"
+    footer = f"You get this because you sent feedback on {site}. Reply to this email to answer {to}."
     text = f"{body}\n\n--\nYour feedback:\n{original}\n\n{footer}"
     html = render(
         heading=f"A reply from {site}",

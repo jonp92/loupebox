@@ -39,6 +39,9 @@ itself. It is off by default because replies are private to your team and the pe
 is read when the event is sent and never stored in the queue, so a reply deleted in the meantime goes
 without it.
 
+`feedback.customer_replied` is sent when the person [answers by email](../manage/inbound-email.md). Its `data`
+has `feedback_id`, `reply_id` and `length`, never the text.
+
 The scheme is [Standard Webhooks](https://www.standardwebhooks.com/), so any library for it works.
 
 ## Verifying

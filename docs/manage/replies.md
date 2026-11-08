@@ -6,8 +6,8 @@ When submitting a form, the submitter can leave an email address, allowing an ed
 ![Replying to a feedback item](../images/reply-light.png#only-light)
 
 The reply is emailed with their original message quoted. **Reply-To is set to you**, so when they answer,
-it goes to your own inbox. Loupebox does not *currently* read incoming mail, so replies from the person do not show up in
-the app.
+it goes to your own inbox. To have their answers appear in the conversation instead, set up
+[answers by email](inbound-email.md).
 
 ## Before you start
 

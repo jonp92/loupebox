@@ -45,6 +45,8 @@ setting, and `setup.sh` fills in the secrets for you.
 |---|---|---|
 | `BREVO_API_KEY` | | See [Brevo](../notifications/brevo.md). |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`, `SMTP_USERNAME`, `SMTP_PASSWORD` | | See [SMTP](../notifications/smtp.md). |
+| `INBOUND_ADDRESS`, `IMAP_HOST`, `IMAP_PORT`, `IMAP_SECURITY`, `IMAP_USERNAME`, `IMAP_PASSWORD`, `IMAP_FOLDER`, `IMAP_POLL_SECONDS` | | See [Answers by email](../manage/inbound-email.md). |
+| `INBOUND_MAX_BYTES` | 262144 | Incoming mail larger than this is skipped. |
 | `NOTIFY_SENDER_EMAIL`, `NOTIFY_SENDER_NAME` | | The From address and name. |
 | `MAIL_PROVIDER` | first configured | `brevo` or `smtp`, for reset and reply email. |
 | `NOTIFY_HOURLY_CAP` | 5 | Alerts per channel per hour. |

@@ -90,6 +90,18 @@ class Settings(BaseSettings):
     # none: no encryption at all; credentials are never sent that way (see providers/smtp.py).
     smtp_security: Literal["starttls", "ssl", "none"] = "starttls"
     smtp_timeout: int = 15
+    # Inbound email: customers answer a reply by email and it lands in the conversation. `inbound_address` is
+    # the mailbox they write to (replies+<token>@example.com, so it must accept plus-addressing); a source
+    # (IMAP today) reads it. Operator-owned like SMTP.
+    inbound_address: str = ""
+    imap_host: str = ""
+    imap_port: int = 993
+    imap_username: str = ""
+    imap_password: str = ""
+    imap_security: Literal["ssl", "starttls", "none"] = "ssl"  # none never sends the username and password
+    imap_folder: str = "INBOX"
+    imap_poll_seconds: int = 60
+    inbound_max_bytes: int = 262_144  # larger messages are skipped without being downloaded
     # Public origin of the admin UI, used for links in emails. Links are omitted when empty.
     public_url: str = ""
 
@@ -182,6 +194,8 @@ class Settings(BaseSettings):
                 f"{', '.join(missing)} must be set in production. Generate each with "
                 '`python -c "import secrets; print(secrets.token_urlsafe(48))"` and keep it.'
             )
+        if self.imap_host and not self.inbound_address:
+            raise ValueError("INBOUND_ADDRESS must be set when IMAP_HOST is, or replies cannot be matched")
         return self
 
 

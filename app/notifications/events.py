@@ -52,9 +52,19 @@ class FeedbackReplied(BaseModel):
     length: int
 
 
+class FeedbackCustomerReplied(BaseModel):
+    """The person answered by email. Ids and length only, like feedback.replied."""
+
+    type: Literal["feedback.customer_replied"] = "feedback.customer_replied"
+    feedback_id: str
+    reply_id: str
+    length: int
+
+
 EVENT_TYPES: dict[str, type[BaseModel]] = {
     "feedback.created": FeedbackCreated,
     "feedback.replied": FeedbackReplied,
+    "feedback.customer_replied": FeedbackCustomerReplied,
 }
 # Only for endpoints that feed other systems (webhooks); emailing the team about its own replies is noise.
-MACHINE_ONLY = {"feedback.replied"}
+MACHINE_ONLY = {"feedback.replied", "feedback.customer_replied"}

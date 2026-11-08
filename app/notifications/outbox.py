@@ -4,12 +4,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Feedback, FeedbackReply, FeedbackStatus, NotificationChannel, NotificationOutbox
-from app.notifications.events import MACHINE_ONLY, FeedbackCreated, FeedbackReplied
+from app.notifications.events import MACHINE_ONLY, FeedbackCreated, FeedbackCustomerReplied, FeedbackReplied
 from app.notifications.filters import matches
 from app.notifications.registry import get_provider
 
+Event = FeedbackCreated | FeedbackReplied | FeedbackCustomerReplied
 
-def _enqueue(db: Session, item: Feedback, event: FeedbackCreated | FeedbackReplied) -> int:
+
+def _enqueue(db: Session, item: Feedback, event: Event) -> int:
     """One outbox row per enabled channel that subscribes to the event and whose filters match `item`.
     Returns how many."""
     site_id = item.site_id
@@ -50,4 +52,12 @@ def enqueue_reply_sent(db: Session, item: Feedback, reply: FeedbackReply) -> int
         db,
         item,
         FeedbackReplied(feedback_id=str(item.id), reply_id=str(reply.id), length=len(reply.body)),
+    )
+
+
+def enqueue_customer_reply(db: Session, item: Feedback, reply: FeedbackReply) -> int:
+    return _enqueue(
+        db,
+        item,
+        FeedbackCustomerReplied(feedback_id=str(item.id), reply_id=str(reply.id), length=len(reply.body)),
     )

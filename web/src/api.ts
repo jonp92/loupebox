@@ -115,6 +115,7 @@ export interface Reply {
 }
 export interface ReplyThread {
   available: boolean;
+  inbound: boolean;
   items: Reply[];
 }
 export interface Member extends Profile {
