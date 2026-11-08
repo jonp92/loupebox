@@ -6,6 +6,8 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+## [0.1.0-alpha.12] - 2026-11-07
+
 ### Added
 - An **Inbox** across all your sites (sidebar, for anyone on more than one site, and for superadmins). One list,
   newest first, with each item's site, the usual filters plus a Site filter, tabs for All, Unread, My work and
