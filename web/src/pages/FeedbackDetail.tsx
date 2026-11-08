@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { api, json, type Feedback, type Site, type Status } from "../api";
 import { useAuth } from "../auth";
 import { useConfirm } from "../confirm";
@@ -19,6 +19,7 @@ export default function FeedbackDetail({ site }: { site: Site }) {
   const confirm = useConfirm();
   const toast = useToast();
   const navigate = useNavigate();
+  const from = (useLocation().state as { from?: string } | null)?.from; // the list the item was opened from
   const picker = useAssigneePicker(site.id);
   const ctx = useContextMenu();
   const [item, setItem] = useState<Feedback | null>(null);
@@ -38,7 +39,7 @@ export default function FeedbackDetail({ site }: { site: Site }) {
   }
   async function remove() {
     if (!(await confirm({ title: "Delete this feedback?", message: "This cannot be undone.", confirmLabel: "Delete", danger: true }))) return;
-    if (await toast.attempt(api(path, { method: "DELETE" }), "Feedback deleted")) navigate(`/sites/${site.id}`);
+    if (await toast.attempt(api(path, { method: "DELETE" }), "Feedback deleted")) navigate(from ?? `/sites/${site.id}`);
   }
 
   const others = item ? STATUSES.filter((st) => st !== item.status) : [];
@@ -50,7 +51,7 @@ export default function FeedbackDetail({ site }: { site: Site }) {
   const href = item && safeHref(item.page_url);
   return (
     <>
-      <p><Link to={`/sites/${site.id}`} className="back"><Icon name="arrow-left" size={16} />All feedback</Link></p>
+      <p><Link to={from ?? `/sites/${site.id}`} className="back"><Icon name="arrow-left" size={16} />{from ? "Back to the list" : "All feedback"}</Link></p>
       {error && <p className="error">{error}</p>}
       {!item && !error && (
         <Placeholder label="Loading feedback">

@@ -6,6 +6,12 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+### Added
+- An **Inbox** across all your sites (sidebar, for anyone on more than one site, and for superadmins). One list,
+  newest first, with each item's site, the usual filters plus a Site filter, tabs for All, Unread, My work and
+  Unassigned, and bulk status change and "assign to me" for the items you can edit. The item page's back link returns
+  to the filtered inbox. The Dashboard links into it. **API:** `GET /inbox`, `GET /inbox/counts`, `POST /inbox/bulk`.
+
 ## [0.1.0-alpha.11] - 2026-11-07
 
 ### Changed

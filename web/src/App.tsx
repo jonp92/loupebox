@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { OfflineBanner } from "./components";
 import Audit from "./pages/Audit";
+import Inbox from "./pages/Inbox";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import { ForgotPassword, ResetPassword } from "./pages/ResetPassword";
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route element={<Layout />}>
           <Route index element={<Dashboard />} />
+          <Route path="inbox" element={<Inbox />} />
           <Route path="sites" element={<Sites />} />
           <Route path="sites/:siteId/*" element={<SiteDetail />} />
           <Route path="users" element={<Users />} />

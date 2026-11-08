@@ -85,6 +85,22 @@ def site_access(min_role: Role):
     return dependency
 
 
+def visible_sites(db: Session, user: User) -> list[tuple[Site, Role]]:
+    """Every site the user can see with their role there, by name: all sites for a superadmin (as admin),
+    else their memberships."""
+    if user.is_superadmin:
+        return [(s, Role.admin) for s in db.scalars(select(Site).order_by(Site.name))]
+    return [
+        (site, role)
+        for site, role in db.execute(
+            select(Site, Membership.role)
+            .join(Membership, Membership.site_id == Site.id)
+            .where(Membership.user_id == user.id)
+            .order_by(Site.name)
+        )
+    ]
+
+
 def feedback_or_404(db: Session, site_id: uuid.UUID, feedback_id: uuid.UUID) -> Feedback:
     """A feedback item of this site, or 404 (an id from another site is not revealed)."""
     item = db.scalar(select(Feedback).where(Feedback.id == feedback_id, Feedback.site_id == site_id))

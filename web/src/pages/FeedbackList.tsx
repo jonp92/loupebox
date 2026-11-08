@@ -1,7 +1,7 @@
 import { autoFocusField } from "../focus";
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { api, download, json, type Feedback, type Site, type Status } from "../api";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { api, download, json, type Feedback, type Role, type Site, type Status } from "../api";
 import { useAuth } from "../auth";
 import { useConfirm } from "../confirm";
 import { useToast } from "../toast";
@@ -16,7 +16,12 @@ import {
 const fmtCount = (n: number, capped: boolean) => `${n.toLocaleString()}${capped ? "+" : ""}`;
 
 type Density = "comfortable" | "compact";
-type QuickCounts = { mine: number; mine_capped?: boolean; unassigned: number; unassigned_capped?: boolean };
+type QuickCounts = {
+  mine: number; mine_capped?: boolean; unassigned: number; unassigned_capped?: boolean; unread?: number; unread_capped?: boolean;
+};
+/** A feedback item as listed; the inbox also says which site it is on and the caller's role there. */
+type Item = Feedback & { site_id?: string; site_name?: string; my_role?: Role };
+const canEditRole = (role: Role | null | undefined) => role === "editor" || role === "admin";
 const PAGE_SIZE: Record<Density, number> = { comfortable: 25, compact: 50 };
 const DENSITY_KEY = "loupebox.feedback-density";
 /** The list density chosen in this browser. Compact rows only apply on wide screens (see styles.css). */
@@ -29,19 +34,32 @@ function savedDensity(): Density {
 }
 const STATUSES: Status[] = ["new", "read", "archived", "spam"];
 
-export default function FeedbackList({ site }: { site: Site }) {
+/** One site's feedback (`site` given), or the feedback of every site the caller can see (the inbox). */
+export default function FeedbackList({ site }: { site?: Site }) {
   const confirm = useConfirm();
   const toast = useToast();
   const { me } = useAuth();
   const navigate = useNavigate();
-  const [items, setItems] = useState<Feedback[]>([]);
+  const location = useLocation();
+  const [items, setItems] = useState<Item[]>([]);
   const [total, setTotal] = useState(0);
   const [totalCapped, setTotalCapped] = useState(false); // more than `total` match
   const [loading, setLoading] = useState(true); // a list request is in flight
   const latest = useRef(0); // only the newest request ends the loading state
   const [offset, setOffset] = useState(0);
-  const [search] = useSearchParams(); // ?status= pre-selects the filter, e.g. from the dashboard
+  const [search, setSearch] = useSearchParams(); // ?status= pre-selects the filter, e.g. from the dashboard
   const [status, setStatus] = useState(() => STATUSES.find((s) => s === search.get("status")) ?? "");
+  // The inbox only: the sites to choose from, the one chosen (?site=), and who it is for (?assignee=me|none).
+  const [sites, setSites] = useState<Site[]>([]);
+  const [siteId, setSiteId] = useState(() => search.get("site") ?? "");
+  const focus = site ?? sites.find((s) => s.id === siteId); // the one site per-site menus (tags, types, people) are about
+  const base = site ? `/sites/${site.id}/feedback` : "/inbox";
+  const sidOf = (f: Item) => f.site_id ?? site!.id;
+  const mayEdit = (f: Item) => canEditRole(f.my_role ?? site?.my_role);
+  const mayDelete = (f: Item) => (f.my_role ?? site?.my_role) === "admin";
+  /** The assignee picker is for one site, so it only serves items of the site the list is focused on. */
+  const pickable = (f: Item) => focus?.id === sidOf(f);
+  const canBeAssignedOn = (siteIdOf: string) => Boolean(me?.memberships.some((m) => m.site_id === siteIdOf && m.role !== "viewer"));
   const [q, setQ] = useState("");
   const [issueType, setIssueType] = useState("");
   const [issueTypes, setIssueTypes] = useState<{ id: string; count: number }[]>([]);
@@ -49,9 +67,12 @@ export default function FeedbackList({ site }: { site: Site }) {
   const [hasEmail, setHasEmail] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [assignee, setAssignee] = useState("");
+  const [assignee, setAssignee] = useState(() => {
+    const a = search.get("assignee");
+    return a === "none" ? a : a === "me" ? me?.id ?? "" : "";
+  });
   const [tag, setTag] = useState("");
-  const picker = useAssigneePicker(site.id);
+  const picker = useAssigneePicker(focus?.id ?? "");
   const [assigneeLabel, setAssigneeLabel] = useState(""); // who a per-person filter is for
   const [counts, setCounts] = useState<QuickCounts | null>(null); // null until loaded
   const ctx = useContextMenu();
@@ -64,15 +85,18 @@ export default function FeedbackList({ site }: { site: Site }) {
   const [tagging, setTagging] = useState(false);
   const [density, setDensityState] = useState(savedDensity);
   const pageSize = PAGE_SIZE[density];
-  const canEdit = site.my_role === "editor" || site.my_role === "admin";
-  const canDelete = site.my_role === "admin";
+  const canDelete = site?.my_role === "admin"; // bulk delete is a per-site action
+  const canEdit = site ? canEditRole(site.my_role) : items.some(mayEdit); // something on the page can be changed
   // Only editors and admins hold assignments, and a superadmin who is not a member cannot.
-  const canBeAssigned = Boolean(me?.memberships.some((m) => m.site_id === site.id && m.role !== "viewer"));
+  const canBeAssigned = site
+    ? canBeAssignedOn(site.id)
+    : Boolean(me?.memberships.some((m) => m.role !== "viewer"));
 
   /** The list's filters as query params; the CSV export takes the same ones. */
   const filterParams = useCallback(() => {
     const params = new URLSearchParams();
     if (status) params.set("status", status);
+    if (!site && siteId) params.set("site_id", siteId);
     if (q) params.set("q", q);
     if (issueType) params.set("issue_type", issueType);
     if (rating) params.set("rating", rating);
@@ -82,7 +106,7 @@ export default function FeedbackList({ site }: { site: Site }) {
     if (assignee) params.set("assignee", assignee);
     if (tag) params.set("tag", tag);
     return params;
-  }, [status, q, issueType, rating, hasEmail, from, to, assignee, tag]);
+  }, [site, siteId, status, q, issueType, rating, hasEmail, from, to, assignee, tag]);
 
   const load = useCallback(() => {
     const params = filterParams();
@@ -90,7 +114,7 @@ export default function FeedbackList({ site }: { site: Site }) {
     params.set("offset", String(offset));
     const mine = ++latest.current;
     setLoading(true);
-    api<{ items: Feedback[]; total: number; total_capped?: boolean }>(`/sites/${site.id}/feedback?${params}`)
+    api<{ items: Item[]; total: number; total_capped?: boolean }>(`${base}?${params}`)
       .then((r) => {
         setItems(r.items);
         setTotal(r.total);
@@ -100,28 +124,42 @@ export default function FeedbackList({ site }: { site: Site }) {
       })
       .catch((e) => setError(e.message))
       .finally(() => mine === latest.current && setLoading(false));
-    api<QuickCounts>(`/sites/${site.id}/feedback/counts`).then(setCounts, () => undefined);
-  }, [site.id, offset, pageSize, filterParams]);
+    api<QuickCounts>(site ? `${base}/counts` : `${base}/counts${siteId ? `?site_id=${siteId}` : ""}`).then(setCounts, () => undefined);
+  }, [base, site, siteId, offset, pageSize, filterParams]);
   useEffect(load, [load]);
+  // The inbox's site menu, and its filters in the address so the item page's back link can restore them.
+  useEffect(() => {
+    if (!site) api<Site[]>("/sites").then(setSites, () => setSites([]));
+  }, [site]);
+  useEffect(() => {
+    if (site) return;
+    const next = new URLSearchParams();
+    if (siteId) next.set("site", siteId);
+    if (status) next.set("status", status);
+    if (assignee === "none" || (assignee && assignee === me?.id)) next.set("assignee", assignee === "none" ? "none" : "me");
+    setSearch(next, { replace: true });
+  }, [site, siteId, status, assignee, me?.id, setSearch]);
   // The kinds of feedback visitors have tagged (from the widget's badges), for the filter.
   useEffect(() => {
-    api<{ id: string; count: number }[]>(`/sites/${site.id}/feedback/issue-types`).then(setIssueTypes, () => setIssueTypes([]));
-  }, [site.id]);
+    if (!focus) return setIssueTypes([]);
+    api<{ id: string; count: number }[]>(`/sites/${focus.id}/feedback/issue-types`).then(setIssueTypes, () => setIssueTypes([]));
+  }, [focus?.id]);
   const loadTags = useCallback(() => {
-    api<{ tag: string; count: number }[]>(`/sites/${site.id}/feedback/tags`).then(setSiteTags, () => setSiteTags([]));
-  }, [site.id]);
+    if (!focus) return setSiteTags([]);
+    api<{ tag: string; count: number }[]>(`/sites/${focus.id}/feedback/tags`).then(setSiteTags, () => setSiteTags([]));
+  }, [focus?.id]);
   useEffect(loadTags, [loadTags]);
   /** Change one item (status, assignee or tags) and reload. */
-  async function patchItem(id: string, body: Partial<{ status: Status; assignee_id: string | null; tags: string[] }>) {
-    await toast.attempt(api(`/sites/${site.id}/feedback/${id}`, json("PATCH", body)));
+  async function patchItem(f: Item, body: Partial<{ status: Status; assignee_id: string | null; tags: string[] }>) {
+    await toast.attempt(api(`/sites/${sidOf(f)}/feedback/${f.id}`, json("PATCH", body)));
     load();
     if (body.tags) loadTags();
   }
-  const setItemStatus = (id: string, next: Status) => patchItem(id, { status: next });
+  const setItemStatus = (f: Item, next: Status) => patchItem(f, { status: next });
   async function exportCsv() {
     const params = filterParams();
     setExporting(true);
-    await toast.attempt(download(`/sites/${site.id}/feedback/export.csv?${params}`, "feedback.csv"), "Export downloaded");
+    await toast.attempt(download(`/sites/${site!.id}/feedback/export.csv?${params}`, "feedback.csv"), "Export downloaded");
     setExporting(false);
   }
   function toggle(id: string) {
@@ -131,10 +169,12 @@ export default function FeedbackList({ site }: { site: Site }) {
       return next;
     });
   }
-  const allSelected = items.length > 0 && items.every((f) => selected.has(f.id));
+  const editable = items.filter(mayEdit);
+  const allSelected = editable.length > 0 && editable.every((f) => selected.has(f.id));
   type BulkBody =
     | { action: "set_status"; status: Status }
     | { action: "assign"; assignee_id: string | null }
+    | { action: "assign_me" | "unassign" } // the inbox's only assignments
     | { action: "add_tag" | "remove_tag"; tag: string }
     | { action: "delete" };
   async function bulk(body: BulkBody) {
@@ -143,7 +183,7 @@ export default function FeedbackList({ site }: { site: Site }) {
       message: "This cannot be undone.", confirmLabel: "Delete", danger: true,
     }))) return;
     await toast.attempt(
-      api<{ affected: number; skipped: number }>(`/sites/${site.id}/feedback/bulk`, json("POST", { ids: [...selected], ...body }))
+      api<{ affected: number; skipped: number }>(`${base}/bulk`, json("POST", { ids: [...selected], ...body }))
         .then((r) => toast.success(`${r.affected} item${r.affected === 1 ? "" : "s"} updated${r.skipped ? `, ${r.skipped} skipped` : ""}`)),
     );
     load();
@@ -157,9 +197,18 @@ export default function FeedbackList({ site }: { site: Site }) {
     bulk({ action: "add_tag", tag: t });
   }
   const resetTo = (set: (v: string) => void) => (e: { target: { value: string } }) => { set(e.target.value); setOffset(0); };
-  const filtered = Boolean(status || q || issueType || rating || hasEmail || from || to || assignee || tag);
+  /** Choosing another site drops the filters that only make sense for the last one. */
+  function pickSite(id: string) {
+    setSiteId(id);
+    setIssueType("");
+    setTag("");
+    if (assignee !== "none" && assignee !== me?.id) setAssignee("");
+    setOffset(0);
+  }
+  const filtered = Boolean(siteId || status || q || issueType || rating || hasEmail || from || to || assignee || tag);
   /** The active filters other than the search box and the quick tabs, as removable chips for when the panel is closed. */
   const chips: { text: string; clear: () => void }[] = [
+    !site && focus && { text: `Site: ${focus.name}`, clear: () => pickSite("") },
     status && { text: `Status: ${status}`, clear: () => setStatus("") },
     issueType && { text: `Type: ${label(issueType)}`, clear: () => setIssueType("") },
     rating && { text: `Rating: ${rating}★`, clear: () => setRating("") },
@@ -180,58 +229,72 @@ export default function FeedbackList({ site }: { site: Site }) {
   }
 
   const removeChip = (c: { clear: () => void }) => { c.clear(); setOffset(0); };
-  const moreMenu: MenuItem[] = [{ label: exporting ? "Exporting…" : "Export CSV", onSelect: exportCsv }];
+  const moreMenu: MenuItem[] = site ? [{ label: exporting ? "Exporting…" : "Export CSV", onSelect: exportCsv }] : [];
   const statusMenu: MenuItem[] = STATUSES.map((s) => ({ label: `Mark ${s}`, onSelect: () => bulk({ action: "set_status", status: s }) }));
   const tagMenu: MenuItem[] = [
     { label: "Add tag…", onSelect: () => setTagging(true) },
     ...(siteTags.length ? [{ label: "Remove tag" }, ...siteTags.map((t) => ({ label: t.tag, onSelect: () => bulk({ action: "remove_tag", tag: t.tag }) }))] : []),
   ];
   function clearFilters() {
-    setStatus(""); setQ(""); setIssueType(""); setRating(""); setHasEmail(""); setFrom(""); setTo(""); setAssignee(""); setTag(""); setOffset(0);
+    setSiteId(""); setStatus(""); setQ(""); setIssueType(""); setRating(""); setHasEmail(""); setFrom(""); setTo(""); setAssignee(""); setTag(""); setOffset(0);
   }
 
-  async function remove(id: string) {
+  async function remove(f: Item) {
     if (!(await confirm({ title: "Delete this feedback?", message: "This cannot be undone.", confirmLabel: "Delete", danger: true }))) return;
-    await toast.attempt(api(`/sites/${site.id}/feedback/${id}`, { method: "DELETE" }), "Feedback deleted");
+    await toast.attempt(api(`/sites/${sidOf(f)}/feedback/${f.id}`, { method: "DELETE" }), "Feedback deleted");
     load();
   }
 
-  const open = (id: string) => navigate(`/sites/${site.id}/feedback/${id}`);
+  const href = (f: Item) => `/sites/${sidOf(f)}/feedback/${f.id}`;
+  /** The item page's back link returns here, with the inbox's site, status and person still chosen. */
+  const open = (f: Item) => navigate(href(f), { state: { from: location.pathname + location.search } });
   /** A plain click opens the item in the app; Cmd/Ctrl/Shift-click and middle-click are left to the browser (new tab). */
-  const openOnPlainClick = (id: string) => (e: MouseEvent) => {
+  const openOnPlainClick = (f: Item) => (e: MouseEvent) => {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
     e.preventDefault();
-    open(id);
+    open(f);
   };
-  const quickTab = (value: string, text: string, count?: string | null) => (
-    <button key={text} aria-pressed={assignee === value} onClick={() => { setAssignee(value); setOffset(0); }}>
-      {text}{count != null && <span className="count">{count}</span>}
-    </button>
-  );
-  /** What the right-click / long-press menu and the ⋯ button offer for one item. */
-  function menuFor(f: Feedback): MenuItem[] {
-    const items: MenuItem[] = [{ label: "Open", onSelect: () => open(f.id) }];
-    if (!canEdit) return items;
-    items.push(
-      ...STATUSES.filter((s) => s !== f.status).map((s) => ({ label: `Mark ${s}`, onSelect: () => setItemStatus(f.id, s) })),
-      { label: "Assign to" },
-      ...(me && canBeAssigned && f.assignee_id !== me.id
-        ? [{ label: "Me", onSelect: () => patchItem(f.id, { assignee_id: me.id }) }] : []),
-      ...(f.assignee_id ? [{ label: "Unassign", onSelect: () => patchItem(f.id, { assignee_id: null }) }] : []),
-      ...recentAssignees(site.id)
-        .filter((p) => p.user_id !== me?.id && p.user_id !== f.assignee_id)
-        .slice(0, 4)
-        .map((p) => ({ label: personName(p), onSelect: () => patchItem(f.id, { assignee_id: p.user_id }) })),
-      { label: "More…", onSelect: (at) => picker.open(at, f.assignee_id, (p) => patchItem(f.id, { assignee_id: p?.user_id ?? null })) },
+  /** A quick tab sets the person filter, and the status too when it names one (the inbox's "All" and "Unread"). */
+  const quickTab = (text: string, view: { assignee?: string; status?: Status | "" }, count?: string | null) => {
+    const pressed = assignee === (view.assignee ?? "") && (view.status === undefined || view.status === status);
+    return (
+      <button key={text} aria-pressed={pressed} onClick={() => {
+        setAssignee(view.assignee ?? "");
+        if (view.status !== undefined) setStatus(view.status);
+        setOffset(0);
+      }}>
+        {text}{count != null && <span className="count">{count}</span>}
+      </button>
     );
-    if (canDelete) items.push({ label: "Delete", danger: true, onSelect: () => remove(f.id) });
+  };
+  /** What the right-click / long-press menu and the ⋯ button offer for one item. */
+  function menuFor(f: Item): MenuItem[] {
+    const items: MenuItem[] = [{ label: "Open", onSelect: () => open(f) }];
+    if (!mayEdit(f)) return items;
+    items.push(
+      ...STATUSES.filter((s) => s !== f.status).map((s) => ({ label: `Mark ${s}`, onSelect: () => setItemStatus(f, s) })),
+      { label: "Assign to" },
+      ...(me && canBeAssignedOn(sidOf(f)) && f.assignee_id !== me.id
+        ? [{ label: "Me", onSelect: () => patchItem(f, { assignee_id: me.id }) }] : []),
+      ...(f.assignee_id ? [{ label: "Unassign", onSelect: () => patchItem(f, { assignee_id: null }) }] : []),
+    );
+    if (pickable(f)) {
+      items.push(
+        ...recentAssignees(sidOf(f))
+          .filter((p) => p.user_id !== me?.id && p.user_id !== f.assignee_id)
+          .slice(0, 4)
+          .map((p) => ({ label: personName(p), onSelect: () => patchItem(f, { assignee_id: p.user_id }) })),
+        { label: "More…", onSelect: (at) => picker.open(at, f.assignee_id, (p) => patchItem(f, { assignee_id: p?.user_id ?? null })) },
+      );
+    }
+    if (mayDelete(f)) items.push({ label: "Delete", danger: true, onSelect: () => remove(f) });
     return items;
   }
   /** The assignee on a card. Editors tap or click it (or press Enter) to change it right there. */
-  function assigneeChip(f: Feedback) {
+  function assigneeChip(f: Item) {
     const name = f.assignee_name;
-    if (!canEdit) return name && <span className="assignee" title="Assignee"><Icon name="person" size={16} />{name}</span>;
-    const change = (el: HTMLElement) => picker.open(below(el), f.assignee_id, (p) => patchItem(f.id, { assignee_id: p?.user_id ?? null }));
+    if (!mayEdit(f) || !pickable(f)) return name && <span className="assignee" title="Assignee"><Icon name="person" size={16} />{name}</span>;
+    const change = (el: HTMLElement) => picker.open(below(el), f.assignee_id, (p) => patchItem(f, { assignee_id: p?.user_id ?? null }));
     return (
       <span
         className={`assignee editable${name ? "" : " none"}`}
@@ -250,9 +313,10 @@ export default function FeedbackList({ site }: { site: Site }) {
     <>
       <div className="list-head">
         <div className="quick-tabs" role="group" aria-label="Whose feedback">
-          {quickTab("", "All")}
-          {me && canBeAssigned && quickTab(me.id, "My work", counts && fmtCount(counts.mine, Boolean(counts.mine_capped)))}
-          {quickTab("none", "Unassigned", counts && fmtCount(counts.unassigned, Boolean(counts.unassigned_capped)))}
+          {quickTab("All", site ? {} : { status: "" })}
+          {!site && quickTab("Unread", { status: "new" }, counts?.unread != null ? fmtCount(counts.unread, Boolean(counts.unread_capped)) : null)}
+          {me && canBeAssigned && quickTab("My work", { assignee: me.id }, counts && fmtCount(counts.mine, Boolean(counts.mine_capped)))}
+          {quickTab("Unassigned", { assignee: "none" }, counts && fmtCount(counts.unassigned, Boolean(counts.unassigned_capped)))}
         </div>
         <div className="density" role="radiogroup" aria-label="List density">
           {(["comfortable", "compact"] as const).map((d) => (
@@ -274,8 +338,10 @@ export default function FeedbackList({ site }: { site: Site }) {
         <button className="filters-toggle" aria-expanded={filtersOpen} aria-controls="filters-panel" onClick={() => setFiltersOpen(!filtersOpen)}>
           Filters{chips.length > 0 && ` (${chips.length})`}
         </button>
-        <button className="menu-btn" aria-label="More actions" aria-haspopup="menu" disabled={total === 0}
-          onClick={(e) => ctx.openAt(e.currentTarget, moreMenu)}><Icon name="more" /></button>
+        {moreMenu.length > 0 && (
+          <button className="menu-btn" aria-label="More actions" aria-haspopup="menu" disabled={total === 0}
+            onClick={(e) => ctx.openAt(e.currentTarget, moreMenu)}><Icon name="more" /></button>
+        )}
       </div>
       {chips.length > 0 && !filtersOpen && (
         <div className="active-chips">
@@ -283,6 +349,12 @@ export default function FeedbackList({ site }: { site: Site }) {
         </div>
       )}
       <div id="filters-panel" className="toolbar filters" data-open={filtersOpen || undefined}>
+        {!site && sites.length > 1 && (
+          <select value={siteId} onChange={(e) => pickSite(e.target.value)} aria-label="Site">
+            <option value="">All sites</option>
+            {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        )}
         <select value={status} onChange={resetTo(setStatus)} aria-label="Status">
           <option value="">All (excl. spam)</option>
           {STATUSES.map((s) => <option key={s}>{s}</option>)}
@@ -304,7 +376,7 @@ export default function FeedbackList({ site }: { site: Site }) {
         </select>
         {assignee && assignee !== "none" && assignee !== me?.id ? (
           <span className="chip">Assignee: {assigneeLabel}<button aria-label="Remove the assignee filter" onClick={() => { setAssignee(""); setOffset(0); }}>×</button></span>
-        ) : (
+        ) : focus && (
           <button onClick={(e) => picker.open(below(e.currentTarget), undefined, (p) => { setAssignee(p!.user_id); setAssigneeLabel(personName(p!)); setOffset(0); }, false)}>Assignee…</button>
         )}
         {siteTags.length > 0 && (
@@ -320,7 +392,7 @@ export default function FeedbackList({ site }: { site: Site }) {
       {canEdit && items.length > 0 && (
         <div className="toolbar bulk">
           <label>
-            <input type="checkbox" checked={allSelected} onChange={() => setSelected(allSelected ? new Set() : new Set(items.map((f) => f.id)))} />
+            <input type="checkbox" checked={allSelected} onChange={() => setSelected(allSelected ? new Set() : new Set(editable.map((f) => f.id)))} />
             {" "}{selected.size > 0 ? `${selected.size} selected` : "Select all on this page"}
           </label>
         </div>
@@ -338,28 +410,29 @@ export default function FeedbackList({ site }: { site: Site }) {
       ))}
       <div className={loading ? "is-refreshing" : undefined} aria-busy={loading && items.length > 0}>
       {items.map((f) => (
-        <article key={f.id} className={`card fb compact ${f.status}${density === "compact" ? " dense" : ""}`} {...ctx.bind(() => menuFor(f))}>
+        <article key={f.id} className={`card fb compact ${f.status}${density === "compact" ? " dense" : ""}${site ? "" : " with-site"}`} {...ctx.bind(() => menuFor(f))}>
           <header>
-            {canEdit && <label className="check"><input type="checkbox" checked={selected.has(f.id)} onChange={() => toggle(f.id)} aria-label="Select this feedback" /></label>}
+            {mayEdit(f) && <label className="check"><input type="checkbox" checked={selected.has(f.id)} onChange={() => toggle(f.id)} aria-label="Select this feedback" /></label>}
             <span className="fb-badges"><FeedbackBadges f={f} /></span>
+            {!site && <span className="fb-site" title={f.site_name}>{f.site_name}</span>}
             <time className="muted grow-end" dateTime={f.created_at} title={new Date(f.created_at).toLocaleString()}>{ago(f.created_at)}</time>
             <button className="menu-btn" aria-label="Actions" aria-haspopup="menu" onClick={(e) => ctx.openAt(e.currentTarget, menuFor(f))}><Icon name="more" /></button>
           </header>
           {/* Rendered as text by React; never as HTML. */}
-          <p className="message"><a href={`/sites/${site.id}/feedback/${f.id}`} onClick={openOnPlainClick(f.id)}>{f.message}</a></p>
+          <p className="message"><a href={href(f)} onClick={openOnPlainClick(f)}>{f.message}</a></p>
           {(f.name || f.email) && <p className="person">{[f.name, f.email].filter(Boolean).join(" · ")}</p>}
           <div className="tags">
             {assigneeChip(f)}
             {f.tags.map((t) => <span key={t} className="tag static">{t}</span>)}
             {f.reply_count > 0 && <span className="replied" title={`Replied ${f.reply_count} time${f.reply_count === 1 ? "" : "s"}`}><Icon name="reply" size={16} />Replied</span>}
             {f.attachment_count > 0 && (
-              <a className="note-count" href={`/sites/${site.id}/feedback/${f.id}`} onClick={openOnPlainClick(f.id)}
+              <a className="note-count" href={href(f)} onClick={openOnPlainClick(f)}
                 title={`${f.attachment_count} image${f.attachment_count === 1 ? "" : "s"}`}>
                 <Icon name="clip" size={16} />{f.attachment_count}<span className="sr-only"> image{f.attachment_count === 1 ? "" : "s"}</span>
               </a>
             )}
             {f.note_count > 0 && (
-              <a className="note-count" href={`/sites/${site.id}/feedback/${f.id}`} onClick={openOnPlainClick(f.id)}
+              <a className="note-count" href={href(f)} onClick={openOnPlainClick(f)}
                 title={`${f.note_count} internal note${f.note_count === 1 ? "" : "s"}`}><Icon name="note" size={16} />{f.note_count}<span className="sr-only"> internal note{f.note_count === 1 ? "" : "s"}</span></a>
             )}
           </div>
@@ -370,9 +443,18 @@ export default function FeedbackList({ site }: { site: Site }) {
         <div className="bulk-bar" role="toolbar" aria-label="Actions for the selected feedback">
           <strong>{selected.size} selected</strong>
           <button aria-haspopup="menu" onClick={(e) => ctx.openAt(e.currentTarget, statusMenu)}>Status ▾</button>
-          <button onClick={(e) => picker.open(below(e.currentTarget), undefined, (p) => bulk({ action: "assign", assignee_id: p?.user_id ?? null }))}>Assign…</button>
-          <button aria-haspopup="menu" onClick={(e) => ctx.openAt(e.currentTarget, tagMenu)}>Tags ▾</button>
-          {canDelete && <button className="danger" onClick={() => bulk({ action: "delete" })}>Delete</button>}
+          {site ? (
+            <>
+              <button onClick={(e) => picker.open(below(e.currentTarget), undefined, (p) => bulk({ action: "assign", assignee_id: p?.user_id ?? null }))}>Assign…</button>
+              <button aria-haspopup="menu" onClick={(e) => ctx.openAt(e.currentTarget, tagMenu)}>Tags ▾</button>
+              {canDelete && <button className="danger" onClick={() => bulk({ action: "delete" })}>Delete</button>}
+            </>
+          ) : (
+            <>
+              <button onClick={() => bulk({ action: "assign_me" })}>Assign to me</button>
+              <button onClick={() => bulk({ action: "unassign" })}>Unassign</button>
+            </>
+          )}
           {tagging && (
             <form className="inline" onSubmit={(e) => { e.preventDefault(); bulkAddTag(); }}>
               <input value={bulkTag} onChange={(e) => setBulkTag(e.target.value)} placeholder="Tag selected…" maxLength={32} aria-label="Tag to add to selected" list="site-tags" autoFocus={autoFocusField} />
