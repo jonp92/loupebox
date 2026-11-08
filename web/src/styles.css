@@ -142,7 +142,7 @@ main { max-width: var(--content-max); margin: 0 auto; padding: var(--space-6) va
 
 /* forms */
 label { display: block; margin: .8rem 0; font-size: var(--text-data); font-weight: 500; color: var(--text-muted); }
-label.inline { display: flex; align-items: center; gap: .5rem; min-height: var(--target-min); }
+label.inline { display: flex; align-items: center; gap: .5rem; min-height: var(--target-min); margin: var(--space-1) 0; }
 small { font-weight: 400; }
 input:not([type=checkbox]), select, textarea { width: 100%; min-height: var(--input-height); padding: 0 var(--space-3); margin-top: .3rem; background: var(--surface); color: var(--text); border: 1px solid var(--border-control); border-radius: var(--radius-control); font: inherit; font-size: var(--text-ui); transition: border-color .15s; }
 textarea { padding: var(--space-3); }
@@ -163,6 +163,7 @@ button.icon { width: var(--target-min); padding: 0; }
 .muted { color: var(--text-muted); font-size: var(--text-ui); }
 .hint { margin: .5rem 0 0; }
 .hint + button { margin-top: var(--space-4); }
+label + button { margin-top: var(--space-2); } /* the label already has its own bottom margin */
 .error { color: var(--text); background: var(--danger-soft); border-left: 3px solid var(--danger); padding: .5rem .75rem; border-radius: var(--radius-control); font-size: var(--text-ui); }
 .grow-end { margin-left: auto; }
 
@@ -315,7 +316,7 @@ article.fb:not(.compact) .message { font-size: var(--text-body); font-weight: va
 .notes textarea { flex: 1; margin: 0; min-height: 2.6rem; }
 .actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--border); }
 pre { background: var(--surface-selected); padding: .75rem; border-radius: var(--radius-control); overflow-x: auto; font-size: var(--text-data); }
-code.key { display: inline-block; margin: 0 .75rem var(--space-3) 0; background: var(--surface-selected); padding: .35rem .6rem; border-radius: var(--radius-control); user-select: all; }
+code.key { display: inline-block; margin: 0 .75rem var(--space-4) 0; background: var(--surface-selected); padding: .35rem .6rem; border-radius: var(--radius-control); user-select: all; }
 
 /* member picker */
 .picker { position: relative; flex: 1; }
