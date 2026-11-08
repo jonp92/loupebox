@@ -8,6 +8,7 @@ import SystemStorage from "./SystemStorage";
 import SystemTestEmail from "./SystemTestEmail";
 import { useConfirm } from "../confirm";
 import { useToast } from "../toast";
+import { Bar, Placeholder } from "../Skeleton";
 import { Badge } from "../ui/Badge";
 import { Status } from "../ui/Status";
 
@@ -155,14 +156,18 @@ export default function SystemSettings() {
         stored encrypted and can't be read back.
       </p>
       {error && <p className="error" role="alert">{error}</p>}
-      {!items && !error && <p className="muted">Loading…</p>}
+      {!items && !error && (
+        <Placeholder label="Loading the settings">
+          <div className="ph"><Bar w="12rem" h="1.2rem" /><Bar w="100%" h="2.75rem" /><Bar w="100%" h="2.75rem" /></div>
+        </Placeholder>
+      )}
       <ScrollTabs>
         {TABS.map((t) => <NavLink key={t.path} to={`/system/${t.path}`}>{t.label}</NavLink>)}
       </ScrollTabs>
       {tab.path === "status" && <SystemHealth />}
       {items && byGroup(items).filter(([group]) => (tab.groups as readonly string[]).includes(group)).map(([group, fields]) =>
         fields.some((s) => s.editable) ? (
-          <form key={group} className="card system-settings" onSubmit={(e) => submit(e, fields)} aria-labelledby={`group-${group}`}>
+          <form key={group} className="panel system-settings" onSubmit={(e) => submit(e, fields)} aria-labelledby={`group-${group}`}>
             <h2 id={`group-${group}`}>{group}</h2>
             {fields.filter((s) => !s.show_when || String(draft[s.show_when.key] ?? items.find((i) => i.key === s.show_when!.key)?.value) === s.show_when.value).map((s) => (
               <div key={s.key} className="setting">
@@ -173,8 +178,11 @@ export default function SystemSettings() {
             <div className="row-actions"><button className="primary">Save {group.toLowerCase()}</button></div>
           </form>
         ) : (
-          <details key={group} className="card system-settings">
-            <summary><h2>{group}</h2> <span className="muted">set in .env, needs a restart</span></summary>
+          <details key={group} className="panel system-settings">
+            <summary>
+              <span className="ruled-main-col"><h2>{group}</h2><span className="check-detail">Set in .env, needs a restart</span></span>
+              <Badge tone="brass">.env</Badge>
+            </summary>
             <dl className="readonly-settings">
               {fields.map((s) => (
                 <div key={s.key}>

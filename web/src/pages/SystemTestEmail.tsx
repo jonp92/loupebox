@@ -21,14 +21,14 @@ export default function SystemTestEmail({ settings }: { settings: SystemSetting[
 
   if (!providers.length) return null;
   return (
-    <section className="card" aria-labelledby="test-email-title">
+    <section className="panel" aria-labelledby="test-email-title">
       <h2 id="test-email-title">Send a test email</h2>
       <p className="hint muted">Goes to your own address through the provider you pick. Save any changes first.</p>
-      <ul className="checklist">
+      <ul className="ruled">
         {providers.map((p) => (
-          <li key={p.key}>
+          <li key={p.key} className="check-row">
+            <span className="ruled-main-col"><strong>{p.label}</strong></span>
             <Status tone={p.configured ? "ok" : "muted"}>{p.configured ? "Ready" : "Not set up"}</Status>
-            <span className="grow">{p.label}</span>
             <button type="button" onClick={() => test(p)} disabled={!p.configured || sending !== null}>
               {sending === p.key ? "Sending…" : "Send test to me"}
             </button>

@@ -72,13 +72,13 @@ export default function SystemStorage({ settings }: { settings: SystemSetting[] 
   if (!status) {
     return (
       <Placeholder label="Loading storage status…">
-        <section className="card"><Bar w="40%" h="1.2rem" /><Bar w="70%" /><Bar w="30%" h="2rem" /></section>
+        <section className="panel ph"><Bar w="40%" h="1.2rem" /><Bar w="70%" /><Bar w="30%" h="2rem" /></section>
       </Placeholder>
     );
   }
   const others = Object.entries(status.counts).filter(([backend]) => backend !== status.backend);
   return (
-    <section className="card" aria-labelledby="storage-check-title" aria-busy={checking || moving !== null}>
+    <section className="panel" aria-labelledby="storage-check-title" aria-busy={checking || moving !== null}>
       <h2 id="storage-check-title">Connection and stored images</h2>
       <p>
         <Status tone={status.configured ? "ok" : "muted"}>{status.configured ? "Ready" : "Not set up"}</Status>{" "}
