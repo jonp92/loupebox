@@ -162,6 +162,7 @@ button.icon { width: var(--target-min); padding: 0; }
 
 .muted { color: var(--text-muted); font-size: var(--text-ui); }
 .hint { margin: .5rem 0 0; }
+.hint + button { margin-top: var(--space-4); }
 .error { color: var(--text); background: var(--danger-soft); border-left: 3px solid var(--danger); padding: .5rem .75rem; border-radius: var(--radius-control); font-size: var(--text-ui); }
 .grow-end { margin-left: auto; }
 
@@ -314,7 +315,7 @@ article.fb:not(.compact) .message { font-size: var(--text-body); font-weight: va
 .notes textarea { flex: 1; margin: 0; min-height: 2.6rem; }
 .actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--border); }
 pre { background: var(--surface-selected); padding: .75rem; border-radius: var(--radius-control); overflow-x: auto; font-size: var(--text-data); }
-code.key { display: inline-block; margin-right: .75rem; background: var(--surface-selected); padding: .35rem .6rem; border-radius: var(--radius-control); user-select: all; }
+code.key { display: inline-block; margin: 0 .75rem var(--space-3) 0; background: var(--surface-selected); padding: .35rem .6rem; border-radius: var(--radius-control); user-select: all; }
 
 /* member picker */
 .picker { position: relative; flex: 1; }

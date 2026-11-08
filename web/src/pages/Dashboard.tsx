@@ -66,7 +66,7 @@ export default function Dashboard() {
             ))}
           </ul>
           {data.assigned_total > data.assigned.length && (
-            <p className="muted">Showing {data.assigned.length} of {data.assigned_total}. Open a site and use "Assigned to me" to see the rest.</p>
+            <p className="muted">Showing {data.assigned.length} of {data.assigned_total}. Open a site and use "My work" to see the rest.</p>
           )}
         </>
       )}
