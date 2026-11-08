@@ -13,6 +13,7 @@ change between releases; breaking changes are called out below.
 ### Added
 - System settings: minimum password length, and an option to require two-factor authentication for everyone.
   `python -m scripts.reset_totp --stop-requiring` removes the requirement if no one can sign in.
+- Webhook channels can include the reply text in `feedback.replied` events (off by default).
 
 ## [0.1.0-alpha.12] - 2026-11-07
 

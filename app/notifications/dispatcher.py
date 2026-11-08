@@ -6,6 +6,7 @@ as one summary email.
 """
 
 import logging
+import uuid
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 
@@ -15,9 +16,9 @@ from sqlalchemy.orm import Session
 
 from app.core import crypto
 from app.core.config import settings
-from app.models import NotificationChannel, NotificationOutbox, OutboxStatus, Site
+from app.models import FeedbackReply, NotificationChannel, NotificationOutbox, OutboxStatus, Site
 from app.models.user import utcnow
-from app.notifications.base import NotificationProvider, SendResult
+from app.notifications.base import Message, NotificationProvider, SendResult
 from app.notifications.messages import build_message, build_summary
 from app.notifications.recipients import resolve_recipients
 from app.notifications.registry import get_provider
@@ -154,6 +155,18 @@ def _hold(db: Session, row: NotificationOutbox, now: datetime) -> None:
     row.next_attempt_at = due or now + timedelta(minutes=settings.notify_summary_delay_minutes)
 
 
+def _with_reply_text(db: Session, row: NotificationOutbox, target: Target, message: Message) -> Message:
+    """For a channel that opted in, add the reply text to a feedback.replied event. It is read here, at send
+    time, so the text is never stored in the outbox. A reply deleted since then goes without it."""
+    if row.event_type != "feedback.replied" or not getattr(target.config, "include_reply_text", False):
+        return message
+    text = db.scalar(select(FeedbackReply.body).where(FeedbackReply.id == uuid.UUID(row.payload["reply_id"])))
+    if text is None or message.event is None:
+        return message
+    event = {**message.event, "data": {**message.event["data"], "text": text}}
+    return replace(message, event=event)
+
+
 def _send_row(db: Session, row: NotificationOutbox, now: datetime) -> None:
     target = _prepare(db, row.channel_id, row.site_id)
     if isinstance(target, SendResult):
@@ -161,7 +174,8 @@ def _send_row(db: Session, row: NotificationOutbox, now: datetime) -> None:
     elif _cap_reached(db, target.channel, now):
         _hold(db, row, now)
     else:
-        _record(row, _call(target, build_message(row, target.site, target.recipients)), utcnow())
+        message = build_message(row, target.site, target.recipients)
+        _record(row, _call(target, _with_reply_text(db, row, target, message)), utcnow())
 
 
 def process_summaries(db: Session, now: datetime) -> int:

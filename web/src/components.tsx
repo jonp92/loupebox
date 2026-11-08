@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "./auth";
 import { Mark, Wordmark } from "./brandArt";
@@ -174,6 +174,7 @@ export function SchemaFields({ schema, values, onChange }: {
   values: Record<string, unknown>;
   onChange: (v: Record<string, unknown>) => void;
 }) {
+  const id = useId();
   const props = Object.entries(schema.properties ?? {});
   if (props.length === 0) return null;
   const set = (k: string, v: unknown) => onChange({ ...values, [k]: v });
@@ -184,10 +185,14 @@ export function SchemaFields({ schema, values, onChange }: {
         const label = p.title ?? key;
         const value = values[key] ?? p.default ?? "";
         if (p.type === "boolean") {
+          const hint = `${id}-${key}-hint`;
           return (
-            <label key={key} className="inline">
-              <input type="checkbox" checked={Boolean(value)} onChange={(e) => set(key, e.target.checked)} /> {label}
-            </label>
+            <Fragment key={key}>
+              <label className="inline">
+                <input type="checkbox" checked={Boolean(value)} aria-describedby={p.description ? hint : undefined} onChange={(e) => set(key, e.target.checked)} /> {label}
+              </label>
+              {p.description && <p id={hint} className="hint muted">{p.description}</p>}
+            </Fragment>
           );
         }
         if (p.enum) {
