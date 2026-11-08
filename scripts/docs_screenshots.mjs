@@ -60,6 +60,7 @@ async function siteUrl(page, name) {
 // Each shot: [name, viewport, async (page, ctx) => ...]. ctx.docs is the Acme Docs site URL.
 const shots = [
   ["feedback-list", DESKTOP, async (p, c) => { await p.goto(c.docs, { waitUntil: "networkidle0" }); }],
+  ["inbox", DESKTOP, async (p) => { await p.goto(`${WEB}/inbox`, { waitUntil: "networkidle0" }); }],
   ["sites", DESKTOP, async (p) => { await p.goto(`${WEB}/sites`, { waitUntil: "networkidle0" }); }],
   ["settings", { ...DESKTOP, height: 1100 }, async (p, c) => { await p.goto(`${c.docs}/settings`, { waitUntil: "networkidle0" }); }],
   ["members", DESKTOP, async (p, c) => { await p.goto(`${c.docs}/members`, { waitUntil: "networkidle0" }); }],
