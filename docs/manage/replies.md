@@ -26,7 +26,7 @@ Replies need a working [email service](../notifications/index.md). They use the 
 * The person's address is shown partly hidden in the app.
 * The [audit log](../security/audit-log.md) records that a reply happened and how it went, but not its text
   or the address.
-* Webhook channels can subscribe to `feedback.replied`. It carries ids and the reply length, but not the text.
+* Webhook channels can subscribe to `feedback.replied`. It carries ids and the reply length, and the text too if the channel has **Include the text of replies** on.
 
 ## What Loupebox is not
 

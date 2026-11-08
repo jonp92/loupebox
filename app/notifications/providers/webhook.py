@@ -46,6 +46,13 @@ class WebhookConfig(BaseModel):
         title="Endpoint URL", max_length=netguard.MAX_URL, description="Must be a public https URL."
     )
 
+    include_reply_text: bool = Field(
+        default=False,
+        title="Include the text of replies",
+        description="Adds the reply text to feedback.replied events. Off by default: replies are private to "
+        "your team and the person who wrote in.",
+    )
+
     @field_validator("url")
     @classmethod
     def _safe_url(cls, v: str) -> str:

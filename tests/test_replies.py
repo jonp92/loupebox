@@ -1,13 +1,17 @@
+import json
+
 import pytest
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from app.core.config import settings
 from app.models import AuditEvent, Feedback, FeedbackReply, FeedbackStatus, NotificationOutbox, Role
 from app.notifications import registry
 from app.notifications.base import SendResult
+from app.notifications.dispatcher import process_due
 from tests.conftest import make_site
 from tests.test_bulk_filters import as_role, seed
 from tests.test_notifications import FakeProvider, make_channel
+from tests.test_webhook import dns, make_webhook, receiver  # noqa: F401 (fixtures; dns is autouse)
 
 PERSON = "visitor@example.org"
 
@@ -206,3 +210,34 @@ def test_replied_event_goes_to_webhook_channels_only_and_carries_no_text(client,
         "reply_id": reply_id,
         "length": len(body),
     }
+
+
+@pytest.mark.parametrize("opted_in", [True, False])
+def test_reply_text_goes_to_webhooks_only_when_the_channel_opts_in(
+    client, db, setup, mail, receiver, opted_in
+):
+    site, h, item = setup
+    channel, _ = make_webhook(db, site, events=["feedback.replied"])
+    channel.config = {**channel.config, "include_reply_text": opted_in}
+    db.commit()
+    body = "private words"
+    reply(client, site, item, h, body=body)
+    (row,) = db.scalars(select(NotificationOutbox))
+    assert "text" not in row.payload  # never queued
+    process_due(db)
+    [request] = receiver.requests
+    data = json.loads(request.content)["data"]
+    assert data["length"] == len(body)
+    assert data.get("text") == (body if opted_in else None)
+
+
+def test_reply_deleted_before_delivery_goes_without_text(client, db, setup, mail, receiver):
+    site, h, item = setup
+    channel, _ = make_webhook(db, site, events=["feedback.replied"])
+    channel.config = {**channel.config, "include_reply_text": True}
+    db.commit()
+    reply(client, site, item, h)
+    db.execute(delete(FeedbackReply))
+    db.commit()
+    process_due(db)
+    assert "text" not in json.loads(receiver.requests[0].content)["data"]
