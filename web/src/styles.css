@@ -72,6 +72,7 @@ input, select, textarea { font-family: inherit; }
 .users-table thead th { color: var(--text-muted); font: var(--weight-medium) var(--text-label)/1 var(--font-mono); letter-spacing: var(--tracking-label); text-transform: uppercase; white-space: nowrap; border-top: 1px solid var(--border-row); }
 .users-table tbody tr:hover { background: var(--surface-selected); }
 .users-table tbody th { font-weight: 600; }
+.users-table td.quiet { color: var(--text-muted); font-size: var(--text-data); }
 .user-name { display: inline-flex; align-items: center; gap: .6rem; }
 .users-table tr.inactive .user-name { opacity: .6; } /* on the content, not the cell, so its border stays */
 .user-email { font: var(--text-data) var(--font-mono); color: var(--text-secondary); overflow-wrap: anywhere; }
@@ -400,9 +401,13 @@ code.key { display: inline-block; margin: 0 .75rem var(--space-4) 0; background:
   .users-table th, .users-table td { padding: 0; border: 0; }
   .users-table tbody th { flex: 1 1 0; min-width: 0; overflow-wrap: anywhere; }
   .users-table .user-email { order: 1; flex-basis: 100%; padding-left: calc(28px + .6rem); }
-  .users-table td[data-label] { order: 2; }
-  .users-table td[data-label="Role"] { padding-left: calc(28px + .6rem); }
+  .users-table td[data-label] { order: 2; display: flex; align-items: center; gap: var(--space-2); } /* label and value on one centre line */
+  .users-table td[data-label="Role"] { order: 3; margin-left: auto; } /* the Superadmin badge ends the 2FA line, at the right edge, unlabelled */
+  .users-table td[data-label="Role"]::before { display: none; }
+  .users-table td[data-label="2FA"] { padding-left: calc(28px + .6rem); }
   .users-table td[data-label="Status"]::before { display: none; }
+  /* Visually hidden, but still read out: an active account is not drawn on a phone. */
+  .users-table td.quiet { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .users-table td[data-label]::before { content: attr(data-label) " "; color: var(--text-muted); font: var(--text-label) var(--font-mono); letter-spacing: var(--tracking-label); text-transform: uppercase; margin-right: var(--space-1); }
   .toolbar input[type=search] { max-width: none; }
   .user-actions button, .user-actions .menu-btn { min-width: 44px; min-height: 44px; }

@@ -14,6 +14,11 @@ change between releases; breaking changes are called out below.
   Unassigned, and bulk status change and "assign to me" for the items you can edit. The item page's back link returns
   to the filtered inbox. The Dashboard links into it. **API:** `GET /inbox`, `GET /inbox/counts`, `POST /inbox/bulk`.
 
+### Changed
+- The Users list draws only what stands out: the Superadmin badge and a Disabled account. A plain user and an active
+  account are shown as quiet text (and not at all on phones, where they are still read out by screen readers). "2FA off"
+  is a muted ring instead of a red dot, since 2FA is optional and red is kept for real problems.
+
 ## [0.1.0-alpha.11] - 2026-11-07
 
 ### Changed
