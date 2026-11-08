@@ -38,7 +38,7 @@ Not allowed: glassy gradients, cyan glow, a rounded card for every stat, decorat
 
 ## Shape and layout
 
-- Prefer ruled rows and hairlines. Use cards only for feedback items, sheets and menus. A card gets `--surface`, `--border` and `--radius-card`.
+- Prefer ruled rows and hairlines. Use cards only for the feedback detail, sheets and menus; feedback lists are ruled rows. A card gets `--surface`, `--border` and `--radius-card`.
 - Badges and tags are outlined, `--radius-tag`, mono uppercase. All roles use a badge. Superadmin's border is `--accent`.
 - Every interactive element is at least `--target-min` tall and wide. Inputs are `--input-height`.
 - Shell: persistent sidebar (`--sidebar-width`) at 1024px and up, off-canvas drawer below. Sidebar groups: **Triage** (Dashboard, Sites) and **Admin** (Users, Audit, System). Active item: `--surface-selected` with a 2px `--accent` left edge.
@@ -48,8 +48,9 @@ Not allowed: glassy gradients, cyan glow, a rounded card for every stat, decorat
 ## Components
 
 - **Logo:** a loupe ring in `--accent` with a check inside, plus the wordmark in sans, weight 600.
-- **Unread status:** an amber filled gem plus the mono label `UNREAD` in `--unread-text`, and a 3px left edge in `--unread-edge`. Read items use an outlined gem in `--text-muted`. Archived uses a box icon.
-- **Feedback item:** a card with checkbox, status, category chip, title (`--text-row`, weight 600 when unread), mono email, then assignee, tag, "Replied" (brass) and attachment count. Compact density puts it in three columns on desktop.
+- **Unread status:** an amber filled gem plus the mono label `UNREAD` in `--unread-text`, and a straight 3px left edge in `--unread-edge` on the row. Read items use an outlined gem in `--text-muted`. Archived uses a box icon.
+- **Feedback item:** a ruled row (hairline below, no radius, no fill; the unread edge is an inset bar) with checkbox, status, category chip, title (`--text-row`, weight 600 when unread), mono email, then assignee, tag, "Replied" (brass) and attachment count. Compact density puts it in three columns on desktop.
+- **Row hover:** the whole row, edge included, fills with `--surface` with square corners. Never round the hover or outline only part of the row; `--surface-selected` is not used because muted, accent and unread text fall under 4.5:1 on it.
 - **Stat rows:** a label, then dotted leader, then a mono numeral. No box.
 - **Received-count medallion:** a brass lens ring with tick marks and a short handle around the mono count. Use it once per screen at most, only on the dashboard.
 - **Empty state:** a hollow gem in `--text-muted`, a short plain sentence, and a mono "CLEAR" tag. No illustrations.
