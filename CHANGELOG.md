@@ -15,6 +15,11 @@ change between releases; breaking changes are called out below.
   retention and image storage events can be filtered, and new audited actions need no UI change.
 
 ### Added
+- Answers by email: a person's answer to a reply is read from an IMAP mailbox and shown in the conversation as a
+  **Customer** entry, and the item goes back to unread. Replies carry a `replies+code@your-domain` Reply-To, only
+  the person who wrote the feedback can answer, quoted text is cut, automatic replies are ignored and a bounce
+  marks your reply as failed. Off until `INBOUND_ADDRESS` and `IMAP_HOST` are set (also on the System page).
+  Webhook channels can subscribe to `feedback.customer_replied`. Sources are pluggable (`app/inbound/sources/`).
 - System settings: minimum password length, and an option to require two-factor authentication for everyone.
   `python -m scripts.reset_totp --stop-requiring` removes the requirement if no one can sign in.
 - Webhook channels can include the reply text in `feedback.replied` events (off by default).

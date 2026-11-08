@@ -99,6 +99,16 @@ class FeedbackReply(Base):
     """
 
     __tablename__ = "feedback_replies"
+    __table_args__ = (
+        # An inbound mail is stored once even if two sources (or a retry) deliver it twice.
+        Index(
+            "uq_feedback_replies_inbound_message_id",
+            "message_id",
+            unique=True,
+            postgresql_where=text("direction = 'inbound' AND message_id IS NOT NULL"),
+            sqlite_where=text("direction = 'inbound' AND message_id IS NOT NULL"),
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     feedback_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("feedback.id", ondelete="CASCADE"), index=True)

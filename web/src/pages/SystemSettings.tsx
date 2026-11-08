@@ -20,7 +20,7 @@ const shown = (v: unknown) => (Array.isArray(v) ? v.join(", ") : v === "" || v =
 /** Tabs in display order: URL segment, label and the setting groups each one shows. */
 const TABS = [
   { path: "status", label: "Status", groups: ["Server"] },
-  { path: "email", label: "Email & notifications", groups: ["Email", "Notifications"] },
+  { path: "email", label: "Email & notifications", groups: ["Email", "Inbound email", "Notifications"] },
   { path: "form", label: "Public form", groups: ["Public feedback form"] },
   { path: "storage", label: "Image storage", groups: ["Image storage"] },
   { path: "accounts", label: "Accounts & limits", groups: ["Sign-in and accounts", "Replies and data"] },

@@ -27,6 +27,7 @@ nav = [
     { "Triage" = "manage/triage.md" },
     { "Assign, tag and note" = "manage/assign-tags-notes.md" },
     { "Reply to people" = "manage/replies.md" },
+    { "Answers by email" = "manage/inbound-email.md" },
     { "Export" = "manage/export.md" },
     { "Images" = "manage/images.md" },
     { "Retention and erasure" = "manage/retention.md" },

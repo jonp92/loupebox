@@ -15,6 +15,8 @@ from app.core.audit import audit
 from app.core.config import settings
 from app.core.rate_limit import enforce
 from app.db.session import get_db
+from app.inbound.registry import inbound_enabled
+from app.inbound.token import reply_address
 from app.models import Feedback, FeedbackReply, FeedbackStatus, Role, User, user_name
 from app.notifications import system_mail
 from app.notifications.outbox import enqueue_reply_sent
@@ -54,11 +56,14 @@ def _check_can_send(db: Session, item: Feedback, access: SiteAccess) -> None:
 
 def _deliver(db: Session, access: SiteAccess, item: Feedback, reply: FeedbackReply) -> None:
     """Send `reply` and record the outcome on it (the caller commits)."""
+    # With inbound email on, the answer comes back to the shared mailbox (and into the conversation);
+    # otherwise it goes straight to the person who replied.
+    inbound = reply_address(item.id) if inbound_enabled() else None
     subject, text, html = system_mail.reply_message(
-        access.site.name, reply.body, item.message, _author_name(db, access.user)
+        access.site.name, reply.body, item.message, None if inbound else _author_name(db, access.user)
     )
     result = system_mail.send_system_email(
-        item.email, subject, text, html, "feedback.reply", reply_to=access.user.email
+        item.email, subject, text, html, "feedback.reply", reply_to=inbound or access.user.email
     )
     reply.status = "sent" if result.status == "sent" else "failed"
     reply.retryable = result.status == "retry"
@@ -93,7 +98,9 @@ def list_replies(
         .order_by(FeedbackReply.created_at)
     )
     return ReplyThread(
-        available=system_mail.mail_provider() is not None, items=[_out(r, name) for r, name in rows]
+        available=system_mail.mail_provider() is not None,
+        inbound=inbound_enabled(),
+        items=[_out(r, name) for r, name in rows],
     )
 
 

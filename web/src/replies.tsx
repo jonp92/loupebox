@@ -110,7 +110,9 @@ export function Conversation({ siteId, item, canEdit, canDeleteAny, meId }: {
               <option value="note">Internal note</option>
             </select>
             <span className="muted">
-              {current === "reply" ? `Emailed to ${item.email}` : "Only your team sees this"}
+              {current === "reply"
+                ? `Emailed to ${item.email}${thread?.inbound ? ". Their answer comes back here" : ""}`
+                : "Only your team sees this"}
             </span>
           </div>
           {replyBlock && <p className="muted">{replyBlock}</p>}

@@ -51,7 +51,7 @@ def test_reply_is_emailed_to_the_submitter_and_recorded(client, db, setup, mail)
     assert "Thanks, fixing it now." in sent.text and "The cart is broken" in sent.text
     assert db.scalar(select(FeedbackReply.message_id)) == "m-1"
     thread = client.get(url(site, item), headers=h).json()
-    assert thread["available"] is True
+    assert thread["available"] is True and thread["inbound"] is False
     assert [(i["body"], i["author_name"]) for i in thread["items"]] == [
         ("Thanks, fixing it now.", "ed@example.com")
     ]

@@ -23,7 +23,7 @@ const DELIVERY_TONE: Record<string, StatusTone> = { sent: "ok", failed: "danger"
 
 const ROLES: Role[] = ["viewer", "editor", "admin"];
 // `machine` events only make sense for endpoints that feed other systems, not for email.
-const EVENTS = [{ key: "feedback.created", label: "New feedback", machine: false }, { key: "feedback.replied", label: "A reply was sent", machine: true }];
+const EVENTS = [{ key: "feedback.created", label: "New feedback", machine: false }, { key: "feedback.replied", label: "A reply was sent", machine: true }, { key: "feedback.customer_replied", label: "The person answered by email", machine: true }];
 const SPLIT = /[\s,;]+/;
 const NO_TYPE = "(none)";
 const NO_FILTERS: ChannelFilters = { issue_types: [], rating_min: null, rating_max: null, has_email: null, page_contains: "" };

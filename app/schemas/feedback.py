@@ -231,6 +231,7 @@ class ReplyThread(BaseModel):
     """`available` is false when no mail provider is configured, so the UI can say why it cannot send."""
 
     available: bool
+    inbound: bool = False  # the person's answers come back into this conversation
     items: list[ReplyOut]
 
 

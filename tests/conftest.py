@@ -20,6 +20,7 @@ from app.core.rate_limit import limiter
 from app.core.security import hash_password
 from app.db.base import Base
 from app.db.session import get_engine, get_sessionmaker
+from app.inbound.sources import imap
 from app.main import app
 from app.models import Membership, Role, Site, User
 from app.notifications.providers import brevo, smtp, webhook
@@ -51,6 +52,10 @@ def _loopback_only_smtp():
     return _real_smtp_connect()
 
 
+def _no_imap():
+    raise AssertionError("a test tried to open an IMAP connection")
+
+
 @pytest.fixture(autouse=True)
 def _isolated_from_dotenv(monkeypatch):
     """Settings also read the developer's real .env (Brevo key, PUBLIC_URL, ...). Tests must never see it,
@@ -64,11 +69,16 @@ def _isolated_from_dotenv(monkeypatch):
         ("smtp_host", ""),
         ("smtp_username", ""),
         ("smtp_password", ""),
+        ("imap_host", ""),
+        ("imap_username", ""),
+        ("imap_password", ""),
+        ("inbound_address", ""),
     ):
         monkeypatch.setattr(settings, name, value)
     monkeypatch.setattr(brevo, "_transport", lambda: httpx.MockTransport(_no_network))
     monkeypatch.setattr(webhook, "_transport", lambda: httpx.MockTransport(_no_network))
     monkeypatch.setattr(smtp, "_connect", _loopback_only_smtp)
+    monkeypatch.setattr(imap, "_connect", _no_imap)
 
 
 @pytest.fixture(autouse=True)

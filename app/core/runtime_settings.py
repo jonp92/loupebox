@@ -63,6 +63,7 @@ class Spec:
 
 
 _EMAIL = "Email"
+_INBOUND = "Inbound email"
 _NOTIFY = "Notifications"
 _INGEST = "Public feedback form"
 _SIGNIN = "Sign-in and accounts"
@@ -101,6 +102,22 @@ SPECS: dict[str, Spec] = {
     "smtp_username": Spec(_EMAIL, "SMTP username"),
     "smtp_password": Spec(_EMAIL, "SMTP password", secret=True),
     "smtp_timeout": Spec(_EMAIL, "SMTP timeout (seconds)", minimum=1, maximum=120),
+    # Inbound email
+    "inbound_address": Spec(
+        _INBOUND,
+        "Reply address",
+        "The mailbox customers answer to, such as replies@example.com. It must accept plus-addressing "
+        "(replies+anything@example.com). Empty: replies go to the person who wrote them.",
+        pattern=r"^$|^[^@\s+]+@[^@\s]+$",
+        hint="an email address such as replies@example.com, without a + part",
+    ),
+    "imap_host": Spec(_INBOUND, "IMAP host", "The worker reads this mailbox. Empty: no inbound email."),
+    "imap_port": Spec(_INBOUND, "IMAP port", "993 with ssl, 143 with starttls.", minimum=1, maximum=65535),
+    "imap_security": Spec(_INBOUND, "IMAP security", "none never sends the username and password."),
+    "imap_username": Spec(_INBOUND, "IMAP username"),
+    "imap_password": Spec(_INBOUND, "IMAP password", secret=True),
+    "imap_folder": Spec(_INBOUND, "IMAP folder"),
+    "imap_poll_seconds": Spec(_INBOUND, "Check for replies every (seconds)", minimum=10, maximum=3600),
     # Notifications
     "notify_hourly_cap": Spec(
         _NOTIFY, "Emails per channel per hour", "The rest are rolled into one summary.", minimum=1
