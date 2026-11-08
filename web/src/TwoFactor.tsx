@@ -1,3 +1,4 @@
+import { autoFocusField } from "./focus";
 import { useMemo, useState, type FormEvent } from "react";
 import qrcode from "qrcode-generator";
 import { api, json, totpChange, type Me } from "./api";
@@ -112,7 +113,7 @@ export default function TwoFactor() {
           <p>Scan this with your authenticator app, then enter the 6-digit code it shows.</p>
           <QrCode text={setup.uri} />
           <p className="muted hint">Can't scan? Enter this key instead: <code>{setup.secret}</code></p>
-          <label>Code<input name="code" inputMode="numeric" pattern="[0-9 ]*" maxLength={7} autoComplete="one-time-code" required autoFocus /></label>
+          <label>Code<input name="code" inputMode="numeric" pattern="[0-9 ]*" maxLength={7} autoComplete="one-time-code" required autoFocus={autoFocusField} /></label>
           <label>Password<input name="password" type="password" autoComplete="current-password" required /></label>
           <div className="row-actions">
             <button type="button" onClick={() => setSetup(null)}>Cancel</button>
@@ -128,7 +129,7 @@ export default function TwoFactor() {
           {mode ? (
             <form onSubmit={proof} className="totp-proof">
               <p className="muted">{mode === "disable" ? "Confirm to turn off two-factor authentication." : "Confirm to replace your recovery codes. The old ones stop working."}</p>
-              <label>Password<input name="password" type="password" autoComplete="current-password" required autoFocus /></label>
+              <label>Password<input name="password" type="password" autoComplete="current-password" required autoFocus={autoFocusField} /></label>
               <label>Authenticator or recovery code<input name="code" autoComplete="one-time-code" maxLength={16} required /></label>
               <div className="row-actions">
                 <button type="button" onClick={() => setMode(null)}>Cancel</button>

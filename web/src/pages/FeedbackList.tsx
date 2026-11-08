@@ -1,3 +1,4 @@
+import { autoFocusField } from "../focus";
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { api, download, json, type Feedback, type Site, type Status } from "../api";
@@ -250,7 +251,7 @@ export default function FeedbackList({ site }: { site: Site }) {
       <div className="list-head">
         <div className="quick-tabs" role="group" aria-label="Whose feedback">
           {quickTab("", "All")}
-          {me && canBeAssigned && quickTab(me.id, "Assigned to me", counts && fmtCount(counts.mine, Boolean(counts.mine_capped)))}
+          {me && canBeAssigned && quickTab(me.id, "My work", counts && fmtCount(counts.mine, Boolean(counts.mine_capped)))}
           {quickTab("none", "Unassigned", counts && fmtCount(counts.unassigned, Boolean(counts.unassigned_capped)))}
         </div>
         <div className="density" role="radiogroup" aria-label="List density">
@@ -374,7 +375,7 @@ export default function FeedbackList({ site }: { site: Site }) {
           {canDelete && <button className="danger" onClick={() => bulk({ action: "delete" })}>Delete</button>}
           {tagging && (
             <form className="inline" onSubmit={(e) => { e.preventDefault(); bulkAddTag(); }}>
-              <input value={bulkTag} onChange={(e) => setBulkTag(e.target.value)} placeholder="Tag selected…" maxLength={32} aria-label="Tag to add to selected" list="site-tags" autoFocus />
+              <input value={bulkTag} onChange={(e) => setBulkTag(e.target.value)} placeholder="Tag selected…" maxLength={32} aria-label="Tag to add to selected" list="site-tags" autoFocus={autoFocusField} />
             </form>
           )}
         </div>

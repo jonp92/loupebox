@@ -231,10 +231,10 @@ export default function Notifications({ site }: { site: Site }) {
               <strong className="ruled-title">{c.name}</strong>
               <span className="channel-meta">
                 <Badge>{label(c.provider)}</Badge>
-                <Status tone={c.enabled ? "ok" : "muted"}>{c.enabled ? "enabled" : "disabled"}</Status>
-                {!configured(c.provider) && <Status tone="danger">not configured</Status>}
                 {info(c.provider)?.uses_recipients !== false && <Badge>{c.min_role}+</Badge>}
                 {c.extra_recipients.length > 0 && <Badge>+{c.extra_recipients.length} extra</Badge>}
+                <Status tone={c.enabled ? "ok" : "muted"}>{c.enabled ? "enabled" : "disabled"}</Status>
+                {!configured(c.provider) && <Status tone="danger">not configured</Status>}
               </span>
             </span>
             <span className="row-actions">

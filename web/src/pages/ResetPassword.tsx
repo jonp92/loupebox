@@ -1,3 +1,4 @@
+import { autoFocusField } from "../focus";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ThemeToggle } from "../shell";
@@ -36,7 +37,7 @@ export function ForgotPassword() {
         ) : (
           <>
             <p className="muted">Enter your email and we'll send you a link to choose a new password.</p>
-            <label>Email<input name="email" type="email" autoComplete="username" required autoFocus /></label>
+            <label>Email<input name="email" type="email" autoComplete="username" required autoFocus={autoFocusField} /></label>
             {error && <p className="error" role="alert">{error}</p>}
             <button className="primary block" disabled={busy}>{busy ? "Sending…" : "Send reset link"}</button>
           </>
@@ -96,7 +97,7 @@ export function ResetPassword() {
         ) : token ? (
           <>
             <p className="muted">You'll be signed out everywhere and asked to sign in again.</p>
-            <label>New password <small>(12+ characters)</small><input name="new" type="password" autoComplete="new-password" minLength={12} required autoFocus /></label>
+            <label>New password <small>(12+ characters)</small><input name="new" type="password" autoComplete="new-password" minLength={12} required autoFocus={autoFocusField} /></label>
             <label>Confirm new password<input name="confirm" type="password" autoComplete="new-password" minLength={12} required /></label>
             {error && <p className="error" role="alert">{error}</p>}
             <button className="primary block" disabled={busy}>{busy ? "Saving…" : "Change password"}</button>

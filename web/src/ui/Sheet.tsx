@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { Icon } from "../icons";
-
+import { autoFocusField } from "../focus";
 /**
  * A modal for create flows: a bottom sheet on phones, a centered dialog from 640px up. It is a native <dialog>, so
  * the browser traps focus, makes the page behind inert and closes it on Escape. The children are only mounted while
@@ -15,7 +15,7 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
     if (!d) return;
     if (open && !d.open) {
       d.showModal();
-      d.querySelector<HTMLElement>("input, select, textarea")?.focus(); // the first field, not the close button
+      if (autoFocusField) d.querySelector<HTMLElement>("input, select, textarea")?.focus(); // the first field, not the close button
     } else if (!open && d.open) d.close();
   }, [open]);
 

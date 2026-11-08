@@ -1,3 +1,4 @@
+import { autoFocusField } from "../focus";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { api } from "../api";
@@ -67,7 +68,7 @@ export default function Login() {
         <form className="login-card" onSubmit={submit}>
           <h1><Logo wordmark size={44} /></h1>
           <p className="muted">Sign in to review feedback</p>
-          <label>Email<input name="email" type="email" autoComplete="username" required autoFocus /></label>
+          <label>Email<input name="email" type="email" autoComplete="username" required autoFocus={autoFocusField} /></label>
           <label>Password<input name="password" type="password" autoComplete="current-password" required /></label>
           {error && <p className="error" role="alert">{error}</p>}
           <button className="primary block" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
@@ -85,7 +86,7 @@ export default function Login() {
             <input
               name="code"
               required
-              autoFocus
+              autoFocus={autoFocusField}
               autoComplete="one-time-code"
               {...(recovery
                 ? { placeholder: "xxxxx-xxxxx", maxLength: 16 }
