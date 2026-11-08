@@ -1,4 +1,5 @@
 import { autoFocusField } from "../focus";
+import { usePolicy } from "../passwordPolicy";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ThemeToggle } from "../shell";
@@ -55,6 +56,7 @@ export function ResetPassword() {
   const [done, setDone] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const min = usePolicy().passwordMinLength;
 
   useEffect(() => {
     const found = new URLSearchParams(hash.slice(1)).get("token");
@@ -97,8 +99,8 @@ export function ResetPassword() {
         ) : token ? (
           <>
             <p className="muted">You'll be signed out everywhere and asked to sign in again.</p>
-            <label>New password <small>(12+ characters)</small><input name="new" type="password" autoComplete="new-password" minLength={12} required autoFocus={autoFocusField} /></label>
-            <label>Confirm new password<input name="confirm" type="password" autoComplete="new-password" minLength={12} required /></label>
+            <label>New password <small>({min}+ characters)</small><input name="new" type="password" autoComplete="new-password" minLength={min} required autoFocus={autoFocusField} /></label>
+            <label>Confirm new password<input name="confirm" type="password" autoComplete="new-password" minLength={min} required /></label>
             {error && <p className="error" role="alert">{error}</p>}
             <button className="primary block" disabled={busy}>{busy ? "Saving…" : "Change password"}</button>
           </>

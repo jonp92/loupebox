@@ -67,13 +67,14 @@ class MeResponse(BaseModel):
     avatar_url: str | None
     is_superadmin: bool
     totp_enabled: bool
+    totp_required: bool  # policy is on and this account has no 2FA yet: it can only set it up
     recovery_codes_left: int
     memberships: list[MembershipOut]
 
 
 class PasswordChange(BaseModel):
     current_password: str = Field(max_length=256)
-    new_password: str = Field(min_length=12, max_length=256)
+    new_password: str = Field(max_length=256)  # minimum length: accounts.new_password_hash
 
 
 class PasswordResetRequest(BaseModel):
@@ -82,18 +83,20 @@ class PasswordResetRequest(BaseModel):
 
 class PasswordResetConfirm(BaseModel):
     token: str = Field(min_length=1, max_length=256)
-    new_password: str = Field(min_length=12, max_length=256)
+    new_password: str = Field(max_length=256)
 
 
 class FeaturesOut(BaseModel):
     password_reset: bool
+    password_min_length: int
+    require_totp: bool
 
 
 class UserCreate(BaseModel):
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
     email: EmailStr
-    password: str = Field(min_length=12, max_length=256)
+    password: str = Field(max_length=256)
     is_superadmin: bool = False
 
 
@@ -121,4 +124,4 @@ class UserUpdate(BaseModel):
     email: EmailStr | None = None
     is_active: bool | None = None
     is_superadmin: bool | None = None
-    password: str | None = Field(default=None, min_length=12, max_length=256)
+    password: str | None = Field(default=None, max_length=256)

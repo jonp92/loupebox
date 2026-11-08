@@ -12,11 +12,11 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request,
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
-from app.core.accounts import revoke_sessions
+from app.core.accounts import new_password_hash, revoke_sessions
 from app.core.audit import audit
 from app.core.config import settings
 from app.core.rate_limit import clear_login_failures, client_ip, enforce
-from app.core.security import hash_password, hash_token, new_refresh_token
+from app.core.security import hash_token, new_refresh_token
 from app.db.session import get_db, get_sessionmaker
 from app.models import PasswordResetToken, User
 from app.models.user import utcnow
@@ -30,8 +30,13 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.get("/features")
 def features() -> FeaturesOut:
-    """What the login page can offer. Public: it only says whether reset links can be sent."""
-    return FeaturesOut(password_reset=system_mail.password_reset_available())
+    """What the sign-in and reset pages need. Public: whether reset links can be sent, the minimum
+    password length, and whether 2FA is required."""
+    return FeaturesOut(
+        password_reset=system_mail.password_reset_available(),
+        password_min_length=settings.password_min_length,
+        require_totp=settings.require_totp,
+    )
 
 
 def _send_reset_email(email: str) -> None:
@@ -107,7 +112,7 @@ def confirm_reset(
     if row.expires_at < now or user is None or not user.is_active:
         raise invalid
 
-    user.password_hash = hash_password(body.new_password)
+    user.password_hash = new_password_hash(body.new_password)
     db.execute(  # this link and any other outstanding ones are spent
         update(PasswordResetToken)
         .where(PasswordResetToken.user_id == user.id, PasswordResetToken.used_at.is_(None))
