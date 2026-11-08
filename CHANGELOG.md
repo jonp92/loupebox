@@ -7,6 +7,8 @@ change between releases; breaking changes are called out below.
 ## [Unreleased]
 
 ### Changed
+- Feedback detail: customer replies, replies sent by email and internal notes now share one conversation
+  timeline. A selector on the form chooses between "Reply to customer (email)" and "Internal note".
 - Audit log: the type and action filters now list what is actually in the log, so exports, personal data,
   retention and image storage events can be filtered, and new audited actions need no UI change.
 

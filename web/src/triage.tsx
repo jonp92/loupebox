@@ -1,8 +1,7 @@
 import {
   useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode,
 } from "react";
-import { api, json, type Assignee, type Feedback, type Note } from "./api";
-import { useToast } from "./toast";
+import { api, type Assignee, type Feedback } from "./api";
 import { Badge } from "./ui/Badge";
 import { Status, type StatusTone } from "./ui/Status";
 
@@ -256,56 +255,6 @@ export function Tags({ item, canEdit, onChange }: { item: Feedback; canEdit: boo
       {canEdit && (
         <form onSubmit={add}>
           <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Add tag…" maxLength={32} aria-label="Add a tag" list="site-tags" />
-        </form>
-      )}
-    </div>
-  );
-}
-
-/** Internal notes. Viewers read them; editors write; the author or an admin deletes. */
-export function Notes({ siteId, itemId, canEdit, canDeleteAny, meId }: {
-  siteId: string; itemId: string; canEdit: boolean; canDeleteAny: boolean; meId: string;
-}) {
-  const base = `/sites/${siteId}/feedback/${itemId}/notes`;
-  const [notes, setNotes] = useState<Note[] | null>(null);
-  const [body, setBody] = useState("");
-  const toast = useToast();
-  const [error, setError] = useState("");
-  useEffect(() => { api<Note[]>(base).then(setNotes, (e) => setError(e.message)); }, [base]);
-  async function add(e: FormEvent) {
-    e.preventDefault();
-    await toast.attempt(
-      api<Note>(base, json("POST", { body })).then((note) => {
-        setNotes((cur) => [...(cur ?? []), note]);
-        setBody("");
-      }),
-      "Note added",
-    );
-  }
-  async function remove(id: string) {
-    await toast.attempt(
-      api(`${base}/${id}`, { method: "DELETE" }).then(() => setNotes((cur) => (cur ?? []).filter((n) => n.id !== id))),
-      "Note deleted",
-    );
-  }
-  return (
-    <div className="notes">
-      <p className="muted">Internal notes. Never shown to the person who sent the feedback.</p>
-      {notes?.length === 0 && <p className="muted">No notes yet.</p>}
-      <ul>
-        {(notes ?? []).map((n) => (
-          <li key={n.id}>
-            <span className="muted">{n.author_name ?? "Someone who has left"} · {new Date(n.created_at).toLocaleString()}</span>
-            {(n.author_id === meId || canDeleteAny) && <button type="button" className="link" onClick={() => remove(n.id)}> Delete</button>}
-            <p>{n.body}</p>
-          </li>
-        ))}
-      </ul>
-      {error && <p className="error">{error}</p>}
-      {canEdit && (
-        <form onSubmit={add}>
-          <textarea value={body} onChange={(e) => setBody(e.target.value)} maxLength={2000} placeholder="Add a note…" aria-label="New note" />
-          <button disabled={!body.trim()}>Add note</button>
         </form>
       )}
     </div>
