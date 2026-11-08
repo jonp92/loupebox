@@ -53,18 +53,18 @@ export default function Profile() {
     <>
       <div className="page-head"><h1>Your profile</h1></div>
 
-      <section className="card profile-head">
+      <section className="profile-head">
         <Avatar user={me} size="xl" />
         <div>
           <h2>{displayName(me)}</h2>
-          <p className="muted">{me.email}</p>
+          <p className="person">{me.email}</p>
           <p className="muted hint">
             {me.is_superadmin ? "Superadmin. " : ""}Name and email are managed by a superadmin.
           </p>
         </div>
       </section>
 
-      <section className="card">
+      <section className="panel">
         <h2>Avatar</h2>
         <div className="avatar-row">
           <Avatar user={me} size="lg" />
@@ -75,10 +75,11 @@ export default function Profile() {
         <p className="muted hint">Images are cropped to a square and resized to {AVATAR_SIZE}×{AVATAR_SIZE}.</p>
       </section>
 
-      <form className="card" onSubmit={submitPassword}>
+      <form className="panel" onSubmit={submitPassword}>
         <h2>Change password</h2>
         <label>Current password<input name="current" type="password" autoComplete="current-password" required /></label>
-        <label>New password <small>(12+ characters)</small><input name="new" type="password" autoComplete="new-password" minLength={12} required /></label>
+        <label>New password<input name="new" type="password" autoComplete="new-password" minLength={12} required aria-describedby="new-pw-hint" /></label>
+        <p id="new-pw-hint" className="hint muted">At least 12 characters.</p>
         <label>Confirm new password<input name="confirm" type="password" autoComplete="new-password" minLength={12} required /></label>
         <button className="primary" disabled={busy}>Change password</button>
       </form>

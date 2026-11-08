@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { api } from "../api";
-import { ThemeToggle } from "../App";
+import { ThemeToggle } from "../shell";
 import { useAuth } from "../auth";
 import { Logo } from "../components";
 

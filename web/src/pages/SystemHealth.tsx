@@ -2,22 +2,26 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type HealthStatus, type InstanceHealth } from "../api";
 import { ago } from "../triage";
+import { Icon } from "../icons";
+import { Status, type StatusTone } from "../ui/Status";
 
 const REFRESH_MS = 30_000;
-// Text as well as color, and reuses the existing badge colors (ok / warn / danger).
-const BADGE: Record<HealthStatus, { cls: string; text: string }> = {
-  ok: { cls: "read", text: "Healthy" },
-  warn: { cls: "pending", text: "Attention" },
-  error: { cls: "failed", text: "Down" },
+// A mark and a word, never color alone. There is no warning color: caution is a muted mark with a label.
+const BADGE: Record<HealthStatus, { tone: StatusTone; text: string }> = {
+  ok: { tone: "ok", text: "Healthy" },
+  warn: { tone: "muted", text: "Attention" },
+  error: { tone: "danger", text: "Down" },
 };
 
 function Check({ title, status, children }: { title: string; status: HealthStatus; children: React.ReactNode }) {
   return (
-    <div className="stat">
-      <span className="muted">{title}</span>
-      <span><span className={`badge ${BADGE[status].cls}`}>{BADGE[status].text}</span></span>
-      <span className="hint muted">{children}</span>
-    </div>
+    <li className="check-row">
+      <span className="ruled-main-col">
+        <strong>{title}</strong>
+        <span className="check-detail">{children}</span>
+      </span>
+      <Status tone={BADGE[status].tone}>{BADGE[status].text}</Status>
+    </li>
   );
 }
 
@@ -49,13 +53,16 @@ export default function SystemHealth() {
   const { worker, outbox } = health ?? {};
   return (
     <section aria-labelledby="health-title">
-      <div className="page-head">
-        <h2 id="health-title">Instance health</h2>
-        <button type="button" onClick={load}>Refresh</button>
+      <div className="section-head">
+        <div>
+          <h2 id="health-title">Instance health</h2>
+          {health && worker && outbox && <p className="muted section-sub">{[health.database, worker.status, outbox.status, health.redis].filter((x) => x === "ok").length} of {health.redis ? 4 : 3} services healthy</p>}
+        </div>
+        <button type="button" onClick={load}><Icon name="refresh" size={18} />Refresh</button>
       </div>
       {error && <p className="error" role="alert">{error}</p>}
       {health && worker && outbox && (
-        <div className="stats">
+        <ul className="ruled">
           <Check title="Database" status={health.database}>Connected</Check>
           <Check title="Worker" status={worker.status}>
             {worker.last_beat_at
@@ -72,16 +79,16 @@ export default function SystemHealth() {
               {health.redis === "ok" ? "Connected" : "Unreachable, rate limits are per API container"}
             </Check>
           )}
-        </div>
+        </ul>
       )}
       {outbox && outbox.recent_failures.length > 0 && (
         <>
-          <h3 id="failures-title">Recent failures</h3>
-          <ul className="failures" aria-labelledby="failures-title">
+          <h3 id="failures-title" className="section-label">Recent failures</h3>
+          <ul className="ruled failures" aria-labelledby="failures-title">
             {outbox.recent_failures.map((f, i) => (
               <li key={i}>
                 <strong>{f.site}</strong>
-                <span className="muted">
+                <span className="check-detail">
                   {f.channel ? `${f.channel} (${f.provider})` : "deleted channel"}, queued {since(f.queued_at)}, {f.attempts}{" "}
                   {f.attempts === 1 ? "attempt" : "attempts"}
                 </span>
@@ -93,11 +100,11 @@ export default function SystemHealth() {
       )}
       {health && health.checklist.some((i) => !i.done) && (
         <>
-          <h3 id="checklist-title">Finish setting up</h3>
-          <ul className="checklist" aria-labelledby="checklist-title">
+          <h3 id="checklist-title" className="section-label">Finish setting up</h3>
+          <ul className="ruled checklist" aria-labelledby="checklist-title">
             {health.checklist.map(({ id, done }) => (
               <li key={id}>
-                <span className={`badge ${done ? "read" : "pending"}`}>{done ? "Done" : "To do"}</span>
+                <Status tone={done ? "ok" : "muted"}>{done ? "Done" : "To do"}</Status>
                 {!done && STEPS[id].to ? <Link to={STEPS[id].to}>{STEPS[id].label}</Link> : <span>{STEPS[id].label}</span>}
               </li>
             ))}

@@ -3,6 +3,8 @@ import {
 } from "react";
 import { api, json, type Assignee, type Feedback, type Note } from "./api";
 import { useToast } from "./toast";
+import { Badge } from "./ui/Badge";
+import { Status, type StatusTone } from "./ui/Status";
 
 /** The widget's badge ids are plain slugs; anything else in metadata is not shown as a badge. */
 export const ISSUE_TYPE = /^[a-z0-9_-]{1,32}$/;
@@ -23,15 +25,17 @@ export const TAG_PATTERN = /^[a-z0-9][a-z0-9_-]{0,31}$/;
 /** Same normalisation as the server, so what is shown is what is saved. */
 export const slug = (v: string) => v.trim().toLowerCase().replace(/\s+/g, "-");
 
+const STATUS_TONE: Record<string, StatusTone> = { new: "unread", read: "read", archived: "archived", spam: "danger" };
+
 /** Status, kind, rating and date: the top line of every feedback card. */
 export function FeedbackBadges({ f }: { f: Feedback }) {
   return (
     <>
-      <span className={`badge ${f.status}`}>{f.status}</span>
+      <Status tone={STATUS_TONE[f.status] ?? "muted"}>{f.status === "new" ? "unread" : f.status}</Status>
       {typeof f.metadata.issue_type === "string" && ISSUE_TYPE.test(f.metadata.issue_type) && (
-        <span className="badge kind" data-kind={f.metadata.issue_type} title="Type chosen by the visitor">{label(f.metadata.issue_type)}</span>
+        <Badge plain title="Type chosen by the visitor">{label(f.metadata.issue_type)}</Badge>
       )}
-      {f.rating && <span className="stars" title={`${f.rating} / 5`}>{"★".repeat(f.rating)}<span className="dim">{"★".repeat(5 - f.rating)}</span></span>}
+      {f.rating && <span className="stars" title={`${f.rating} / 5`}>{"★".repeat(f.rating)}<span className="dim">{"☆".repeat(5 - f.rating)}</span></span>}
     </>
   );
 }

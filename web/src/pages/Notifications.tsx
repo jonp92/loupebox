@@ -12,6 +12,13 @@ import { SchemaFields } from "../components";
 import { useConfirm } from "../confirm";
 import { sendTest } from "../testSend";
 import { useToast } from "../toast";
+import { Badge } from "../ui/Badge";
+import { EmptyState } from "../ui/EmptyState";
+import { Icon } from "../icons";
+import { Sheet } from "../ui/Sheet";
+import { Status, type StatusTone } from "../ui/Status";
+
+const DELIVERY_TONE: Record<string, StatusTone> = { sent: "ok", failed: "danger" }; // held, pending and sending are muted
 
 const ROLES: Role[] = ["viewer", "editor", "admin"];
 // `machine` events only make sense for endpoints that feed other systems, not for email.
@@ -24,7 +31,7 @@ const when = (iso: string) => new Date(iso).toLocaleString();
 function SecretNotice({ name, secret, onClose }: { name: string; secret: string; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
   return (
-    <section className="card secret-notice" role="status">
+    <section className="notice secret-notice" role="status">
       <h2>Signing secret for "{name}"</h2>
       <p>Copy it now: it won't be shown again. Your endpoint uses it to check that requests really come from Loupebox. If you lose it, rotate it.</p>
       <p><code className="secret">{secret}</code></p>
@@ -210,49 +217,42 @@ export default function Notifications({ site }: { site: Site }) {
 
       {revealed && <SecretNotice {...revealed} onClose={() => setRevealed(null)} />}
 
-      <h2 className="section">Channels <span className="count">{channels.length}</span></h2>
-      <ul className="list">
+      <div className="section-head">
+        <h2>Channels <span className="count">{channels.length}</span></h2>
+        <button className="primary" onClick={() => setEditing("new")} disabled={providers.length === 0}><Icon name="plus" size={18} />Add channel</button>
+      </div>
+      <Sheet open={editing !== null} title={editing === "new" ? "Add channel" : "Edit channel"} onClose={() => setEditing(null)}>
+        <ChannelForm siteId={site.id} providers={providers} channel={channels.find((c) => c.id === editing)} onSaved={saved} onCancel={() => setEditing(null)} />
+      </Sheet>
+      <ul className="ruled">
         {channels.map((c) => (
-          <li key={c.id} className={editing === c.id ? "editing" : "channel"}>
-            {editing === c.id ? (
-              <ChannelForm siteId={site.id} providers={providers} channel={c} onSaved={saved} onCancel={() => setEditing(null)} />
-            ) : (
-              <>
-                <span className="grow stack">
-                  <strong>{c.name}</strong>
-                  <span className="origins">
-                    <span className="badge">{label(c.provider)}</span>
-                    <span className={`badge ${c.enabled ? "sent" : ""}`}>{c.enabled ? "enabled" : "disabled"}</span>
-                    {!configured(c.provider) && <span className="badge failed">not configured</span>}
-                    {info(c.provider)?.uses_recipients !== false && <span className="badge">{c.min_role}+</span>}
-                    {c.extra_recipients.length > 0 && <span className="badge">+{c.extra_recipients.length} extra</span>}
-                  </span>
-                </span>
-                <button onClick={() => test(c)} disabled={testing === c.id || !configured(c.provider)}>
-                  {testing === c.id ? "Sending…" : info(c.provider)?.uses_recipients === false ? "Send test" : "Send test to me"}
-                </button>
-                {info(c.provider)?.signs && <button onClick={() => rotate(c)}>Rotate secret</button>}
-                <button onClick={() => setEditing(c.id)}>Edit</button>
-                <button className="danger" onClick={() => remove(c)}>Delete</button>
-              </>
-            )}
+          <li key={c.id} className="channel-row">
+            <span className="ruled-main-col">
+              <strong className="ruled-title">{c.name}</strong>
+              <span className="channel-meta">
+                <Badge>{label(c.provider)}</Badge>
+                <Status tone={c.enabled ? "ok" : "muted"}>{c.enabled ? "enabled" : "disabled"}</Status>
+                {!configured(c.provider) && <Status tone="danger">not configured</Status>}
+                {info(c.provider)?.uses_recipients !== false && <Badge>{c.min_role}+</Badge>}
+                {c.extra_recipients.length > 0 && <Badge>+{c.extra_recipients.length} extra</Badge>}
+              </span>
+            </span>
+            <span className="row-actions">
+              <button onClick={() => test(c)} disabled={testing === c.id || !configured(c.provider)}>
+                {testing === c.id ? "Sending…" : info(c.provider)?.uses_recipients === false ? "Send test" : "Send test to me"}
+              </button>
+              {info(c.provider)?.signs && <button onClick={() => rotate(c)}>Rotate secret</button>}
+              <button onClick={() => setEditing(c.id)}>Edit</button>
+              <button className="danger" onClick={() => remove(c)}>Delete</button>
+            </span>
           </li>
         ))}
-        {channels.length === 0 && <li className="muted">No channels yet. Add one to get emailed, or posted to a webhook, when feedback arrives.</li>}
       </ul>
+      {channels.length === 0 && <EmptyState>No channels yet. Add one to get emailed, or posted to a webhook, when feedback arrives.</EmptyState>}
 
-      {editing === "new" ? (
-        <section className="card">
-          <h2>Add channel</h2>
-          <ChannelForm siteId={site.id} providers={providers} onSaved={saved} onCancel={() => setEditing(null)} />
-        </section>
-      ) : (
-        <p><button className="primary" onClick={() => setEditing("new")} disabled={providers.length === 0}>Add channel</button></p>
-      )}
-
-      <h2 className="section">Recent deliveries <span className="count">{deliveries.length}</span></h2>
+      <div className="section-head"><h2>Recent deliveries <span className="count">{deliveries.length}</span></h2></div>
       {deliveries.length === 0 ? (
-        <p className="muted">Nothing sent yet.</p>
+        <EmptyState>Nothing sent yet.</EmptyState>
       ) : (
         <div className="table-wrap">
           <table className="viz-table log-table">
@@ -264,7 +264,7 @@ export default function Notifications({ site }: { site: Site }) {
                 <tr key={d.id}>
                   <td>{when(d.created_at)}</td>
                   <td>{d.channel_name ?? <span className="muted">deleted</span>}</td>
-                  <td><span className={`badge ${d.status}`}>{d.status}</span>{d.summary && <span className="badge"> summary</span>}</td>
+                  <td><Status tone={DELIVERY_TONE[d.status] ?? "muted"}>{d.status}</Status>{d.summary && <Badge>summary</Badge>}</td>
                   <td>{d.attempts}</td>
                   <td>{d.last_error ?? (d.sent_at ? `Sent ${when(d.sent_at)}` : "")}</td>
                 </tr>

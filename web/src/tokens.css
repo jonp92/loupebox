@@ -44,6 +44,7 @@
   --danger: #E58A7B;
 
   --scrim: rgba(3, 9, 6, 0.64);
+  --shadow-pop: 0 8px 24px rgba(0,0,0,.45);
 }
 
 :root[data-theme="light"] {
@@ -76,6 +77,19 @@
   --danger: #B5422F;
 
   --scrim: rgba(20, 32, 27, 0.4);
+  --shadow-pop: 0 8px 24px rgba(20,32,27,.14);
+}
+
+/* Derived tints and chart series (theme-independent; they follow the active theme's colors) */
+:root {
+  --ok-soft: color-mix(in srgb, var(--ok) 14%, var(--bg));
+  --danger-soft: color-mix(in srgb, var(--danger) 14%, var(--bg));
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, var(--bg));
+  --star: var(--accent);
+  --chart-1: var(--accent);
+  --chart-2: var(--ok);
+  --chart-3: var(--border-control);
+  --chart-4: var(--text-secondary);
 }
 
 /* Follow the OS when the user hasn't chosen a theme. Keep values identical to the light block above. */
@@ -110,6 +124,7 @@
     --danger: #B5422F;
 
     --scrim: rgba(20, 32, 27, 0.4);
+    --shadow-pop: 0 8px 24px rgba(20,32,27,.14);
   }
 }
 
@@ -147,7 +162,7 @@
   --space-10: 40px;
 
   /* Radius */
-  --radius-tag: 3px;
+  --radius-tag: 4px;
   --radius-control: 8px;
   --radius-card: 10px;
   --radius-sheet: 16px;

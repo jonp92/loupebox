@@ -6,7 +6,9 @@ import { useConfirm } from "../confirm";
 import { useToast } from "../toast";
 import { Attachments } from "../attachments";
 import { Replies } from "../replies";
-import { FeedbackBadges, Notes, Tags, below, safeHref, useAssigneePicker } from "../triage";
+import { FeedbackBadges, Notes, Tags, below, safeHref, useAssigneePicker, useContextMenu, type MenuItem } from "../triage";
+import { Icon } from "../icons";
+import { Bar, Placeholder } from "../Skeleton";
 
 const STATUSES: Status[] = ["new", "read", "archived", "spam"];
 
@@ -18,6 +20,7 @@ export default function FeedbackDetail({ site }: { site: Site }) {
   const toast = useToast();
   const navigate = useNavigate();
   const picker = useAssigneePicker(site.id);
+  const ctx = useContextMenu();
   const [item, setItem] = useState<Feedback | null>(null);
   const [error, setError] = useState("");
   const canEdit = site.my_role === "editor" || site.my_role === "admin";
@@ -38,20 +41,31 @@ export default function FeedbackDetail({ site }: { site: Site }) {
     if (await toast.attempt(api(path, { method: "DELETE" }), "Feedback deleted")) navigate(`/sites/${site.id}`);
   }
 
+  const others = item ? STATUSES.filter((st) => st !== item.status) : [];
+  const next: Status = item?.status === "new" ? "read" : item?.status === "read" ? "archived" : "read";
+  const moreMenu: MenuItem[] = [
+    ...others.filter((st) => st !== next).map((st) => ({ label: `Mark ${st}`, onSelect: () => patch({ status: st }) })),
+    ...(canDelete ? [{ label: "Delete", danger: true, onSelect: remove }] : []),
+  ];
   const href = item && safeHref(item.page_url);
   return (
     <>
-      <p><Link to={`/sites/${site.id}`} className="back">← All feedback</Link></p>
+      <p><Link to={`/sites/${site.id}`} className="back"><Icon name="arrow-left" size={16} />All feedback</Link></p>
       {error && <p className="error">{error}</p>}
+      {!item && !error && (
+        <Placeholder label="Loading feedback">
+          <div className="card ph"><Bar w="7rem" h=".8rem" /><Bar w="80%" /><Bar w="60%" /></div>
+        </Placeholder>
+      )}
       {item && (
         <article className={`card fb ${item.status}`}>
           <header>
-            <FeedbackBadges f={item} />
-            <span className="muted grow-end">{new Date(item.created_at).toLocaleString()}</span>
+            <span className="fb-badges"><FeedbackBadges f={item} /></span>
+            <time className="grow-end" dateTime={item.created_at} title={new Date(item.created_at).toLocaleString()}>{new Date(item.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</time>
           </header>
           {/* Rendered as text by React; never as HTML. */}
           <p className="message">{item.message}</p>
-          <p className="muted">
+          <p className="person">
             {[item.name, item.email].filter(Boolean).join(" · ")}
             {href && <> · <a href={href} target="_blank" rel="noopener noreferrer">{href}</a></>}
           </p>
@@ -61,14 +75,21 @@ export default function FeedbackDetail({ site }: { site: Site }) {
             <Tags item={item} canEdit={canEdit} onChange={(tags) => patch({ tags })} />
             {canEdit ? (
               <button className="assign" onClick={(e) => picker.open(below(e.currentTarget), item.assignee_id, (p) => patch({ assignee_id: p?.user_id ?? null }))}>
-                👤 {item.assignee_name ?? "Assign…"}
+                <Icon name="person" size={16} />{item.assignee_name ?? "Assign…"}
               </button>
-            ) : item.assignee_name && <span className="assign muted">👤 {item.assignee_name}</span>}
+            ) : item.assignee_name && <span className="assign muted"><Icon name="person" size={16} />{item.assignee_name}</span>}
           </div>
           {canEdit && (
             <div className="actions">
-              {STATUSES.filter((s) => s !== item.status).map((s) => <button key={s} onClick={() => patch({ status: s })}>Mark {s}</button>)}
-              {canDelete && <button className="danger" onClick={remove}>Delete</button>}
+              <span className="actions-wide">
+                {others.map((st) => <button key={st} onClick={() => patch({ status: st })}>Mark {st}</button>)}
+                {canDelete && <button className="danger" onClick={remove}>Delete</button>}
+              </span>
+              {/* Phones: the likely next step stays one tap away, the rest sit behind a menu. */}
+              <span className="actions-narrow">
+                <button className="primary" onClick={() => patch({ status: next })}>Mark {next}</button>
+                <button className="menu-btn" aria-label="More actions" aria-haspopup="menu" onClick={(e) => ctx.openAt(e.currentTarget, moreMenu)}><Icon name="more" /></button>
+              </span>
             </div>
           )}
           <Replies siteId={site.id} item={item} canEdit={canEdit} />
@@ -76,6 +97,7 @@ export default function FeedbackDetail({ site }: { site: Site }) {
         </article>
       )}
       {picker.node}
+      {ctx.node}
     </>
   );
 }
