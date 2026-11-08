@@ -7,6 +7,8 @@ change between releases; breaking changes are called out below.
 ## [Unreleased]
 
 ### Changed
+- Admin UI: feedback lists are ruled rows instead of cards, with a straight amber bar on unread items. Hovering a
+  row (here and on the dashboard) fills the whole row with square corners, so the bar is no longer cut off.
 - Audit log: the type and action filters now list what is actually in the log, so exports, personal data,
   retention and image storage events can be filtered, and new audited actions need no UI change.
 
