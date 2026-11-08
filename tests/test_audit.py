@@ -232,6 +232,7 @@ def test_filters_search_and_paging(client, db, root, fake):
     assert everything["total"] == 4 and everything["items"][0]["action"] == "site.update"  # newest first
     assert get(group="site")["total"] == 4 and get(group="user")["total"] == 0
     assert get(action="site.rotate_key")["total"] == 1
+    assert client.get("/audit/actions", headers=h).json() == ["site.create", "site.rotate_key", "site.update"]
     assert get(site_id=s1)["total"] == 3
     assert get(q="beta")["total"] == 1 and get(q="OTHER@")["total"] == 1
     assert get(q="%")["total"] == 0  # LIKE wildcards are escaped

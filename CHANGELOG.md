@@ -6,6 +6,10 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+### Changed
+- Audit log: the type and action filters now list what is actually in the log, so exports, personal data,
+  retention and image storage events can be filtered, and new audited actions need no UI change.
+
 ### Added
 - System settings: minimum password length, and an option to require two-factor authentication for everyone.
   `python -m scripts.reset_totp --stop-requiring` removes the requirement if no one can sign in.

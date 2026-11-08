@@ -7,16 +7,20 @@ import { Badge } from "../ui/Badge";
 import { EmptyState } from "../ui/EmptyState";
 
 const PAGE = 50;
-const GROUPS = [
-  ["", "All activity"],
-  ["user", "Users"],
-  ["site", "Sites"],
-  ["member", "Site members"],
-  ["channel", "Notification channels"],
-  ["feedback", "Feedback"],
-  ["settings", "System settings"],
-  ["auth", "Own account"],
-] as const;
+/** Names for the part of an action before the dot. A group not listed here shows its own name. */
+const GROUP_LABELS: Record<string, string> = {
+  user: "Users",
+  site: "Sites",
+  member: "Site members",
+  channel: "Notification channels",
+  feedback: "Feedback",
+  settings: "System settings",
+  auth: "Own account",
+  privacy: "Personal data",
+  retention: "Retention",
+  storage: "Image storage",
+};
+const groupLabel = (g: string) => GROUP_LABELS[g] ?? g.charAt(0).toUpperCase() + g.slice(1);
 
 const when = (iso: string) => new Date(iso).toLocaleString();
 const isChange = (v: unknown): v is { from: unknown; to: unknown } =>
@@ -48,6 +52,8 @@ export default function Audit() {
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
   const [group, setGroup] = useState("");
+  const [action, setAction] = useState("");
+  const [actions, setActions] = useState<string[]>([]);
   const [q, setQ] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -56,6 +62,7 @@ export default function Audit() {
   const load = useCallback(() => {
     const params = new URLSearchParams({ limit: String(PAGE), offset: String(offset) });
     if (group) params.set("group", group);
+    if (action) params.set("action", action);
     if (q) params.set("q", q);
     const mine = ++latest.current; // only the newest request ends the loading state
     setLoading(true);
@@ -68,8 +75,10 @@ export default function Audit() {
       })
       .catch((e) => mine === latest.current && setError(e.message))
       .finally(() => mine === latest.current && setLoading(false));
-  }, [offset, group, q]);
+  }, [offset, group, action, q]);
   useEffect(load, [load]);
+  useEffect(() => { api<string[]>("/audit/actions").then(setActions, () => {}); }, []);
+  const groups = [...new Set(actions.map((a) => a.split(".")[0]))];
 
   if (!me?.is_superadmin) return <Navigate to="/" replace />;
 
@@ -84,8 +93,13 @@ export default function Audit() {
           value={q}
           onChange={(e) => { setQ(e.target.value); setOffset(0); }}
         />
-        <select value={group} onChange={(e) => { setGroup(e.target.value); setOffset(0); }} aria-label="Type of change">
-          {GROUPS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        <select value={group} onChange={(e) => { setGroup(e.target.value); setAction(""); setOffset(0); }} aria-label="Type of change">
+          <option value="">All activity</option>
+          {groups.map((g) => <option key={g} value={g}>{groupLabel(g)}</option>)}
+        </select>
+        <select value={action} onChange={(e) => { setAction(e.target.value); setOffset(0); }} aria-label="Action">
+          <option value="">Any action</option>
+          {actions.filter((a) => !group || a.startsWith(`${group}.`)).map((a) => <option key={a} value={a}>{a}</option>)}
         </select>
       </div>
       {error && <p className="error" role="alert">{error}</p>}

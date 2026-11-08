@@ -12,6 +12,12 @@ from app.schemas.audit import AuditOut, AuditPage
 router = APIRouter(prefix="/audit", tags=["audit"], dependencies=[Depends(require_superadmin)])
 
 
+@router.get("/actions")
+def list_actions(db: Session = Depends(get_db)) -> list[str]:
+    """Every action recorded so far, for the filters: new audited actions show up without a list to update."""
+    return list(db.scalars(select(AuditEvent.action).distinct().order_by(AuditEvent.action)))
+
+
 @router.get("")
 def list_audit(
     db: Session = Depends(get_db),
