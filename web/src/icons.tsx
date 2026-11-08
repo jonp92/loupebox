@@ -19,6 +19,7 @@ const PATHS: Record<string, ReactNode> = {
   more: <><circle cx="5.5" cy="12" r="1.2" fill="currentColor" /><circle cx="12" cy="12" r="1.2" fill="currentColor" /><circle cx="18.5" cy="12" r="1.2" fill="currentColor" /></>,
   reply: <path d="M9 7L4 12l5 5M4 12h10a6 6 0 016 6" />,
   clip: <path d="M20 11.5l-7.6 7.6a4.5 4.5 0 01-6.4-6.4l8-8a3 3 0 014.3 4.2l-8 8a1.5 1.5 0 01-2.2-2.1l7.2-7.2" />,
+  trash: <path d="M4 7h16M10 7V4.5h4V7M6.5 7l1 12.5h9l1-12.5M10 11v5M14 11v5" />,
   note: <path d="M5 5h14v10H10l-5 4z" />,
   person: <><circle cx="12" cy="8.5" r="3.2" /><path d="M5.5 19.5c.6-3.4 3.2-5.2 6.5-5.2s5.9 1.8 6.5 5.2" /></>,
   refresh: <path d="M20 5v5h-5M4 19v-5h5M18.2 9A7 7 0 006.3 7.3L4 10M5.8 15A7 7 0 0017.7 16.7L20 14" />,

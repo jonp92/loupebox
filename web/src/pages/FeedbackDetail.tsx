@@ -5,8 +5,8 @@ import { useAuth } from "../auth";
 import { useConfirm } from "../confirm";
 import { useToast } from "../toast";
 import { Attachments } from "../attachments";
-import { Replies } from "../replies";
-import { FeedbackBadges, Notes, Tags, below, safeHref, useAssigneePicker, useContextMenu, type MenuItem } from "../triage";
+import { Conversation } from "../replies";
+import { FeedbackBadges, Tags, below, safeHref, useAssigneePicker, useContextMenu, type MenuItem } from "../triage";
 import { Icon } from "../icons";
 import { Bar, Placeholder } from "../Skeleton";
 
@@ -93,8 +93,7 @@ export default function FeedbackDetail({ site }: { site: Site }) {
               </span>
             </div>
           )}
-          <Replies siteId={site.id} item={item} canEdit={canEdit} />
-          {me && <Notes siteId={site.id} itemId={item.id} canEdit={canEdit} canDeleteAny={canDelete} meId={me.id} />}
+          {me && <Conversation siteId={site.id} item={item} canEdit={canEdit} canDeleteAny={canDelete} meId={me.id} />}
         </article>
       )}
       {picker.node}

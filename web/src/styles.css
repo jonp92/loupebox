@@ -210,7 +210,7 @@ dialog.sheet .hint { margin: calc(var(--space-2) * -1) 0 var(--space-5); }
 /* badges and tags: outlined, mono uppercase. Status (a mark plus a label) is a separate primitive. */
 .badge { display: inline-flex; align-items: center; min-height: 22px; padding: 0 var(--space-2); border: 1px solid var(--border-tag); border-radius: var(--radius-tag); color: var(--text-secondary); font: var(--weight-medium) var(--text-label)/1 var(--font-mono); letter-spacing: var(--tracking-label); text-transform: uppercase; white-space: nowrap; }
 .badge-brass { border-color: var(--accent); color: var(--accent); }
-.badge-plain { text-transform: none; letter-spacing: 0; font-family: var(--font-sans); font-size: var(--text-data); border-radius: var(--radius-pill); padding: 0 var(--space-3); }
+.badge-plain { gap: var(--space-1); text-transform: none; letter-spacing: 0; font-family: var(--font-sans); font-size: var(--text-data); border-radius: var(--radius-pill); padding: 0 var(--space-3); }
 .status { display: inline-flex; align-items: center; gap: var(--space-2); white-space: nowrap; }
 .status-mark { flex: none; }
 .status-label { font: var(--weight-medium) var(--text-label)/1.2 var(--font-mono); letter-spacing: var(--tracking-label); text-transform: uppercase; }
@@ -309,12 +309,6 @@ article.fb:not(.compact) .message { font-size: var(--text-body); font-weight: va
 .toolbar form.inline input { width: 10rem; flex: none; }
 .assign { display: inline-flex; align-items: center; gap: var(--space-1); margin-left: auto; font-size: var(--text-data); }
 .assign select { width: auto; margin: 0; padding: .25rem .5rem; font-size: var(--text-data); }
-.notes { margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--border); }
-.notes ul { list-style: none; margin: 0 0 .6rem; padding: 0; }
-.notes li { margin: .4rem 0; padding: .5rem .7rem; background: var(--surface-selected); border-radius: var(--radius-control); }
-.notes li p { margin: .2rem 0 0; white-space: pre-wrap; word-break: break-word; }
-.notes form { display: flex; gap: .5rem; align-items: flex-start; }
-.notes textarea { flex: 1; margin: 0; min-height: 2.6rem; }
 .actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--border); }
 pre { background: var(--surface-selected); padding: .75rem; border-radius: var(--radius-control); overflow-x: auto; font-size: var(--text-data); }
 code.key { display: inline-block; margin: 0 .75rem var(--space-4) 0; background: var(--surface-selected); padding: .35rem .6rem; border-radius: var(--radius-control); user-select: all; }
@@ -559,18 +553,29 @@ button.link { background: none; border: 0; padding: 0; color: var(--accent); cur
 .fb .menu-btn, .users-table .menu-btn { border-color: transparent; }
 button.menu-btn { padding: 0; min-width: var(--target-min); }
 .num { font: var(--text-data) var(--font-mono); }
-.notes li button.link { margin-left: .6rem; }
 
-.replies { margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--border); }
-.replies h2 { font-size: var(--text-body); margin: 0 0 .5rem; }
-.replies ul { list-style: none; margin: 0 0 .6rem; padding: 0; }
-.replies li { margin: .4rem 0; padding: .5rem .7rem; background: var(--surface-selected); border-radius: var(--radius-control); border-left: 3px solid var(--accent); }
-.replies li.failed { border-left-color: var(--danger); }
-.replies li p { margin: .2rem 0; white-space: pre-wrap; word-break: break-word; }
-.replies textarea { width: 100%; min-height: 6rem; margin: .25rem 0; }
-.replies p.error:empty { display: none; }
-.reply-foot { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
-.replies-off { margin-top: .75rem; }
+
+.convo { margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--border); }
+.convo h2 { font-size: var(--text-body); margin: 0 0 .5rem; }
+.convo ul { list-style: none; margin: 0 0 .6rem; padding: 0; border-top: 1px solid var(--border); }
+/* Ruled rows, square. Customer messages and replies are plain; a private note has a gray bar and a fill, a failed send a red bar. */
+.convo li { padding: .6rem var(--space-3); border-bottom: 1px solid var(--border); }
+.convo li.convo-note { background: var(--surface); box-shadow: inset 3px 0 0 var(--text-muted); }
+.convo li.failed { box-shadow: inset 3px 0 0 var(--danger); }
+.convo li p { margin: .2rem 0; white-space: pre-wrap; word-break: break-word; }
+.convo-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .6rem; }
+/* 44px hit area, but the header row keeps the height of its text. */
+.convo-del { margin: -.6rem -.5rem -.6rem auto; color: var(--text-secondary); }
+@media (max-width: 640px) {
+  /* Phones: badge and delete share the first line, who and when take the second. */
+  .convo-meta .convo-del { order: 2; }
+  .convo-meta > .muted { order: 3; flex-basis: 100%; }
+}
+.convo-kind { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .6rem; }
+.convo-kind select { width: auto; margin: 0; }
+.convo textarea { width: 100%; min-height: 6rem; margin: .25rem 0; }
+.convo p.error:empty { display: none; }
+.convo-foot { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
 
 /* Images sent with feedback: a thumbnail grid, and a viewer dialog for the full-size image. */
 .section-title { margin: 1rem 0 .25rem; font-size: var(--text-ui); }
