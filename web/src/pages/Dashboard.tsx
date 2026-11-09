@@ -10,6 +10,7 @@ import { Status } from "../ui/Status";
 import { Icon } from "../icons";
 import { Sparkline } from "../ui/Sparkline";
 import { ago } from "../triage";
+import { useLive } from "../live";
 
 const WINDOWS = [7, 30, 90];
 const KEY = "loupebox.dashboard.days";
@@ -33,15 +34,16 @@ export default function Dashboard() {
   const latest = useRef(0);
   const [busy, setBusy] = useState(false);
 
-  const load = () => {
+  const load = (quiet = false) => {
     const mine = ++latest.current;
-    setBusy(true);
+    if (!quiet) setBusy(true); // a live refresh keeps the page as it is
     return api<DashboardData>(`/dashboard?window=${days}`)
       .then((d) => mine === latest.current && (setData(d), setError("")))
       .catch((e) => mine === latest.current && setError(e.message))
       .finally(() => mine === latest.current && setBusy(false));
   };
   useEffect(() => void load(), [days]);
+  useLive(() => void load(true));
 
   function pick(n: number) {
     setDays(n);

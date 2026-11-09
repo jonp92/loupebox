@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import * as client from "./api";
 import type { Me } from "./api";
+import { startLive } from "./live";
 
 interface AuthState {
   me: Me | null;
@@ -35,6 +36,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const signedIn = me !== null;
+  useEffect(() => (signedIn ? startLive() : undefined), [signedIn]); // live updates while signed in
 
   const signIn = useCallback(async (email: string, password: string) => {
     const mfaToken = await client.login(email, password);

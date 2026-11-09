@@ -22,6 +22,13 @@ change between releases; breaking changes are called out below.
   retention and image storage events can be filtered, and new audited actions need no UI change.
 
 ### Added
+- Live updates: the admin UI refreshes itself when feedback arrives, is triaged or answered (including by email),
+  and when notes or replies are added, with no reload and no polling. `GET /v1/api/events` is a server-sent
+  event stream of `{kind, site_id, feedback_id}` (ids only, the page refetches), limited to the caller's sites
+  and closed when the access token expires. On Postgres every API process listens for NOTIFY, so events raised by
+  the worker reach all replicas; no new service is needed. If the proxy buffers responses (nginx:
+  `proxy_buffering off`) or the database sits behind a transaction-pooling pgbouncer (LISTEN does not work
+  there) the page just falls back to updating on reload.
 - System status shows an **Inbound email** row for each mailbox the worker reads: when it was last read and last
   stored, how many emails matched, did not match or bounced in the last 24 hours, or the error it is failing with.
   It warns when the mailbox has not been read for a while (worker stopped) or unmatched mail keeps arriving.

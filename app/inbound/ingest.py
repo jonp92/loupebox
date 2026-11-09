@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.events import publish
 from app.inbound.base import InboundMessage, Outcome
 from app.inbound.mime import normalize_id
 from app.inbound.text import strip_quoted
@@ -61,6 +62,8 @@ def _bounce(db: Session, msg: InboundMessage) -> Outcome:
     reply.status = "failed"
     reply.retryable = False
     reply.error = (f"Bounced ({msg.bounce_code})" if msg.bounce_code else "Bounced")[:ERROR_MAX]
+    if item := db.get(Feedback, reply.feedback_id):
+        publish(db, "thread", item.site_id, item.id)
     return Outcome.bounced
 
 
@@ -97,4 +100,6 @@ def ingest(db: Session, msg: InboundMessage) -> Outcome:
     if item.status != FeedbackStatus.new:
         item.status = FeedbackStatus.new  # someone is waiting on us again: back to unread
     enqueue_customer_reply(db, item, reply)
+    publish(db, "thread", item.site_id, item.id)
+    publish(db, "feedback", item.site_id, item.id)  # the status, reply count and list order changed too
     return Outcome.stored
