@@ -12,11 +12,11 @@ from app.db.session import get_db
 from app.models import ROLE_RANK, Feedback, Membership, Role, Site, User
 from app.notifications.base import NotificationProvider
 
-_bearer = HTTPBearer(auto_error=False)
+bearer = HTTPBearer(auto_error=False)
 
 
 def get_session_user(
-    creds: HTTPAuthorizationCredentials | None = Depends(_bearer),
+    creds: HTTPAuthorizationCredentials | None = Depends(bearer),
     db: Session = Depends(get_db),
 ) -> User:
     unauthorized = HTTPException(

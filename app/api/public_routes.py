@@ -14,6 +14,7 @@ from starlette.datastructures import UploadFile  # the parser's class; fastapi's
 from app.challenges.registry import OFF, get_verifier
 from app.core.attachments import StoredFile, delete_files
 from app.core.config import settings
+from app.core.events import publish
 from app.core.images import ImageRejected, StoredImage, process_image
 from app.core.rate_limit import client_ip, enforce
 from app.core.security import hash_ip
@@ -258,6 +259,7 @@ def _accept(
     db.add(item)
     db.flush()  # assigns the id the notification payload needs
     enqueue_feedback_created(db, item)
+    publish(db, "feedback", site.id, item.id)
     _store_images(db, item, stored)
     return FeedbackReceipt(id=item.id)
 

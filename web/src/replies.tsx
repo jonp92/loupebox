@@ -1,6 +1,7 @@
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { api, json, type Feedback, type Note, type Reply, type ReplyThread } from "./api";
 import { Icon } from "./icons";
+import { useLive } from "./live";
 import { Bar, Placeholder } from "./Skeleton";
 import { useToast } from "./toast";
 import { Badge } from "./ui/Badge";
@@ -26,10 +27,12 @@ export function Conversation({ siteId, item, canEdit, canDeleteAny, meId }: {
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
-  useEffect(() => {
+  const load = useCallback(() => {
     api<ReplyThread>(`${base}/replies`).then(setThread, (e) => setError(e.message));
     api<Note[]>(`${base}/notes`).then(setNotes, (e) => setError(e.message));
   }, [base]);
+  useEffect(load, [load]);
+  useLive(load, (e) => e.kind === "thread" && e.feedback_id === item.id);
 
   const entries = useMemo<Entry[]>(
     () => [

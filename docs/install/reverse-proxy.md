@@ -38,6 +38,11 @@ admin app needs no cross-site settings, and your websites send feedback to
 * A submission with images can be about 16 MB. Caddy has no request size limit by default; if your proxy has one
   (nginx: `client_max_body_size`), allow at least that much for `/v1/api/feedback/with-images`. The API enforces
   its own limits.
+* The admin UI keeps one long-lived response open at `/v1/api/events` (server-sent events) to update itself live.
+  Caddy streams it as is. nginx needs `proxy_buffering off;` for that path (the API also sends
+  `X-Accel-Buffering: no`) and a `proxy_read_timeout` above 30 seconds; the stream sends a keepalive every 20.
+  Without it everything still works, the screens just update on reload. The API's database connection for
+  `LISTEN` must be direct or a session-pooled pgbouncer, not transaction pooling.
 * A health check is available at `/v1/api/health`.
 * The API's Swagger documentation at `/v1/api/docs` is available when `ENVIRONMENT=development`.
 * If Caddy runs in a container, put it on the compose network and forward to `api:8000` and `web:8080`.

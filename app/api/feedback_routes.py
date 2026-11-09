@@ -16,6 +16,7 @@ from app.core.attachments import delete_files, keys_for
 from app.core.audit import audit
 from app.core.cache import menus
 from app.core.config import settings
+from app.core.events import publish
 from app.core.feedback_query import (
     ISSUE_TYPE,
     TOTAL_CAP,
@@ -342,6 +343,7 @@ def bulk_feedback(
             f" in {access.site.name}",
             {"count": len(items), "tag": body.tag, "ids": _ids(items)},
         )
+    publish(db, "feedback", access.site.id)
     db.commit()
     if body.action == "delete":
         delete_files(files)
@@ -411,6 +413,7 @@ def update_feedback(
             {"feedback_id": str(item.id), "from": item.tags, "to": body.tags},
         )
         _set_tags(item, body.tags)
+    publish(db, "feedback", access.site.id, item.id)
     db.commit()
     menus.invalidate(access.site.id)
     return FeedbackOut.model_validate(item)
@@ -442,6 +445,7 @@ def add_note(
     item = feedback_or_404(db, access.site.id, feedback_id)
     note = FeedbackNote(feedback_id=item.id, author_id=access.user.id, body=body.body)
     db.add(note)
+    publish(db, "thread", access.site.id, item.id)
     db.commit()
     return NoteOut.model_validate(note).model_copy(
         update={"author_name": db.scalar(select(user_name()).where(User.id == access.user.id))}
@@ -475,6 +479,7 @@ def delete_note(
         details={"note_id": str(note.id)},
     )
     db.delete(note)
+    publish(db, "thread", access.site.id, feedback_id)
     db.commit()
 
 
@@ -497,6 +502,7 @@ def delete_feedback(
     )
     files = keys_for(db, Feedback.id == item.id)
     db.delete(item)
+    publish(db, "feedback", access.site.id, item.id)
     db.commit()
     delete_files(files)
     menus.invalidate(access.site.id)

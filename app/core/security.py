@@ -39,15 +39,22 @@ def create_access_token(user_id: uuid.UUID) -> str:
     return jwt.encode(payload, settings.jwt_secret, algorithm=_ALGORITHM)
 
 
-def decode_access_token(token: str) -> uuid.UUID | None:
+def access_token_claims(token: str) -> dict | None:
+    """The verified claims of an access token, or None if it is invalid, expired or not an access token."""
     try:
         payload = jwt.decode(
             token, settings.jwt_secret, algorithms=[_ALGORITHM], options={"require": ["exp", "sub"]}
         )
-        if payload.get("type") != "access":
-            return None
-        return uuid.UUID(payload["sub"])
-    except (jwt.PyJWTError, ValueError):
+    except jwt.PyJWTError:
+        return None
+    return payload if payload.get("type") == "access" else None
+
+
+def decode_access_token(token: str) -> uuid.UUID | None:
+    claims = access_token_claims(token)
+    try:
+        return uuid.UUID(claims["sub"]) if claims else None
+    except ValueError:
         return None
 
 

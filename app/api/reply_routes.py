@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import SiteAccess, feedback_or_404, site_access
 from app.core.audit import audit
 from app.core.config import settings
+from app.core.events import publish
 from app.core.rate_limit import enforce
 from app.db.session import get_db
 from app.inbound.registry import inbound_enabled
@@ -117,6 +118,7 @@ def send_reply(
     reply = FeedbackReply(id=uuid.uuid4(), feedback_id=item.id, author_id=access.user.id, body=body.body)
     _deliver(db, access, item, reply)
     db.add(reply)
+    publish(db, "thread", access.site.id, item.id)
     db.commit()
     return _out(reply, _author_name(db, access.user))
 
@@ -139,5 +141,6 @@ def retry_reply(
     _check_can_send(db, item, access)
     reply.author_id = access.user.id  # whoever retries is the one the mail now comes from
     _deliver(db, access, item, reply)
+    publish(db, "thread", access.site.id, item.id)
     db.commit()
     return _out(reply, _author_name(db, access.user))

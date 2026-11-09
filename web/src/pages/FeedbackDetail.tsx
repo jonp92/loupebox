@@ -9,6 +9,7 @@ import { Conversation } from "../replies";
 import { FeedbackBadges, Tags, below, safeHref, useAssigneePicker, useContextMenu, type MenuItem } from "../triage";
 import { Icon } from "../icons";
 import { Bar, Placeholder } from "../Skeleton";
+import { useLive } from "../live";
 
 const STATUSES: Status[] = ["new", "read", "archived", "spam"];
 
@@ -32,6 +33,7 @@ export default function FeedbackDetail({ site }: { site: Site }) {
     api<Feedback>(path).then((f) => { setItem(f); setError(""); }, (e) => { setItem(null); setError(e.message); });
   }, [path]);
   useEffect(load, [load]);
+  useLive(load, (e) => e.feedback_id === feedbackId);
 
   async function patch(body: Partial<{ status: Status; assignee_id: string | null; tags: string[] }>) {
     await toast.attempt(api(path, json("PATCH", body)));

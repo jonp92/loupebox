@@ -8,6 +8,7 @@ import { useToast } from "../toast";
 import { Bar, Placeholder } from "../Skeleton";
 import { EmptyState } from "../ui/EmptyState";
 import { Icon } from "../icons";
+import { useLive } from "../live";
 import {
   FeedbackBadges, TAG_PATTERN, ago, below, label, personName, recentAssignees, slug, useAssigneePicker, useContextMenu, type MenuItem,
 } from "../triage";
@@ -108,25 +109,27 @@ export default function FeedbackList({ site }: { site?: Site }) {
     return params;
   }, [site, siteId, status, q, issueType, rating, hasEmail, from, to, assignee, tag]);
 
-  const load = useCallback(() => {
+  /** `quiet`: a live refresh, which keeps the selection and does not dim the list. */
+  const load = useCallback((quiet?: boolean) => {
     const params = filterParams();
     params.set("limit", String(pageSize));
     params.set("offset", String(offset));
     const mine = ++latest.current;
-    setLoading(true);
+    if (!quiet) setLoading(true);
     api<{ items: Item[]; total: number; total_capped?: boolean }>(`${base}?${params}`)
       .then((r) => {
         setItems(r.items);
         setTotal(r.total);
         setTotalCapped(Boolean(r.total_capped));
-        setSelected(new Set()); // a new page or filter never keeps a hidden selection
+        if (!quiet) setSelected(new Set()); // a new page or filter never keeps a hidden selection
         setError("");
       })
       .catch((e) => setError(e.message))
       .finally(() => mine === latest.current && setLoading(false));
     api<QuickCounts>(site ? `${base}/counts` : `${base}/counts${siteId ? `?site_id=${siteId}` : ""}`).then(setCounts, () => undefined);
   }, [base, site, siteId, offset, pageSize, filterParams]);
-  useEffect(load, [load]);
+  useEffect(() => load(), [load]);
+  useLive(() => load(true), (e) => !site || e.site_id === site.id);
   // The inbox's site menu, and its filters in the address so the item page's back link can restore them.
   useEffect(() => {
     if (!site) api<Site[]>("/sites").then(setSites, () => setSites([]));

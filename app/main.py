@@ -12,6 +12,7 @@ from app.api import (
     avatar_routes,
     dashboard_routes,
     default_routes,
+    event_routes,
     feedback_routes,
     inbox_routes,
     notification_routes,
@@ -26,7 +27,7 @@ from app.api import (
     user_routes,
 )
 from app.challenges.registry import load_verifiers
-from app.core import runtime_settings
+from app.core import events, runtime_settings
 from app.core.config import settings
 from app.core.middleware import BodySizeLimitMiddleware, ConcurrencyLimitMiddleware, DynamicCORSMiddleware
 from app.db.session import get_sessionmaker
@@ -60,8 +61,11 @@ async def _reload_settings() -> None:
 async def lifespan(_: FastAPI):
     _load_settings()
     reload = asyncio.create_task(_reload_settings())
+    stop_events = events.start_listener()
     yield
     reload.cancel()
+    if stop_events:
+        stop_events.set()
 
 
 # Interactive docs only outside production, so a deployed instance doesn't advertise its schema.
@@ -79,7 +83,7 @@ app.add_middleware(
     ConcurrencyLimitMiddleware,
     limit=settings.max_concurrent_requests or settings.db_pool_size + settings.db_max_overflow,
     wait_seconds=settings.request_queue_seconds,
-    exempt=frozenset({f"{prefix}/health"}),
+    exempt=frozenset({f"{prefix}/health", f"{prefix}/events"}),  # a stream would hold its slot for hours
 )
 app.add_middleware(
     BodySizeLimitMiddleware,
@@ -109,6 +113,7 @@ for module in (
     notification_routes,
     stats_routes,
     dashboard_routes,
+    event_routes,
     settings_routes,
     system_routes,
 ):

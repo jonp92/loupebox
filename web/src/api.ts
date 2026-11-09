@@ -431,3 +431,8 @@ export interface Delivery {
   created_at: string;
   sent_at: string | null;
 }
+
+/** An open response to read as it arrives (the live event stream), signed in like any other request. */
+export async function openStream(path: string, signal: AbortSignal): Promise<Response> {
+  return request(path, { signal, headers: { Accept: "text/event-stream" } });
+}
