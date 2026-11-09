@@ -67,13 +67,17 @@ export function startLive(): () => void {
 }
 
 /** Call `onEvent` (once per burst) when something the page may show changed. Pass `match` to ignore the rest. */
-export function useLive(onEvent: (e: LiveEvent) => void, match?: (e: LiveEvent) => boolean) {
+export function useLive(
+  onEvent: (e: LiveEvent) => void,
+  match?: (e: LiveEvent) => boolean,
+  { hidden = false }: { hidden?: boolean } = {}, // `hidden`: also react while the tab is in the background
+) {
   const latest = useRef({ onEvent, match });
   latest.current = { onEvent, match };
   useEffect(() => {
     let timer: number | undefined;
     const fn = (e: LiveEvent) => {
-      if (document.hidden) return; // the resync when the tab is shown again catches it up
+      if (document.hidden && !hidden) return; // the resync when the tab is shown again catches it up
       if (e.kind !== "resync" && latest.current.match && !latest.current.match(e)) return;
       window.clearTimeout(timer);
       timer = window.setTimeout(() => latest.current.onEvent(e), 300); // a bulk action sends many

@@ -22,6 +22,9 @@ change between releases; breaking changes are called out below.
   retention and image storage events can be filtered, and new audited actions need no UI change.
 
 ### Added
+- Unread count: the Inbox entry in the sidebar shows how many items are unread across your sites (99+ when large),
+  the browser tab title shows it too (`(3) Loupebox Feedback`), and an installed app gets an icon badge where the
+  browser supports it. It updates live, including while the tab is in the background.
 - Live updates: the admin UI refreshes itself when feedback arrives, is triaged or answered (including by email),
   and when notes or replies are added, with no reload and no polling. `GET /v1/api/events` is a server-sent
   event stream of `{kind, site_id, feedback_id}` (ids only, the page refetches), limited to the caller's sites

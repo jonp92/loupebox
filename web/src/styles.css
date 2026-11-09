@@ -26,6 +26,8 @@ input, select, textarea { font-family: inherit; }
 .nav-item.active { background: var(--surface-selected); color: var(--text); font-weight: var(--weight-semibold); }
 .nav-item.active::before { content: ""; position: absolute; left: 0; top: var(--space-1); bottom: var(--space-1); width: 2px; border-radius: 1px; background: var(--accent); }
 .nav-item.active .icon-svg { color: var(--accent); }
+/* Amber is the unread mark: it is the border, the number stays in text color. */
+.nav-count { margin-left: auto; min-width: var(--space-6); padding: 0 var(--space-2); border: 1px solid var(--unread-edge); border-radius: var(--radius-pill); color: var(--text); font: var(--weight-medium) var(--text-label)/1.6 var(--font-mono); text-align: center; }
 .sidebar-foot { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1); padding: var(--space-4) var(--space-6) var(--space-6); font: var(--text-label)/1.4 var(--font-mono); color: var(--text-muted); }
 .sidebar-foot a { display: inline-flex; align-items: center; min-height: var(--target-min); min-width: var(--target-min); color: var(--text-secondary); }
 .appbar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: var(--space-2); min-height: 72px; padding: var(--space-3) var(--space-4); background: var(--bg); border-bottom: 1px solid var(--border); }

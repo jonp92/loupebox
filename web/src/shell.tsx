@@ -5,6 +5,7 @@ import { Avatar, Logo } from "./components";
 import { hasInbox, useAuth } from "./auth";
 import { Icon, type IconName } from "./icons";
 import { useTheme } from "./theme";
+import { fmtCount, useUnread } from "./unread";
 
 const THEME_ICON: Record<string, IconName> = { system: "contrast", light: "sun", dark: "moon" };
 const WIDE = "(min-width: 1024px)"; // sidebar at this width and up, drawer below (tokens.css can't feed media queries)
@@ -70,9 +71,21 @@ function SidebarFooter() {
   );
 }
 
-function NavItem({ to, icon, end, children }: { to: string; icon: IconName; end?: boolean; children: string }) {
+function NavItem({ to, icon, end, count, capped, children }: {
+  to: string; icon: IconName; end?: boolean; count?: number; capped?: boolean; children: string;
+}) {
   // Sites stays highlighted on /sites/:id too (NavLink matches the prefix)
-  return <NavLink to={to} end={end} className="nav-item"><Icon name={icon} /><span>{children}</span></NavLink>;
+  return (
+    <NavLink to={to} end={end} className="nav-item">
+      <Icon name={icon} /><span>{children}</span>
+      {count ? (
+        <>
+          <span className="nav-count" aria-hidden>{count > 99 ? "99+" : fmtCount(count, Boolean(capped))}</span>
+          <span className="sr-only">, {fmtCount(count, Boolean(capped))} unread</span>
+        </>
+      ) : null}
+    </NavLink>
+  );
 }
 
 function useWide() {
@@ -94,6 +107,7 @@ export function Layout() {
   const menuBtn = useRef<HTMLButtonElement>(null);
   const side = useRef<HTMLElement>(null);
   const open = drawer && !wide;
+  const unread = useUnread(Boolean(me) && !me?.totp_required);
 
   useEffect(() => setDrawer(false), [pathname]);
   useEffect(() => {
@@ -124,7 +138,7 @@ export function Layout() {
         {!me.totp_required && <nav className="sidebar-nav" aria-label="Primary">
           <p className="nav-group">Triage</p>
           <NavItem to="/" end icon="dashboard">Dashboard</NavItem>
-          {hasInbox(me) && <NavItem to="/inbox" icon="inbox">Inbox</NavItem>}
+          {hasInbox(me) && <NavItem to="/inbox" icon="inbox" count={unread?.count} capped={unread?.capped}>Inbox</NavItem>}
           <NavItem to="/sites" icon="sites">Sites</NavItem>
           {me.is_superadmin && (
             <>
