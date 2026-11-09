@@ -112,8 +112,10 @@ def _send(events: set[Event]) -> None:
             return
         with engine.connect() as conn:
             for ev in events:
-                conn.execute(text("SELECT pg_notify(:channel, :payload)"),
-                             {"channel": CHANNEL, "payload": json.dumps(asdict(ev))})
+                conn.execute(
+                    text("SELECT pg_notify(:channel, :payload)"),
+                    {"channel": CHANNEL, "payload": json.dumps(asdict(ev))},
+                )
             conn.commit()
     except Exception:
         log.warning("Could not send live events", exc_info=True)
