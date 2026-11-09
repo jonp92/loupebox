@@ -15,7 +15,7 @@ from app.models.setting import AppSetting
 from app.models.site import ROLE_RANK, Membership, Role, Site
 from app.models.stats import SiteStat, StatKind
 from app.models.user import PasswordResetToken, RecoveryCode, RefreshToken, User, user_matches
-from app.models.worker import WorkerHeartbeat
+from app.models.worker import InboundStatus, WorkerHeartbeat
 
 __all__ = [
     "NOT_SPAM",
@@ -28,6 +28,7 @@ __all__ = [
     "FeedbackReply",
     "FeedbackStatus",
     "FeedbackTag",
+    "InboundStatus",
     "Membership",
     "NotificationChannel",
     "NotificationOutbox",

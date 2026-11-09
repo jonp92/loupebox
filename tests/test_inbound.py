@@ -1,4 +1,5 @@
 import uuid
+from collections import Counter
 from email.message import EmailMessage
 
 import pytest
@@ -6,8 +7,8 @@ from sqlalchemy import select
 
 from app.core.config import settings
 from app.inbound import registry
-from app.inbound.base import InboundMessage, PollingSource
-from app.inbound.ingest import Outcome, ingest
+from app.inbound.base import InboundMessage, Outcome, PollingSource
+from app.inbound.ingest import ingest
 from app.inbound.mime import parse_message
 from app.inbound.sources import imap
 from app.inbound.text import strip_quoted
@@ -336,7 +337,8 @@ def test_imap_poll_stores_replies_and_marks_everything_seen(db, item, server):
             b"3": b"\xff\xfe not an email",
         }
     )
-    assert imap.ImapSource().poll(db) == 3  # every message was looked at; only the first one is an answer
+    outcomes = imap.ImapSource().poll(db)  # every message was looked at; only the first one is an answer
+    assert outcomes == {Outcome.stored: 1, Outcome.ignored: 1, Outcome.unmatched: 1}
     assert [r.body.strip() for r in stored(db)] == ["First"]
     assert conn.seen == {b"1", b"2", b"3"} and conn.closed
 
@@ -344,21 +346,21 @@ def test_imap_poll_stores_replies_and_marks_everything_seen(db, item, server):
 def test_a_message_that_cannot_be_read_is_skipped_not_retried_forever(db, server, monkeypatch):
     conn = server({b"1": b"whatever"})
     monkeypatch.setattr(imap, "parse_message", lambda raw: 1 / 0)
-    assert imap.ImapSource().poll(db) == 0
+    assert sum(imap.ImapSource().poll(db).values()) == 0
     assert conn.seen == {b"1"}
 
 
 def test_imap_skips_oversized_mail_without_downloading_it(db, item, server, monkeypatch):
     monkeypatch.setattr(settings, "inbound_max_bytes", 100)
     conn = server({b"1": mail(to=reply_address(item.id), body="x" * 500)})
-    assert imap.ImapSource().poll(db) == 0
+    assert sum(imap.ImapSource().poll(db).values()) == 0
     assert stored(db) == [] and conn.seen == {b"1"}
 
 
 def test_a_message_that_fails_to_store_stays_unread_for_the_next_pass(db, item, server, monkeypatch):
     conn = server({b"1": mail(to=reply_address(item.id))})
     monkeypatch.setattr(imap, "ingest", lambda *a: 1 / 0)
-    assert imap.ImapSource().poll(db) == 0
+    assert sum(imap.ImapSource().poll(db).values()) == 0
     assert conn.seen == set() and conn.closed
 
 
@@ -430,3 +432,22 @@ def test_thread_tells_the_ui_when_answers_come_back(client, db, item, mailer, in
     h = as_role(client, db, site, Role.viewer, "v@example.com")
     thread = client.get(f"/sites/{site.id}/feedback/{item.id}/replies", headers=h).json()
     assert thread["inbound"] is True
+
+
+def test_worker_records_how_each_poll_went(db, inbound, monkeypatch):
+    from app import worker
+    from app.models import InboundStatus
+
+    monkeypatch.setattr(worker, "_last_inbound", float("-inf"))
+    monkeypatch.setattr(imap.ImapSource, "poll", lambda self, db: Counter({Outcome.stored: 1}))
+    worker.poll_inbound(db)
+    assert db.get(InboundStatus, "imap").last_ok_at is not None
+
+    def boom(self, db):
+        raise RuntimeError("login refused")
+
+    monkeypatch.setattr(worker, "_last_inbound", float("-inf"))
+    monkeypatch.setattr(imap.ImapSource, "poll", boom)
+    worker.poll_inbound(db)
+    row = db.get(InboundStatus, "imap")
+    assert row.last_error == "RuntimeError: login refused" and row.last_error_at is not None

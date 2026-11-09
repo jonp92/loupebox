@@ -163,3 +163,103 @@ def test_checklist_follows_the_install(client, h, db, monkeypatch):
     off.enabled = True
     db.commit()
     assert items()["channel"] is True
+
+
+# -- inbound email ----------------------------------------------------------------------------------------
+
+
+@pytest.fixture
+def imap_on(monkeypatch):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "inbound_address", "replies@example.com")
+    monkeypatch.setattr(settings, "imap_host", "imap.test")
+    monkeypatch.setattr(settings, "imap_poll_seconds", 60)
+
+
+def inbound(client, h):
+    return client.get("/system/health", headers=h).json()["inbound"]
+
+
+def test_no_inbound_row_while_inbound_email_is_off(client, h):
+    assert inbound(client, h) == []
+
+
+def test_inbound_row_walks_from_not_read_yet_to_ok_to_error_to_stale(client, h, db, imap_on):
+    (row,) = inbound(client, h)
+    assert row["source"] == "imap" and row["status"] == "warn" and row["last_ok_at"] is None  # never polled
+
+    now = utcnow()
+    health.record_poll(db, "imap", now)
+    assert inbound(client, h)[0]["status"] == "ok"
+
+    later = now + timedelta(seconds=30)
+    health.record_poll(db, "imap", later, "IMAP4.error: [AUTHENTICATIONFAILED] bad login")
+    row = inbound(client, h)[0]
+    assert row["status"] == "error" and "AUTHENTICATIONFAILED" in row["last_error"]
+
+    health.record_poll(db, "imap", utcnow() + timedelta(seconds=40))  # it recovered: the error clears
+    row = inbound(client, h)[0]
+    assert row["status"] == "ok" and row["last_error"] is None
+
+    db.query(health.InboundStatus).update(
+        {"last_ok_at": utcnow() - timedelta(minutes=10), "last_error_at": None}
+    )
+    db.commit()
+    assert inbound(client, h)[0]["status"] == "warn"  # worker stopped: not read for a while
+
+
+def test_a_slow_poll_interval_widens_the_stale_window(client, h, db, imap_on, monkeypatch):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "imap_poll_seconds", 3600)
+    health.record_poll(db, "imap", utcnow() - timedelta(minutes=30))
+    assert inbound(client, h)[0]["status"] == "ok"
+
+
+def test_recorded_errors_drop_urls_and_are_shortened(db):
+    health.record_poll(db, "imap", utcnow(), "oops https://user:pw@mail.test/path?token=x " + "z" * 500)
+    error = db.get(health.InboundStatus, "imap").last_error
+    assert "pw" not in error and "token" not in error and len(error) <= 200
+
+
+def poll(db, at, **found):
+    from collections import Counter
+
+    from app.inbound.base import Outcome
+
+    health.record_poll(db, "imap", at, outcomes=Counter({Outcome(k): n for k, n in found.items()}))
+
+
+def test_row_counts_what_happened_to_the_mail_in_the_last_day(client, h, db, imap_on):
+    now = utcnow()
+    poll(db, now - timedelta(hours=30), stored=9)  # older than a day: not counted, but it was the last stored
+    poll(db, now - timedelta(hours=2), stored=1, unmatched=1)
+    poll(db, now - timedelta(hours=2), stored=2, bounced=1, ignored=5, duplicate=4)  # same hour: added up
+    poll(db, now, ignored=1)
+    row = inbound(client, h)[0]
+    assert row["counts"] == {
+        "stored": 3,
+        "unmatched": 1,
+        "bounced": 1,
+        "ignored": 6,
+    }  # duplicates carry no news
+    assert row["last_stored_at"] and row["status"] == "ok"
+
+
+def test_unmatched_mail_piling_up_warns_until_something_is_stored(client, h, db, imap_on):
+    now = utcnow()
+    poll(db, now, unmatched=2)
+    assert inbound(client, h)[0]["status"] == "ok"
+    poll(db, now, unmatched=1, ignored=9)
+    row = inbound(client, h)[0]
+    assert row["status"] == "warn" and row["counts"]["unmatched"] == 3  # robots are not what is piling up
+    poll(db, now, stored=1)  # an answer got through: the matching works
+    assert inbound(client, h)[0]["status"] == "ok"
+
+
+def test_old_buckets_are_dropped_when_new_ones_are_written(db):
+    now = utcnow()
+    poll(db, now - timedelta(hours=30), stored=1)
+    poll(db, now, stored=1)
+    assert len(db.get(health.InboundStatus, "imap").counts) == 1

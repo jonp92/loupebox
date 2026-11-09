@@ -4,14 +4,13 @@ Nothing here logs or audits message text or addresses. The caller owns the trans
 never commits), like every helper that runs inside a request or a worker pass.
 """
 
-import enum
 import uuid
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.inbound.base import InboundMessage
+from app.inbound.base import InboundMessage, Outcome
 from app.inbound.mime import normalize_id
 from app.inbound.text import strip_quoted
 from app.inbound.token import feedback_id_from_address
@@ -21,14 +20,6 @@ from app.notifications.outbox import enqueue_customer_reply
 BODY_MAX = 5000  # the same cap as a reply written in the UI
 ERROR_MAX = 300
 ID_MAX = 128
-
-
-class Outcome(str, enum.Enum):
-    stored = "stored"  # a customer reply was added to the conversation
-    bounced = "bounced"  # an outbound reply was marked failed
-    ignored = "ignored"  # a robot, an empty message or spam
-    unmatched = "unmatched"  # no feedback item, or the sender is not the person who wrote it
-    duplicate = "duplicate"  # already stored (the same Message-ID)
 
 
 def _forms(message_id: str | None) -> list[str]:

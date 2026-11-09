@@ -41,6 +41,21 @@ username and password. The worker (`python -m app.worker`) must be running. Mess
 Reply mail only changes when both an address and a reader are set. Until then, **Reply-To** stays your own
 address, as before.
 
+## Checking it works
+
+**System > Status** has an **Inbound email** row, for example:
+
+> Last read just now, last stored 2h ago, 4 emails matched, 2 unmatched, 1 bounced in 24 h
+
+*Matched* answers were added to a conversation. *Unmatched* mail reached the mailbox but belonged to no
+conversation (or came from someone else). *Bounced* are delivery failures. *Ignored* are automatic replies,
+spam and empty mail. Only the kinds that happened in the last 24 hours are listed. If the worker cannot read the
+mailbox, the row shows the error instead (a wrong password, an unreachable host).
+
+It goes to **Attention** when the mailbox has not been read for a few poll intervals (usually a stopped worker),
+or when three or more emails were unmatched in the last day and none matched. The usual cause is a mail host
+that removes the `+code` from the address, so check that it keeps plus-addressing.
+
 ## Limits
 
 Loupebox reads mail; it does not delete it. Processed messages are marked read, so leave the mailbox's own
