@@ -7,6 +7,13 @@ change between releases; breaking changes are called out below.
 ## [Unreleased]
 
 ### Changed
+- Dashboard: the big number is now what arrived in the last 7, 30 or 90 days (your choice is remembered in the
+  browser) with the change against the period before and a per-day sparkline, also per site. "Unread, last 24h"
+  and "Sites with unread" are replaced by "Received today" and "Oldest unread", and spam quarantined in the period
+  is shown under the band. Every query is an index range scan, none reads a site's whole history.
+  **API (breaking):** `GET /dashboard` takes `window=7|30|90`; `received_total` and `new_24h` are replaced by
+  `days`, `received`, `received_previous`, `received_today`, `spam`, `oldest_unread_at` and `series`
+  (each site in `sites` also has a `series`).
 - Feedback detail: customer replies, replies sent by email and internal notes now share one conversation
   timeline. A selector on the form chooses between "Reply to customer (email)" and "Internal note".
 - Admin UI: feedback lists are ruled rows instead of cards, with a straight amber bar on unread items. Hovering a

@@ -243,6 +243,14 @@ dialog.sheet .hint { margin: calc(var(--space-2) * -1) 0 var(--space-5); }
 .stat-received { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-6) var(--space-3) 0; border-right: 1px solid var(--border-row); }
 .stat-label { display: flex; flex-direction: column; color: var(--text-secondary); font-size: var(--text-ui); }
 .stat-label small { color: var(--text-muted); font-size: var(--text-data); }
+.stat-label .spark { margin-top: var(--space-2); }
+.spark { display: block; width: 100%; max-width: 12rem; height: 1.5rem; }
+.ruled-side .spark { width: 5rem; height: 1.25rem; }
+.spark-bar { fill: var(--text-muted); }
+.spark-today { fill: var(--accent); }
+.spark-zero { fill: var(--border-control); }
+.window-pick { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; color: var(--text-secondary); font-size: var(--text-ui); }
+.window-pick select { width: auto; margin: 0; }
 .stat-cells { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; }
 .stat-cells > div { display: flex; flex-direction: column; justify-content: space-between; padding: var(--space-4); }
 .stat-cells > div + div { border-left: 1px solid var(--border-row); }
