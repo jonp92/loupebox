@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import Self
 
 from pydantic import BaseModel
@@ -10,6 +11,7 @@ from app.schemas.site import SiteOut
 
 class DashboardSite(SiteOut):
     new_count: int
+    series: list[int]  # non-spam received per day over the window, oldest first, last = today (UTC)
 
 
 class DashboardItem(FeedbackOut):
@@ -25,9 +27,14 @@ class DashboardItem(FeedbackOut):
 
 
 class Dashboard(BaseModel):
+    days: int
+    received: int  # non-spam, last `days` days including today
+    received_previous: int  # the `days` days before that
+    received_today: int
+    spam: int  # quarantined in the window
+    oldest_unread_at: datetime | None
+    series: list[int]
     new_total: int
-    new_24h: int
-    received_total: int
     sites_with_new: int
     sites: list[DashboardSite]
     recent_new: list[DashboardItem]

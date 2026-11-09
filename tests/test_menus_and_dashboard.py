@@ -89,9 +89,8 @@ def test_dashboard_counts_and_newest_unread_span_the_sites(client, db):
     _add(db, c, 2, status=FeedbackStatus.spam, prefix="c")
     _add(db, c, 2, status=FeedbackStatus.read, prefix="c")
     body = client.get("/dashboard", params={"limit": 5}, headers=_root(db, client)).json()
-    assert (body["new_total"], body["new_24h"], body["received_total"], body["sites_with_new"]) == (
+    assert (body["new_total"], body["received"], body["sites_with_new"]) == (
         7,
-        4,
         9,  # spam is not counted
         2,
     )

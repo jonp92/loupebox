@@ -48,15 +48,21 @@ export interface Site {
 }
 export interface DashboardSite extends Site {
   new_count: number;
+  series: number[];
 }
 export interface DashboardItem extends Feedback {
   site_id: string;
   site_name: string;
 }
 export interface Dashboard {
+  days: number;
+  received: number;
+  received_previous: number;
+  received_today: number;
+  spam: number;
+  oldest_unread_at: string | null;
+  series: number[];
   new_total: number;
-  new_24h: number;
-  received_total: number;
   sites_with_new: number;
   sites: DashboardSite[];
   recent_new: DashboardItem[];
