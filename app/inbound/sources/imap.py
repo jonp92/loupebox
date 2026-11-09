@@ -4,11 +4,12 @@ import imaplib
 import logging
 import re
 import ssl
+from collections import Counter
 
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.inbound.base import PollingSource
+from app.inbound.base import Outcome, PollingSource
 from app.inbound.ingest import ingest
 from app.inbound.mime import parse_message
 from app.inbound.registry import register_source
@@ -51,9 +52,9 @@ class ImapSource(PollingSource):
         # Never send a password in the clear.
         return not (settings.imap_security == "none" and settings.imap_username)
 
-    def poll(self, db: Session) -> int:
+    def poll(self, db: Session) -> Counter[Outcome]:
         conn = _connect()
-        handled = 0
+        outcomes: Counter[Outcome] = Counter()
         try:
             conn.select(settings.imap_folder)
             _, found = conn.uid("SEARCH", None, "UNSEEN")
@@ -68,9 +69,9 @@ class ImapSource(PollingSource):
                         log.exception("could not read one message; skipping it")  # unreadable: never retry
                     else:
                         try:
-                            ingest(db, parsed)
+                            outcome = ingest(db, parsed)
                             db.commit()
-                            handled += 1
+                            outcomes[outcome] += 1
                         except Exception:
                             db.rollback()
                             log.exception("could not store one message; it stays unread and is retried")
@@ -82,4 +83,4 @@ class ImapSource(PollingSource):
                 conn.logout()
             except Exception:  # the connection may already be gone; nothing to clean up
                 log.debug("imap logout failed", exc_info=True)
-        return handled
+        return outcomes

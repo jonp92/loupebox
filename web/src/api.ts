@@ -215,6 +215,7 @@ export interface InstanceHealth {
     }[];
   };
   redis: HealthStatus | null; // null: not configured
+  inbound: { source: string; label: string; status: HealthStatus; last_ok_at: string | null; last_error_at: string | null; last_error: string | null; last_stored_at: string | null; counts: Partial<Record<"stored" | "unmatched" | "bounced" | "ignored", number>> }[];
   checklist: { id: "mail" | "public_url" | "worker" | "site" | "channel"; done: boolean }[];
 }
 

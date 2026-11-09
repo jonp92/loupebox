@@ -35,6 +35,21 @@ const STEPS: Record<InstanceHealth["checklist"][number]["id"], { label: string; 
   channel: { label: "Add a notification channel to a site", to: "/sites" },
 };
 
+const COUNT_LABELS = [["unmatched", "unmatched"], ["bounced", "bounced"], ["ignored", "ignored"]] as const;
+
+/** "Last read just now, last stored 2h ago, 4 emails matched, 2 unmatched in 24 h": only what happened is listed. */
+function inboundDetail(i: InstanceHealth["inbound"][number]) {
+  if (!i.last_ok_at) return "Not read yet, is the worker running?";
+  const matched = i.counts.stored ?? 0;
+  const parts = [
+    `Last read ${since(i.last_ok_at)}`,
+    i.last_stored_at ? `last stored ${since(i.last_stored_at)}` : "nothing stored yet",
+    `${matched} ${matched === 1 ? "email" : "emails"} matched`,
+    ...COUNT_LABELS.filter(([key]) => i.counts[key]).map(([key, label]) => `${i.counts[key]} ${label}`),
+  ];
+  return `${parts.join(", ")} in 24 h`;
+}
+
 const wait = (s: number) => (s < 90 ? `${s}s` : `${Math.round(s / 60)}m`);
 
 /** Is the database up, is the worker beating, is the outbox draining. Refreshes itself while visible. */
@@ -51,12 +66,13 @@ export default function SystemHealth() {
   }, [load]);
 
   const { worker, outbox } = health ?? {};
+  const services = health && worker && outbox ? [health.database, worker.status, outbox.status, ...(health.redis ? [health.redis] : []), ...health.inbound.map((i) => i.status)] : [];
   return (
     <section aria-labelledby="health-title">
       <div className="section-head">
         <div>
           <h2 id="health-title">Instance health</h2>
-          {health && worker && outbox && <p className="muted section-sub">{[health.database, worker.status, outbox.status, health.redis].filter((x) => x === "ok").length} of {health.redis ? 4 : 3} services healthy</p>}
+          {health && worker && outbox && <p className="muted section-sub">{services.filter((x) => x === "ok").length} of {services.length} services healthy</p>}
         </div>
         <button type="button" onClick={load}><Icon name="refresh" size={18} />Refresh</button>
       </div>
@@ -74,6 +90,11 @@ export default function SystemHealth() {
             {outbox.oldest_due_seconds != null && ` (oldest ${wait(outbox.oldest_due_seconds)})`},{" "}
             {outbox.held} held, {outbox.failed_24h} failed in 24 h
           </Check>
+          {health.inbound.map((i) => (
+            <Check key={i.source} title={`Inbound email (${i.label})`} status={i.status}>
+              {i.status === "error" && i.last_error ? `Failing since ${since(i.last_error_at!)}: ${i.last_error}` : inboundDetail(i)}
+            </Check>
+          ))}
           {health.redis && (
             <Check title="Redis" status={health.redis}>
               {health.redis === "ok" ? "Connected" : "Unreachable, rate limits are per API container"}

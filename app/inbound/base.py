@@ -1,8 +1,18 @@
+import enum
 from abc import ABC, abstractmethod
+from collections import Counter
 from dataclasses import dataclass, field
 from typing import ClassVar, Literal
 
 from sqlalchemy.orm import Session
+
+
+class Outcome(str, enum.Enum):
+    stored = "stored"  # a customer reply was added to the conversation
+    bounced = "bounced"  # an outbound reply was marked failed
+    ignored = "ignored"  # a robot, an empty message or spam
+    unmatched = "unmatched"  # no feedback item, or the sender is not the person who wrote it
+    duplicate = "duplicate"  # already stored (the same Message-ID)
 
 
 @dataclass
@@ -40,5 +50,5 @@ class PollingSource(InboundSource):
     """A source the worker asks for mail on a timer. Push sources (webhooks) have their own route instead."""
 
     @abstractmethod
-    def poll(self, db: Session) -> int:
-        """Fetch and ingest what is waiting; commit per message. Returns how many were handled."""
+    def poll(self, db: Session) -> Counter[Outcome]:
+        """Fetch and ingest what is waiting; commit per message. Returns how each message turned out."""

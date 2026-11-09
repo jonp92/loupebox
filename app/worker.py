@@ -43,9 +43,13 @@ def poll_inbound(db) -> int:
     for source in all_sources():
         if isinstance(source, PollingSource) and source.is_configured():
             try:
-                handled += source.poll(db)
-            except Exception:
+                outcomes = source.poll(db)
+                handled += sum(outcomes.values())
+                health.record_poll(db, source.key, utcnow(), outcomes=outcomes)
+            except Exception as exc:
                 log.exception("inbound source %s failed", source.key)
+                db.rollback()
+                health.record_poll(db, source.key, utcnow(), error=f"{type(exc).__name__}: {exc}")
     return handled
 
 

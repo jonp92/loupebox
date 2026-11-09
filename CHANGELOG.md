@@ -15,6 +15,9 @@ change between releases; breaking changes are called out below.
   retention and image storage events can be filtered, and new audited actions need no UI change.
 
 ### Added
+- System status shows an **Inbound email** row for each mailbox the worker reads: when it was last read and last
+  stored, how many emails matched, did not match or bounced in the last 24 hours, or the error it is failing with.
+  It warns when the mailbox has not been read for a while (worker stopped) or unmatched mail keeps arriving.
 - Answers by email: a person's answer to a reply is read from an IMAP mailbox and shown in the conversation as a
   **Customer** entry, and the item goes back to unread. Replies carry a `replies+code@your-domain` Reply-To, only
   the person who wrote the feedback can answer, quoted text is cut, automatic replies are ignored and a bounce
