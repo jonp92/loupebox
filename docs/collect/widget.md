@@ -125,7 +125,7 @@ the field's `id` (a checkbox sends `true`/`false`). Ids can't be `issue_type` or
 ### Metadata
 
 Every submission carries `metadata.widget_version` and, when chosen, `metadata.issue_type`. Yours is merged in
-(`metadata` option, then extra fields); it can't overwrite those two. The server allows at most 20 keys, keys up to
+(`metadata` option, then extra fields); it can't overwrite those two. The server allows at most 20 keys by default (an administrator can change this under System settings), keys up to
 64 characters and values that are strings (cut at 256), numbers, booleans or null. **Don't put secrets or tokens in it.**
 
 ## Images

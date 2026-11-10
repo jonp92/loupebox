@@ -269,7 +269,7 @@ def test_images_are_not_offered_while_the_bucket_is_not_set_up(client, db, shop,
     monkeypatch.setattr(settings, "storage_backend", "s3")  # no bucket or keys
     assert client.get(
         "/feedback/config", headers={"X-API-Key": "pk_test_Shop", "Origin": "https://shop.example.com"}
-    ).json() == {"attachments": {"enabled": False}}
+    ).json()["attachments"] == {"enabled": False}
     r = send(client, [image()])
     assert r.status_code == 503 and db.scalars(select(Feedback)).all() == []
 

@@ -61,6 +61,7 @@ class Settings(BaseSettings):
     public_window_seconds: int = 60
     default_site_daily_limit: int = 1000
     dedupe_window_minutes: int = 10
+    metadata_max_keys: int = 20  # keys of extra data a submission may carry
     spam_link_threshold: int = 3  # messages with more links than this are quarantined
 
     # Public-ingest challenges (see app/challenges). Issuing is stateless, so these only bound abuse.

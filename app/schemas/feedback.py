@@ -9,8 +9,6 @@ from app.core.config import settings
 from app.models import FeedbackStatus
 from app.schemas.common import clean_text
 
-_MAX_META_KEYS = 20
-
 
 class FeedbackIn(BaseModel):
     """Public submission payload. Unknown fields are rejected."""
@@ -52,8 +50,8 @@ class FeedbackIn(BaseModel):
     @field_validator("metadata")
     @classmethod
     def _metadata(cls, v: dict) -> dict:
-        if len(v) > _MAX_META_KEYS:
-            raise ValueError(f"metadata may have at most {_MAX_META_KEYS} keys")
+        if len(v) > settings.metadata_max_keys:  # read now: the cap is a runtime setting
+            raise ValueError(f"metadata may have at most {settings.metadata_max_keys} keys")
         out = {}
         for key, val in v.items():
             if len(key) > 64:

@@ -79,7 +79,7 @@ def test_unknown_backend_is_an_error(monkeypatch):
 
 def test_config_says_whether_images_are_accepted(client, db):
     make_site(db)
-    assert client.get("/feedback/config", headers=HEADERS).json() == {"attachments": {"enabled": False}}
+    assert client.get("/feedback/config", headers=HEADERS).json()["attachments"] == {"enabled": False}
     db.scalar(select(__import__("app.models", fromlist=["Site"]).Site)).attachments_enabled = True
     db.commit()
     cfg = client.get("/feedback/config", headers=HEADERS).json()["attachments"]

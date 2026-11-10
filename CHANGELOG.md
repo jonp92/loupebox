@@ -25,6 +25,8 @@ change between releases; breaking changes are called out below.
 - Unread count: the Inbox entry in the sidebar shows how many items are unread across your sites (99+ when large),
   the browser tab title shows it too (`(3) Loupebox Feedback`), and an installed app gets an icon badge where the
   browser supports it. It updates live, including while the tab is in the background.
+- System settings: "Metadata keys per submission" (default 20, 13 to 100) sets how many extra keys a visitor's
+  submission may carry. `GET /feedback/config` now reports it as `metadata_max_keys`.
 - Live updates: the admin UI refreshes itself when feedback arrives, is triaged or answered (including by email),
   and when notes or replies are added, with no reload and no polling. `GET /v1/api/events` is a server-sent
   event stream of `{kind, site_id, feedback_id}` (ids only, the page refetches), limited to the caller's sites
