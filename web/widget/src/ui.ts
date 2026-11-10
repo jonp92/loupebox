@@ -1,13 +1,13 @@
 import { createClient, type SubmitResult } from "./client";
 import { canCapture, captureFrame } from "./capture";
 import { h } from "./dom";
+import { fromExtra, localize, type FieldSpec, type SiteField } from "./fields";
 import { format } from "./i18n";
 import { icon } from "./icons";
 import { IMAGE_TYPES, prepareImage, type ImageLimits } from "./images";
 import {
   LoupeboxConfigError,
   normalizeOptions,
-  type ExtraField,
   type MetadataValue,
   type ResolvedOptions,
   type SubmitPayload,
@@ -74,7 +74,8 @@ export function createWidget(input: WidgetOptions): WidgetController {
   let selectedType: string | undefined;
   let rating = 0;
   let limits: ImageLimits | null = null; // what the site accepts; null while unknown or when images are off
-  let limitsRequested = false;
+  let siteFields: SiteField[] = []; // the questions from the site's settings, once its config has arrived
+  let configReady: Promise<void> | null = null; // set once the site's config has been asked for
   const picked: { file: Blob; name: string; url: string }[] = [];
   let capturing = false; // the browser's share picker or the redact editor is open
   let closeEditor: (() => void) | null = null;
@@ -87,8 +88,16 @@ export function createWidget(input: WidgetOptions): WidgetController {
   let statusEl!: HTMLElement;
   let submitBtn!: HTMLButtonElement;
   let imageSlot!: HTMLElement;
+  let fieldSlot!: HTMLElement;
 
-  const client = () => createClient({ url: opts.url, key: opts.key });
+  // One client per site, so what it learns from the config (the metadata limit) is used when it submits.
+  let cached: { url: string; key: string; client: ReturnType<typeof createClient> } | null = null;
+  const client = () => {
+    if (!cached || cached.url !== opts.url || cached.key !== opts.key) {
+      cached = { url: opts.url, key: opts.key, client: createClient({ url: opts.url, key: opts.key }) };
+    }
+    return cached.client;
+  };
 
   function applyTheme(): void {
     host.setAttribute("data-theme", opts.theme);
@@ -207,13 +216,20 @@ export function createWidget(input: WidgetOptions): WidgetController {
     return h("div", {}, label(text, `${id}-${fieldId}`, mode), input, errorFor(fieldId));
   }
 
-  function extraField(field: ExtraField): HTMLElement {
+  /** The site's fields in the visitor's language, then the page's own `extraFields` the site has not claimed. */
+  function fieldSpecs(): FieldSpec[] {
+    const site = siteFields.map((f) => localize(f, opts.locale));
+    const taken = new Set(site.map((f) => f.id));
+    return [...site, ...opts.extraFields.map(fromExtra).filter((f) => !taken.has(f.id))];
+  }
+
+  function extraField(field: FieldSpec): HTMLElement {
     const fid = `${id}-x-${field.id}`;
     const common = { id: fid, name: field.id, "aria-describedby": `${fid}-err`, "data-extra": field.id };
     let control: HTMLElement;
     if (field.type === "textarea") control = h("textarea", { ...common, maxlength: String(field.maxLength ?? 256) });
     else if (field.type === "select") {
-      control = h("select", common, h("option", { value: "" }, ""), ...(field.options ?? []).map((o) => h("option", { value: o }, o)));
+      control = h("select", common, h("option", { value: "" }, ""), ...field.options.map((o) => h("option", { value: o.value }, o.label)));
     } else if (field.type === "checkbox") {
       control = h("input", { ...common, type: "checkbox" });
       return h("div", {}, h("label", { class: "check", for: fid }, control, field.label), h("p", { class: "err", id: `${fid}-err`, hidden: true }));
@@ -347,13 +363,20 @@ export function createWidget(input: WidgetOptions): WidgetController {
     paintImages();
   }
 
-  function loadLimits(): void {
-    if (limitsRequested || destroyed || !opts.images) return;
-    limitsRequested = true;
-    void client().limits().then((found) => {
+  /** The site's questions, built once the site is known. A page's own field with the same id steps aside. */
+  function mountFields(): void {
+    fieldSlot.replaceChildren(...siteFields.map((f) => extraField(localize(f, opts.locale))));
+    for (const f of siteFields) shadow.querySelector(`[data-host="${f.id}"]`)?.remove();
+  }
+
+  function loadConfig(): void {
+    if (configReady || destroyed) return;
+    configReady = client().config().then((found) => {
       if (destroyed) return;
-      limits = found;
+      limits = opts.images ? found.images : null;
+      siteFields = found.fields;
       mountImages();
+      mountFields();
     });
   }
 
@@ -398,14 +421,15 @@ export function createWidget(input: WidgetOptions): WidgetController {
     } catch (err) {
       console.error("[loupebox] the metadata function threw; sending without it", err);
     }
-    for (const field of opts.extraFields) {
+    const specs = fieldSpecs();
+    for (const field of specs) {
       const el = shadow.querySelector<HTMLInputElement>(`[data-extra="${field.id}"]`);
       const value: MetadataValue = field.type === "checkbox" ? Boolean(el?.checked) : (el?.value.trim() ?? "");
       if (field.required && (value === "" || value === false)) errors[`x-${field.id}`] = s.required;
       if (value !== "") metadata[field.id] = value;
     }
 
-    for (const fid of ["message", "type", "name", "email", "rating", ...opts.extraFields.map((f) => `x-${f.id}`)]) {
+    for (const fid of ["message", "type", "name", "email", "rating", ...specs.map((f) => `x-${f.id}`)]) {
       const target = fid.startsWith("x-") ? fid.slice(2) : fid;
       setFieldError(fid.startsWith("x-") ? `x-${target}` : fid, errors[fid] ?? "");
     }
@@ -445,6 +469,7 @@ export function createWidget(input: WidgetOptions): WidgetController {
   async function submit(event: Event): Promise<void> {
     event.preventDefault();
     if (busy) return;
+    if (configReady) await configReady; // the site's questions may still be on their way
     const checked = validate();
     if (!checked.ok) {
       focusField(checked.first);
@@ -485,8 +510,10 @@ export function createWidget(input: WidgetOptions): WidgetController {
     }
     if (result.fields) {
       const known = { message: "message", email: "email", name: "name", rating: "rating", images: "images" } as const;
+      const asked = new Set(fieldSpecs().map((f) => f.id));
       for (const [field, message] of Object.entries(result.fields)) {
         if (field in known) setFieldError(known[field as keyof typeof known], message);
+        else if (asked.has(field)) setFieldError(`x-${field}`, opts.strings.required); // the server's text is English
       }
     }
     setStatus(failureText(result), "error");
@@ -530,6 +557,7 @@ export function createWidget(input: WidgetOptions): WidgetController {
     selectedType = undefined;
     rating = 0;
     imageSlot = h("div", { class: "images", hidden: true });
+    fieldSlot = h("div", { class: "site-fields" });
 
     form = h(
       "form",
@@ -545,7 +573,12 @@ export function createWidget(input: WidgetOptions): WidgetController {
       ratingField(),
       opts.fields.name ? textField("name", opts.strings.nameLabel, "text", opts.fields.name, "name") : null,
       opts.fields.email ? textField("email", opts.strings.emailLabel, "email", opts.fields.email, "email") : null,
-      ...opts.extraFields.map(extraField),
+      fieldSlot,
+      ...opts.extraFields.map((f) => {
+        const wrap = extraField(fromExtra(f));
+        wrap.setAttribute("data-host", f.id); // removed if the site defines a field with the same id
+        return wrap;
+      }),
       // Honeypot: off-screen, not display:none (some bots skip those), unlabeled for assistive tech.
       h("div", { class: "honeypot", "aria-hidden": "true" }, h("input", { type: "text", id: `${id}-website`, name: "website", tabindex: "-1", autocomplete: "off" })),
       statusEl,
@@ -612,6 +645,7 @@ export function createWidget(input: WidgetOptions): WidgetController {
     panel.id = `${id}-panel`;
     shadow.append(h("div", { "data-mode": opts.mode, "data-position": opts.position }, launcher, panel));
     mountImages();
+    mountFields();
   }
 
   // --- open / close ---------------------------------------------------------------------------
@@ -620,7 +654,7 @@ export function createWidget(input: WidgetOptions): WidgetController {
     if (isOpen || destroyed || opts.mode !== "floating") return;
     clearTimeout(closeTimer);
     isOpen = true;
-    loadLimits();
+    loadConfig();
     if (!doneBox.hidden) resetForm();
     panel.hidden = false;
     launcher?.setAttribute("aria-expanded", "true");
@@ -656,7 +690,7 @@ export function createWidget(input: WidgetOptions): WidgetController {
       document.body.append(host);
     }
   };
-  if (opts.mode === "inline") loadLimits();
+  if (opts.mode === "inline") loadConfig();
   if (opts.mode === "floating" && document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", mount, { once: true });
   } else {
@@ -682,11 +716,12 @@ export function createWidget(input: WidgetOptions): WidgetController {
       opts = normalizeOptions(raw);
       if ("url" in changes || "key" in changes || "images" in changes) {
         limits = null; // another site may take different things
-        limitsRequested = false;
+        siteFields = [];
+        configReady = null;
         clearImages();
       }
       render();
-      if (isOpen || opts.mode === "inline") loadLimits();
+      if (isOpen || opts.mode === "inline") loadConfig();
     },
     on(event, listener) {
       (listeners[event] as Set<typeof listener>).add(listener);

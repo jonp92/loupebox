@@ -1,4 +1,5 @@
 import { solveProofOfWork } from "./challenge";
+import { parseSiteFields, type SiteField } from "./fields";
 import type { ImageLimits } from "./images";
 import { MAX_METADATA_KEYS, type MetadataValue } from "./options";
 import { VERSION } from "./version";
@@ -31,6 +32,15 @@ export type SubmitResult =
       fields?: Record<string, string>;
     };
 
+/** What `GET /feedback/config` says about the site. Every part has a safe default for an older server. */
+export interface SiteConfig {
+  images: ImageLimits | null;
+  /** Custom fields from the site's settings, in the order to show them. */
+  fields: SiteField[];
+  /** How many metadata keys the server takes (the widget trims to this), or null when it did not say. */
+  maxMetadataKeys: number | null;
+}
+
 export interface ClientOptions {
   url: string;
   key: string;
@@ -42,7 +52,7 @@ export interface ClientOptions {
 
 const FIELD_NAMES: Record<string, string> = { page_url: "pageUrl" };
 
-function metadataFor(input: FeedbackInput): Record<string, MetadataValue> {
+function metadataFor(input: FeedbackInput, cap: number): Record<string, MetadataValue> {
   const out: Record<string, MetadataValue> = {};
   for (const [key, value] of Object.entries(input.metadata ?? {})) {
     if (key === "issue_type" || key === "widget_version" || key.length > 64) continue;
@@ -54,7 +64,7 @@ function metadataFor(input: FeedbackInput): Record<string, MetadataValue> {
   if (input.issueType) ours.issue_type = input.issueType;
   // Ours first so they always survive the key cap.
   const all = { ...ours, ...out };
-  return Object.fromEntries(Object.entries(all).slice(0, MAX_METADATA_KEYS));
+  return Object.fromEntries(Object.entries(all).slice(0, cap));
 }
 
 function defaultPageUrl(): string | undefined {
@@ -97,6 +107,30 @@ export function createClient(options: ClientOptions) {
     return { ok: false, reason: "challenge_unsupported" }; // a newer kind of challenge than this version knows
   }
 
+  let cap = MAX_METADATA_KEYS; // until the site says otherwise
+
+  async function loadConfig(): Promise<SiteConfig> {
+    const none: SiteConfig = { images: null, fields: [], maxMetadataKeys: null };
+    try {
+      const res = await request("/feedback/config", undefined, "GET");
+      if (!res.ok) return none;
+      const body = (await readJson(res)) as { attachments?: Record<string, unknown>; fields?: unknown; metadata_max_keys?: unknown };
+      const a = body.attachments;
+      const max = Number(body.metadata_max_keys);
+      const told = Number.isInteger(max) && max >= 4; // the widget's own keys come first and must fit
+      if (told) cap = max;
+      return {
+        images: a?.enabled
+          ? { maxCount: Number(a.max_count) || 0, maxBytes: Number(a.max_bytes) || 0, maxEdge: Number(a.max_edge) || 2048 }
+          : null,
+        fields: parseSiteFields(body.fields),
+        maxMetadataKeys: told ? max : null,
+      };
+    } catch {
+      return none;
+    }
+  }
+
   async function send(input: FeedbackInput, proof: string | undefined): Promise<Response> {
     const pageUrl = input.pageUrl ?? defaultPageUrl();
     const payload = {
@@ -105,7 +139,7 @@ export function createClient(options: ClientOptions) {
       ...(input.name ? { name: input.name } : {}),
       ...(input.email ? { email: input.email } : {}),
       ...(pageUrl ? { page_url: pageUrl } : {}),
-      metadata: metadataFor(input),
+      metadata: metadataFor(input, cap),
       website: input.website ?? "",
       ...(proof ? { challenge: proof } : {}),
     };
@@ -117,17 +151,12 @@ export function createClient(options: ClientOptions) {
   }
 
   return {
-    /** What the site accepts besides text. `null` when images are off, or the server does not know (an older one). */
+    /** What the site asks and accepts besides the message: images, custom fields and the metadata limit. Never
+     * throws; an unreachable or older server gives the empty answer. */
+    config: loadConfig,
+    /** The image limits alone: `null` when images are off, or the server does not know (an older one). */
     async limits(): Promise<ImageLimits | null> {
-      try {
-        const res = await request("/feedback/config", undefined, "GET");
-        if (!res.ok) return null;
-        const a = ((await readJson(res)) as { attachments?: Record<string, unknown> }).attachments;
-        if (!a?.enabled) return null;
-        return { maxCount: Number(a.max_count) || 0, maxBytes: Number(a.max_bytes) || 0, maxEdge: Number(a.max_edge) || 2048 };
-      } catch {
-        return null;
-      }
+      return (await loadConfig()).images;
     },
     /** Send one piece of feedback. Never throws: failures come back as `{ ok: false, reason }`. */
     async submit(input: FeedbackInput): Promise<SubmitResult> {

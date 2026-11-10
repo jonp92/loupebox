@@ -72,9 +72,10 @@ describe("starting from the script tag", () => {
     assert.ok(root.querySelector(".rating"), "rating asked for");
     assert.ok(root.querySelector('input[name="name"]'), "name shown");
     assert.equal(root.querySelector('input[name="email"]'), null, "email turned off");
+    globalThis.fetch = mockFetch(() => ({ status: 200, body: { attachments: { enabled: true, max_count: 3, max_bytes: 1000, max_edge: 2048 } } }));
     root.querySelector(".launcher").click();
     await wait(30);
-    assert.equal(calls.length, 0, "data-images=false never asks the site about images");
+    assert.equal(root.querySelector(".add-image"), null, "data-images=false offers no images even where the site accepts them");
   });
 
   it("renders inline into a target", async () => {

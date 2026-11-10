@@ -1,3 +1,4 @@
+import { detectLocale } from "./fields";
 import { defaultStrings, type Strings } from "./i18n";
 import { VERSION } from "./version";
 
@@ -58,6 +59,9 @@ export interface WidgetOptions {
   fontFamily?: string;
   zIndex?: number;
   strings?: Partial<Strings>;
+  /** The visitor's language, such as `de` or `pt-BR`, for the translated questions of the site's custom fields.
+   * Defaults to the page's `<html lang>`, then the browser's language. */
+  locale?: string;
   /** Milliseconds before the panel closes after a successful send (default 2500, 0 keeps it open). */
   closeDelay?: number;
   /** Offer image upload when the site accepts images (default true). */
@@ -105,6 +109,7 @@ export interface ResolvedOptions {
   fontFamily: string | undefined;
   zIndex: number | undefined;
   strings: Strings;
+  locale: string;
   closeDelay: number;
   images: boolean;
   capture: boolean;
@@ -120,7 +125,7 @@ export const defaultIssueTypes: IssueType[] = [
 
 const KNOWN = new Set<string>([
   "url", "key", "mode", "target", "position", "launcher", "issueTypes", "defaultIssueType", "requireIssueType",
-  "fields", "extraFields", "metadata", "pageUrl", "theme", "colors", "radius", "fontFamily", "zIndex", "strings",
+  "fields", "extraFields", "metadata", "pageUrl", "theme", "colors", "radius", "fontFamily", "zIndex", "strings", "locale",
   "closeDelay", "images", "capture", "beforeSubmit",
 ]);
 const ID = /^[a-z0-9_-]{1,32}$/;
@@ -253,6 +258,7 @@ export function normalizeOptions(input: WidgetOptions): ResolvedOptions {
     fontFamily,
     zIndex: typeof input.zIndex === "number" ? input.zIndex : undefined,
     strings,
+    locale: typeof input.locale === "string" && input.locale.trim() ? input.locale.trim() : detectLocale(),
     closeDelay,
     images: input.images ?? true,
     capture: input.capture ?? true,

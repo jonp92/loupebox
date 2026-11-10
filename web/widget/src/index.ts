@@ -10,7 +10,7 @@
 export { createWidget } from "./ui";
 export type { WidgetController, WidgetEvents } from "./ui";
 export { createClient } from "./client";
-export type { ClientOptions, FeedbackInput, SubmitResult } from "./client";
+export type { ClientOptions, FeedbackInput, SiteConfig, SubmitResult } from "./client";
 export { solveProofOfWork } from "./challenge";
 export { defaultIssueTypes, LoupeboxConfigError } from "./options";
 export type {

@@ -99,12 +99,13 @@ describe("asking the site what it accepts", () => {
     assert.equal(ui.submissions()[0].body.message, "hello");
   });
 
-  it("never asks when the page turned images off", async () => {
+  it("offers no images when the page turned them off, even where the site accepts them", async () => {
     const ui = mount({ images: false });
     ui.w.open();
+    await until(() => ui.configCalls().length === 1); // still asked: the same answer carries the site's custom fields
     await wait(30);
-    assert.equal(ui.configCalls().length, 0);
     assert.equal(ui.q(".add-image"), null);
+    assert.equal(ui.q(".images").hidden, true);
   });
 
   it("asks at once in inline mode and keeps typed text when the answer arrives", async () => {
