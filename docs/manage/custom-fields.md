@@ -34,7 +34,7 @@ never change what is stored.
 ## What happens to the answers
 
 * The feedback page shows them first, with your labels. Anything else the page sent is under **Other data**.
-* On the list, **Fields…** filters on them; see [Triage](triage.md#filters).
+* On the list, **Custom fields** filters on them; see [Triage](triage.md#filters).
 * [Export](export.md) gets one column per field.
 * An answer that no longer fits (for example an option you have since deleted, from a form that was still open)
   is dropped, and the feedback is kept. A missing required answer is refused with a message naming the field.

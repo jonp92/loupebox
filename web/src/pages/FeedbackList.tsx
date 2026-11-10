@@ -371,12 +371,12 @@ export default function FeedbackList({ site }: { site?: Site }) {
           </select>
         )}
         <select value={status} onChange={resetTo(setStatus)} aria-label="Status">
-          <option value="">All (excl. spam)</option>
+          <option value="">Any status (not spam)</option>
           {STATUSES.map((s) => <option key={s}>{s}</option>)}
         </select>
         {issueTypes.length > 0 && (
           <select value={issueType} onChange={resetTo(setIssueType)} aria-label="Type of feedback">
-            <option value="">All types</option>
+            <option value="">Any type</option>
             {issueTypes.map((t) => <option key={t.id} value={t.id}>{label(t.id)} ({t.count})</option>)}
           </select>
         )}
@@ -385,14 +385,14 @@ export default function FeedbackList({ site }: { site?: Site }) {
           {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{"★".repeat(n)}</option>)}
         </select>
         <select value={hasEmail} onChange={resetTo(setHasEmail)} aria-label="Email address">
-          <option value="">Email or not</option>
+          <option value="">Any email</option>
           <option value="true">Has email</option>
           <option value="false">No email</option>
         </select>
         {assignee && assignee !== "none" && assignee !== me?.id ? (
           <span className="chip">Assignee: {assigneeLabel}<button aria-label="Remove the assignee filter" onClick={() => { setAssignee(""); setOffset(0); }}>×</button></span>
         ) : focus && (
-          <button onClick={(e) => picker.open(below(e.currentTarget), undefined, (p) => { setAssignee(p!.user_id); setAssigneeLabel(personName(p!)); setOffset(0); }, false)}>Assignee…</button>
+          <button onClick={(e) => picker.open(below(e.currentTarget), undefined, (p) => { setAssignee(p!.user_id); setAssigneeLabel(personName(p!)); setOffset(0); }, false)}>Any assignee</button>
         )}
         {siteTags.length > 0 && (
           <select value={tag} onChange={resetTo(setTag)} aria-label="Tag">
@@ -401,7 +401,7 @@ export default function FeedbackList({ site }: { site?: Site }) {
           </select>
         )}
         {site && site.custom_fields.length > 0 && (
-          <button onClick={() => setFieldsOpen(true)}>Fields…</button>
+          <button onClick={() => setFieldsOpen(true)}>Custom fields</button>
         )}
         <label className="muted">From <input type="date" value={from} max={to || undefined} onChange={resetTo(setFrom)} /></label>
         <label className="muted">To <input type="date" value={to} min={from || undefined} onChange={resetTo(setTo)} /></label>
