@@ -7,6 +7,9 @@ change between releases; breaking changes are called out below.
 ## [Unreleased]
 
 ### Changed
+- Feedback detail: the data a visitor's page sent along (metadata) is a labelled list instead of a block of JSON:
+  yes/no values show a mark and a word, `http(s)` values are links, empty values say so, and the widget version
+  sits last. The type badge is not repeated in the list.
 - Dashboard: the big number is now what arrived in the last 7, 30 or 90 days (your choice is remembered in the
   browser) with the change against the period before and a per-day sparkline, also per site. "Unread, last 24h"
   and "Sites with unread" are replaced by "Received today" and "Oldest unread", and spam quarantined in the period
