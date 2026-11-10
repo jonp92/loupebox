@@ -53,6 +53,7 @@ h2, h3 { margin: 0; font-size: 16px; line-height: 1.3; }
 .close:hover { color: var(--gm-text); background: var(--gm-surface); }
 
 form { display: grid; gap: 12px; margin: 0; }
+.site-fields { display: contents; } /* the site's questions sit in the form's grid like the page's own */
 fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 legend, label, .label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px; padding: 0; }
 .hint { font-weight: 400; color: var(--gm-muted); }

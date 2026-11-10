@@ -25,6 +25,11 @@ change between releases; breaking changes are called out below.
   retention and image storage events can be filtered, and new audited actions need no UI change.
 
 ### Added
+- Widget: the custom fields defined in a site's settings appear in the form with no change to the page, with
+  required checks, translated questions and options (matched against the new `locale` option, which defaults to
+  the page's language), and the metadata limit read from the server (`GET /feedback/config`). The widget now
+  always asks the site for its config when it opens, not only when images are on. Capabilities `site-fields` and
+  `locale` are added; a page's own `extraFields` with the same id step aside.
 - Site settings: a "Custom fields" section where admins add, edit, reorder and delete the questions the feedback
   form asks (choose one, yes or no, short text), mark them required, and translate the question and options per
   language. The id and type are fixed once a field exists, and renaming an option never changes what is stored.

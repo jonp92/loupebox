@@ -18,4 +18,6 @@ export const capabilities: readonly string[] = [
   "images",
   "auto-init",
   "capture",
+  "site-fields",
+  "locale",
 ];

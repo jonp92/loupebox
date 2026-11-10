@@ -74,7 +74,8 @@ Everything except `url` and `key` is optional.
 | `defaultIssueType` | none | Id of a badge selected from the start |
 | `requireIssueType` | `false` | Make choosing a badge mandatory (it then can't be un-selected) |
 | `fields` | `{ rating: false, name: false, email: "optional" }` | `rating` is a boolean; `name` and `email` are `false`, `"optional"` or `"required"` |
-| `extraFields` | `[]` | Your own fields, sent in `metadata` (see below) |
+| `extraFields` | `[]` | Your own fields, sent in `metadata` (see below). Fields defined in the site settings need no option |
+| `locale` | `<html lang>`, then the browser's | The visitor's language (`"de"`, `"pt-BR"`), for the translated questions of the site's fields |
 | `metadata` | | An object, or a function called at submit time, merged into `metadata` |
 | `pageUrl` | `location.href` | Page URL to report, or a function returning one |
 | `theme` | `"auto"` | `"auto"` follows the visitor's light/dark setting, or force `"light"` / `"dark"` |
@@ -122,10 +123,27 @@ createWidget({
 Types: `text` (default), `textarea`, `select` (needs `options`), `checkbox`. Values are sent in `metadata` under
 the field's `id` (a checkbox sends `true`/`false`). Ids can't be `issue_type` or `widget_version`.
 
+### Fields from the site settings
+
+Questions defined under **Settings → Custom fields** in the admin UI appear in the form by themselves, with no
+change to your page: the widget reads them from the site when it opens. They come after the message and the
+contact fields and before your own `extraFields`. If you define an `extraFields` entry with the same `id`, the
+site's version is used.
+
+* Answers are stored in the feedback's `metadata` under the field's id, can be filtered on in the admin UI, and
+  are exported. A required field must be answered before the form sends.
+* A choice is stored as the option's stored value, whatever language the visitor read it in, so filters and
+  exports do not split by language.
+* If the site has translations, the visitor sees the one that matches `locale` (the page's `<html lang>` unless
+  you set it): `pt-BR` matches `pt-BR`, then `pt`. Anything untranslated shows the site's own text. The widget's
+  own texts (button, errors) are still English unless you set `strings`.
+* Without a reachable server the form still opens and sends, just without these questions.
+* `capabilities.includes("site-fields")` tells a page that the loaded script supports this.
+
 ### Metadata
 
 Every submission carries `metadata.widget_version` and, when chosen, `metadata.issue_type`. Yours is merged in
-(`metadata` option, then extra fields); it can't overwrite those two. The server allows at most 20 keys by default (an administrator can change this under System settings), keys up to
+(`metadata` option, then extra fields); it can't overwrite those two. The server allows at most 20 keys by default (an administrator can change this under System settings; the widget reads the limit from the site and keeps its own keys first), keys up to
 64 characters and values that are strings (cut at 256), numbers, booleans or null. **Don't put secrets or tokens in it.**
 
 ## Images
