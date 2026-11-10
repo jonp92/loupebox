@@ -30,6 +30,9 @@ change between releases; breaking changes are called out below.
   the page's language), and the metadata limit read from the server (`GET /feedback/config`). The widget now
   always asks the site for its config when it opens, not only when images are on. Capabilities `site-fields` and
   `locale` are added; a page's own `extraFields` with the same id step aside.
+- Site settings: a "Custom fields" section where admins add, edit, reorder and delete the questions the feedback
+  form asks (choose one, yes or no, short text), mark them required, and translate the question and options per
+  language. The id and type are fixed once a field exists, and renaming an option never changes what is stored.
 - Custom fields (backend): a site can define up to 10 questions for its form (select, checkbox or short text, with
   optional translations of the labels) through `PATCH /sites/{id}` (`custom_fields`, admin only). Answers are
   stored in the feedback's metadata under the field's id. An answer that does not fit its field (for example an
