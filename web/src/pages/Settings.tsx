@@ -4,6 +4,7 @@ import { API_PREFIX, API_URL, api, json, type Site, type VerifierInfo } from "..
 import { useAuth } from "../auth";
 import { SchemaFields } from "../components";
 import { useConfirm } from "../confirm";
+import CustomFields from "./CustomFields";
 import Privacy from "./Privacy";
 import { useToast } from "../toast";
 
@@ -184,6 +185,7 @@ await fetch(API + "/feedback", {
         )}
         <button className="primary">Save changes</button>
       </form>
+      <CustomFields site={site} onChange={onChange} />
       <Privacy site={site} onChange={onChange} />
     </>
   );
