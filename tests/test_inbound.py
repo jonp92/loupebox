@@ -1,3 +1,6 @@
+import base64
+import json
+import time
 import uuid
 from collections import Counter
 from email.message import EmailMessage
@@ -5,6 +8,7 @@ from email.message import EmailMessage
 import pytest
 from sqlalchemy import select
 
+from app.core import health
 from app.core.config import settings
 from app.inbound import registry
 from app.inbound.base import InboundMessage, Outcome, PollingSource
@@ -14,7 +18,9 @@ from app.inbound.sources import imap
 from app.inbound.text import strip_quoted
 from app.inbound.token import feedback_id_from_address, reply_address
 from app.models import Feedback, FeedbackReply, FeedbackStatus, NotificationOutbox, Role, Site
+from app.models.user import utcnow
 from app.notifications import registry as providers
+from app.notifications.providers.webhook import sign
 from tests.conftest import make_site
 from tests.test_bulk_filters import as_role, seed
 from tests.test_notifications import FakeProvider, make_channel
@@ -451,3 +457,88 @@ def test_worker_records_how_each_poll_went(db, inbound, monkeypatch):
     worker.poll_inbound(db)
     row = db.get(InboundStatus, "imap")
     assert row.last_error == "RuntimeError: login refused" and row.last_error_at is not None
+
+
+# -- signed webhook source -------------------------------------------------------------------------------
+
+SECRET = "whsec_" + base64.b64encode(b"k" * 32).decode()
+
+
+@pytest.fixture
+def hook(monkeypatch, inbound):
+    monkeypatch.setattr(settings, "inbound_webhook_secret", SECRET)
+
+
+def push(client, payload, *, secret=SECRET, msg_id="wh-1", age=0, signature=None):
+    body = json.dumps(payload).encode()
+    stamp = int(time.time()) - age
+    headers = {
+        "webhook-id": msg_id,
+        "webhook-timestamp": str(stamp),
+        "webhook-signature": signature or sign(secret, msg_id, stamp, body),
+        "content-type": "application/json",
+    }
+    return client.post("/inbound/webhook", content=body, headers=headers)
+
+
+def answer(item, **kw):
+    return {"from": PERSON, "to": [reply_address(item.id)], "text": "Fixed, thanks.", **kw}
+
+
+def test_webhook_is_off_without_a_secret(client, db, inbound, item):
+    assert push(client, answer(item)).status_code == 404
+
+
+def test_signed_json_is_stored_like_mail(client, db, hook, item):
+    assert push(client, answer(item, message_id="<a@b.test>")).status_code == 202
+    assert [r.body for r in stored(db)] == ["Fixed, thanks."]
+    assert push(client, answer(item, message_id="<a@b.test>"), msg_id="wh-2").status_code == 202
+    assert len(stored(db)) == 1  # the same Message-ID
+
+
+def test_a_retried_delivery_without_a_message_id_is_stored_once(client, db, hook, item):
+    for _ in range(2):
+        assert push(client, answer(item)).status_code == 202
+    assert len(stored(db)) == 1
+
+
+def test_a_whole_raw_message_is_parsed_like_imap(client, db, hook, item):
+    raw = base64.b64encode(mail(to=reply_address(item.id), body="From the raw mail")).decode()
+    assert push(client, {"raw": raw}).status_code == 202
+    assert [r.body.strip() for r in stored(db)] == ["From the raw mail"]
+
+
+@pytest.mark.parametrize("kind", ["wrong secret", "stale", "garbled", "no headers"])
+def test_unsigned_or_stale_requests_are_refused(client, db, hook, item, kind):
+    other = "whsec_" + base64.b64encode(b"x" * 32).decode()
+    if kind == "no headers":
+        response = client.post("/inbound/webhook", json=answer(item))
+    else:
+        response = push(
+            client,
+            answer(item),
+            secret=other if kind == "wrong secret" else SECRET,
+            age=3600 if kind == "stale" else 0,
+            signature="v1,!!!" if kind == "garbled" else None,
+        )
+    assert response.status_code == 401
+    assert not stored(db)
+
+
+def test_a_signed_but_unreadable_body_is_422_and_the_answer_never_says_if_it_matched(client, db, hook, item):
+    assert push(client, {"raw": "%%%"}).status_code == 422
+    assert push(client, {"surprise": 1}).status_code == 422
+    stranger = push(client, answer(item, **{"from": "stranger@example.org"}), msg_id="wh-3")
+    assert stranger.status_code == 202 and stranger.content == b""
+    assert not stored(db)
+
+
+def test_oversized_body_is_refused(client, hook, item, monkeypatch):
+    big = client.post("/inbound/webhook", content=b"x" * 600_000)
+    assert big.status_code == 413
+
+
+def test_webhook_outcomes_show_in_system_status(client, db, hook, item):
+    push(client, answer(item))
+    (row,) = [r for r in health.inbound_health(db, utcnow()) if r.source == "webhook"]
+    assert (row.source, row.status, row.counts) == ("webhook", "ok", {"stored": 1})
