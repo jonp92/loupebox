@@ -6,6 +6,10 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+### Added
+- System settings: a search box (press `/`) finds a setting by name, help text or `.env` key across every tab and
+  jumps to it, with quick filters for settings changed in the UI, secrets not set yet, and settings only `.env` can change.
+
 ### Changed
 - Feedback detail: the data a visitor's page sent along (metadata) is a labelled list instead of a block of JSON:
   yes/no values show a mark and a word, `http(s)` values are links, empty values say so, and the widget version

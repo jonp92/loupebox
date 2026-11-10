@@ -616,3 +616,8 @@ dialog.lightbox::backdrop { background: var(--scrim); }
 .lightbox-image .skeleton { width: 100%; height: 100%; }
 .lightbox-bar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; justify-content: space-between; margin-top: .75rem; }
 .lightbox-bar .row-actions { flex-wrap: wrap; }
+
+/* System settings: quick filters under the search box */
+.filter-toggles { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0 0 var(--space-4); }
+.filter-toggle { min-height: var(--target-min); padding: 0 var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-pill); background: none; color: var(--text); font-size: var(--text-data); }
+.filter-toggle[aria-pressed="true"] { border-color: var(--accent); background: var(--surface-selected); }

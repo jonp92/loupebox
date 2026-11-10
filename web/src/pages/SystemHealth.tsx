@@ -28,8 +28,8 @@ function Check({ title, status, children }: { title: string; status: HealthStatu
 const since = (iso: string) => (ago(iso) === "now" ? "just now" : `${ago(iso)} ago`);
 // What each checklist item asks for, and where to do it.
 const STEPS: Record<InstanceHealth["checklist"][number]["id"], { label: string; to?: string }> = {
-  mail: { label: "Set up an email provider", to: "/system/email" },
-  public_url: { label: "Set the admin UI address", to: "/system/email" },
+  mail: { label: "Set up an email provider", to: "/system/email#setting-mail_provider" },
+  public_url: { label: "Set the admin UI address", to: "/system/email#setting-public_url" },
   worker: { label: "Start the worker (python -m app.worker)" },
   site: { label: "Create a site", to: "/sites" },
   channel: { label: "Add a notification channel to a site", to: "/sites" },

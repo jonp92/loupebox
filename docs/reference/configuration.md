@@ -121,6 +121,10 @@ The **Status** tab shows whether the database, worker, outbox and Redis (if used
 shows as down, nothing is sent: start `python -m app.worker`. The **Email & notifications** tab can send a
 test email to you through each email provider.
 
+The search box at the top of the System page (press `/` to reach it) finds a setting by its name, help text or
+`.env` key across all tabs and takes you to it. The buttons under it show only settings changed in the UI, secrets
+that are not set yet, or settings that only `.env` can change.
+
 Superadmins can change email, notification, rate-limit, sign-in and retention settings on the **System** page.
 A value saved there:
 
