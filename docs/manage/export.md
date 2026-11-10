@@ -3,7 +3,9 @@
 Choose **Export CSV** on a site's feedback list to download a CSV copy. All currently set filters will be applied before exporting. Any role that can view the site can export.
 
 The columns are: id, created_at (UTC), status, issue_type, rating, name, email, message, page_url, meta, tags
-and assignee (the assignee's email).
+and assignee (the assignee's email). After those come one column per [custom field](custom-fields.md), headed by
+the field's name: a choice's stored value, `true` or `false` for a checkbox, or the text. The `meta` column still
+holds everything the page sent.
 
 * Text that a spreadsheet would run as a formula, meaning text that starts with `=`, `+`, `-` or `@`, gets
   an apostrophe in front so it opens as plain text.

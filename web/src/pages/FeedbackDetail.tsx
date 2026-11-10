@@ -64,7 +64,7 @@ export default function FeedbackDetail({ site }: { site: Site }) {
       {item && (
         <article className={`card fb ${item.status}`}>
           <header>
-            <span className="fb-badges"><FeedbackBadges f={item} /></span>
+            <span className="fb-badges"><FeedbackBadges f={item} fields={site.custom_fields} /></span>
             <time className="grow-end" dateTime={item.created_at} title={new Date(item.created_at).toLocaleString()}>{new Date(item.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</time>
           </header>
           {/* Rendered as text by React; never as HTML. */}
@@ -74,7 +74,7 @@ export default function FeedbackDetail({ site }: { site: Site }) {
             {href && <> · <a href={href} target="_blank" rel="noopener noreferrer">{href}</a></>}
           </p>
           {item.attachment_count > 0 && <Attachments siteId={site.id} item={item} canDelete={canDelete} onChange={load} />}
-          <MetadataList metadata={item.metadata} />
+          <MetadataList metadata={item.metadata} fields={site.custom_fields} />
           <div className="tags-row">
             <Tags item={item} canEdit={canEdit} onChange={(tags) => patch({ tags })} />
             {canEdit ? (

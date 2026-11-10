@@ -75,7 +75,7 @@ def list_feedback(
     limit: int = Query(default=25, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
 ) -> FeedbackPage:
-    where = conditions(f, Feedback.site_id == access.site.id)
+    where = conditions(f, Feedback.site_id == access.site.id, site_fields=access.site.custom_fields)
     # Stop counting at the cap, or at the end of the page being viewed if that is further.
     total, capped = capped_count(db, where, max(TOTAL_CAP, offset + limit))
     rows = db.scalars(
@@ -115,7 +115,13 @@ def _issue_type_of(item: Feedback) -> str | None:
     return value if isinstance(value, str) and re.match(ISSUE_TYPE, value) else None
 
 
-def _csv_rows(site_id: uuid.UUID, where: list) -> Iterator[str]:
+def _answer(item: Feedback, field_id: str) -> object:
+    """A custom field's stored answer as a cell: a choice's value, true or false, or the text."""
+    value = (item.meta or {}).get(field_id)
+    return str(value).lower() if isinstance(value, bool) else value
+
+
+def _csv_rows(site_id: uuid.UUID, where: list, fields: list[dict]) -> Iterator[str]:
     """Stream the file in batches, on its own session: the request's session may be closed by the time
     the response body is produced."""
     buf = io.StringIO()
@@ -128,7 +134,8 @@ def _csv_rows(site_id: uuid.UUID, where: list) -> Iterator[str]:
         return text
 
     yield "\ufeff"  # byte-order mark so Excel reads the file as UTF-8
-    writer.writerow(CSV_COLUMNS)
+    # The site's own columns come last, so the fixed ones keep their positions.
+    writer.writerow((*CSV_COLUMNS, *(csv_cell(f["label"]) for f in fields)))
     yield flush()
     with get_sessionmaker()() as db:
         emails = {
@@ -160,6 +167,7 @@ def _csv_rows(site_id: uuid.UUID, where: list) -> Iterator[str]:
                     json.dumps(item.meta, ensure_ascii=False, separators=(",", ":")) if item.meta else "",
                     " ".join(item.tags),
                     emails.get(item.assignee_id),
+                    *(_answer(item, f["id"]) for f in fields),
                 )
             )
             if n % 500 == 0:
@@ -251,7 +259,7 @@ def export_feedback(
     f: Filters = Depends(filters),
 ) -> StreamingResponse:
     """The same filters as the list, as a CSV download (capped at `EXPORT_MAX_ROWS` rows)."""
-    where = conditions(f, Feedback.site_id == access.site.id)
+    where = conditions(f, Feedback.site_id == access.site.id, site_fields=access.site.custom_fields)
     total = db.scalar(select(func.count()).select_from(Feedback).where(*where)) or 0
     audit(  # bulk personal data leaving the system; the contents are not recorded
         db,
@@ -272,13 +280,14 @@ def export_feedback(
             "to": str(f.created_to or ""),
             "assignee": f.assignee,
             "tag": f.tag,
+            "fields": sorted(f.fields),  # which custom fields were filtered on, not the values
         },
     )
     db.commit()
     slug = re.sub(r"[^a-z0-9]+", "-", access.site.name.lower()).strip("-")[:40] or "site"
     day = datetime.now(UTC).strftime("%Y-%m-%d")
     return StreamingResponse(
-        _csv_rows(access.site.id, where),
+        _csv_rows(access.site.id, where, access.site.custom_fields),
         media_type="text/csv; charset=utf-8",
         headers={
             "Content-Disposition": f'attachment; filename="feedback-{slug}-{day}.csv"',

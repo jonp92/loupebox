@@ -301,6 +301,10 @@ dialog.sheet .hint { margin: calc(var(--space-2) * -1) 0 var(--space-5); }
 .meta dt { color: var(--text-muted); font-family: var(--font-mono); overflow-wrap: anywhere; }
 .meta dd { margin: 0; color: var(--text); overflow-wrap: anywhere; }
 .meta-empty { color: var(--text-secondary); }
+.meta-more { margin: var(--space-3) 0; }
+.meta-more summary { position: relative; cursor: pointer; width: max-content; color: var(--text-secondary); font-size: var(--text-data); }
+.meta-more summary::after { content: ""; position: absolute; inset: -14px -8px; } /* a 44px touch target without a tall row */
+.meta-more .meta { margin-top: var(--space-2); }
 .meta-tech dd { color: var(--text-secondary); }
 @media (max-width: 640px) { .meta > div { grid-template-columns: 1fr; gap: 0; } }
 .replied { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--text-data); color: var(--accent); }
