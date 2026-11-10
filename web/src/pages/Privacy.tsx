@@ -25,7 +25,7 @@ function Retention({ site, onChange }: { site: Site; onChange: (s: Site) => void
   }
 
   return (
-    <form className="panel" onSubmit={save} key={`${site.retention_delete_days}-${site.retention_strip_email_days}`}>
+    <form className="panel" id="retention" onSubmit={save} key={`${site.retention_delete_days}-${site.retention_strip_email_days}`}>
       <h2>Data retention</h2>
       <p className="muted">
         The worker applies these every hour, counting from the day each message arrived. Leave a box empty to keep that data.
@@ -81,7 +81,7 @@ function Person({ site }: { site: Site }) {
   }
 
   return (
-    <section className="panel" aria-labelledby="person-h">
+    <section className="panel" id="personal-data" aria-labelledby="person-h">
       <h2 id="person-h">Export or erase personal data</h2>
       <p className="muted">Find everything this site holds for an email address, then export or erase it.</p>
       <form onSubmit={lookup}>

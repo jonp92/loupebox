@@ -346,6 +346,14 @@ article.fb:not(.compact) .message { font-size: var(--text-body); font-weight: va
 .actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--border); }
 pre { background: var(--surface-selected); padding: .75rem; border-radius: var(--radius-control); overflow-x: auto; font-size: var(--text-data); }
 code.key { display: inline-block; margin: 0 .75rem var(--space-4) 0; background: var(--surface-selected); padding: .35rem .6rem; border-radius: var(--radius-control); user-select: all; }
+.key-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); margin-bottom: var(--space-4); }
+.key-row code.key { margin: 0; overflow-wrap: anywhere; }
+.jump { display: flex; align-items: center; gap: var(--space-1) var(--space-4); margin-bottom: var(--space-2); overflow-x: auto; white-space: nowrap; }
+.jump-label { color: var(--text-muted); font: var(--text-label) var(--font-mono); letter-spacing: var(--tracking-label); text-transform: uppercase; }
+.jump a { display: inline-flex; align-items: center; min-height: var(--target-min); color: var(--text-secondary); font-size: var(--text-ui); }
+.jump a:hover { color: var(--text); }
+.panel[id] h2 { scroll-margin-top: calc(var(--space-10) * 2); /* clears the sticky top bar */ }
+@media (min-width: 720px) { .jump { flex-wrap: wrap; overflow: visible; white-space: normal; } }
 
 /* member picker */
 .picker { position: relative; flex: 1; }

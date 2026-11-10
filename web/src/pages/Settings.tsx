@@ -7,6 +7,7 @@ import { useConfirm } from "../confirm";
 import CustomFields from "./CustomFields";
 import Privacy from "./Privacy";
 import { useToast } from "../toast";
+import JumpLinks from "./JumpLinks";
 import { widgetTag } from "../widgetSnippet";
 
 export default function Settings({ site, onChange }: { site: Site; onChange: (s: Site) => void }) {
@@ -107,7 +108,8 @@ await fetch(API + "/feedback", {
 
   return (
     <>
-      <section className="panel">
+      <JumpLinks />
+      <section className="panel" id="widget">
         <h2>Feedback widget</h2>
         <p>
           Paste this into any page to add a feedback button. Visitors can tag what kind of feedback it is (bug, idea,
@@ -136,15 +138,18 @@ await fetch(API + "/feedback", {
           The page must be on one of the site's allowed origins (scheme, host and port, e.g. <code>https://www.example.com</code>).
         </p>
       </section>
-      <section className="panel">
+      <section className="panel" id="api-key">
         <h2>API key</h2>
         <p>This key is public by design: it identifies the site. Abuse is limited by allowed origins, rate limits and quotas.</p>
-        <code className="key">{site.public_key}</code>
-        <button className="danger" onClick={rotate}>Rotate key</button>
+        <div className="key-row">
+          <code className="key">{site.public_key}</code>
+          <button onClick={() => toast.attempt(navigator.clipboard.writeText(site.public_key), "Key copied")}>Copy key</button>
+          <button className="danger" onClick={rotate}>Rotate key</button>
+        </div>
         <pre>{snippet}</pre>
         <p className="muted">Include a hidden <code>website</code> field in your form and send it along as-is; bots fill it in and are silently dropped.</p>
       </section>
-      <form className="panel" onSubmit={saveChallenge}>
+      <form className="panel" id="bot-protection" onSubmit={saveChallenge}>
         <h2>Bot protection</h2>
         <p className="muted">
           The API key is public, so anything can claim to be your site. A challenge makes each submission cost the sender a
@@ -162,8 +167,8 @@ await fetch(API + "/feedback", {
         <button className="primary">Save</button>
         {site.challenge_mode === "pow" && <pre>{chalSnippet}</pre>}
       </form>
-      <form className="panel" onSubmit={save} key={site.public_key + site.name}>
-        <h2>Settings</h2>
+      <form className="panel" id="general" onSubmit={save} key={site.public_key + site.name}>
+        <h2>General</h2>
         <label>Name<input name="name" defaultValue={site.name} required /></label>
         <label>Allowed origins<small> (one per line)</small>
           <textarea name="origins" rows={4} defaultValue={site.allowed_origins.join("\n")} />

@@ -200,7 +200,7 @@ export default function CustomFields({ site, onChange }: { site: Site; onChange:
   }
 
   return (
-    <section className="panel">
+    <section className="panel" id="custom-fields">
       <div className="section-head">
         <h2>Custom fields <span className="count">{fields.length}</span></h2>
         <button className="primary" onClick={() => setEditing("new")} disabled={fields.length >= MAX_FIELDS}><Icon name="plus" size={18} />Add field</button>

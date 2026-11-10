@@ -7,6 +7,9 @@ change between releases; breaking changes are called out below.
 ## [Unreleased]
 
 ### Added
+- Site settings: an "On this page" row of links (widget, API key, bot protection, general, custom fields, retention,
+  personal data) jumps to a section and moves focus to its heading, and the API key has a **Copy key** button.
+  The "Settings" section heading is now "General".
 - A site with no feedback yet shows the widget script tag with a **Copy snippet** button where the list would be
   (site admins only), with links to the site's Settings and the widget docs, and a note when the site has no allowed
   origins. It disappears with the first feedback; the snippet stays on the Settings tab.
