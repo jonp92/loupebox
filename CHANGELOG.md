@@ -41,6 +41,8 @@ change between releases; breaking changes are called out below.
   retention and image storage events can be filtered, and new audited actions need no UI change.
 
 ### Fixed
+- Docs: the Known limits page and the README no longer say replies are one way or that there is no load test. Answers
+  by email need a mailbox, and capacity figures are not published until the benchmarks are repeated.
 - Dashboard rows (assigned and latest unread) no longer show a stray rule above the site name; the metadata list
   on the feedback page now has its own `meta-list` class instead of sharing `meta`.
 

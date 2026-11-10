@@ -16,7 +16,7 @@ website. You and your team read it, sort it, reply to it and get an email when s
 
 > **Alpha software.** Expect rough edges and changes between `0.x` releases. Read the
 > [changelog](CHANGELOG.md) and back up your database before you upgrade. More than one API container needs
-> Redis, replies are one way, and it has not been load tested.
+> Redis, and capacity figures are not published yet.
 
 ## Try it
 
