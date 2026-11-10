@@ -46,17 +46,17 @@ export function MetadataList({ metadata, fields = [] }: { metadata: Record<strin
   return (
     <>
       {defined.length > 0 && (
-        <dl className="meta" aria-label="Answers to the site's questions">
+        <dl className="meta-list" aria-label="Answers to the site's questions">
           <Rows keys={defined.map((f) => f.id)} metadata={shown} labelOf={(k) => byId.get(k)!.label} />
         </dl>
       )}
       {rest.length > 0 && (defined.length > 0 ? (
         <details className="meta-more">
           <summary>Other data ({rest.length})</summary>
-          <dl className="meta" aria-label="Other details sent with this feedback"><Rows keys={rest} metadata={metadata} labelOf={label} /></dl>
+          <dl className="meta-list" aria-label="Other details sent with this feedback"><Rows keys={rest} metadata={metadata} labelOf={label} /></dl>
         </details>
       ) : (
-        <dl className="meta" aria-label="Details sent with this feedback"><Rows keys={rest} metadata={metadata} labelOf={label} /></dl>
+        <dl className="meta-list" aria-label="Details sent with this feedback"><Rows keys={rest} metadata={metadata} labelOf={label} /></dl>
       ))}
     </>
   );
