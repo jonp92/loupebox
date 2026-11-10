@@ -9,12 +9,10 @@ import { Bar, Placeholder } from "../Skeleton";
 import { EmptyState } from "../ui/EmptyState";
 import { Icon } from "../icons";
 import { useLive } from "../live";
+import { fmtCount } from "../unread";
 import {
   FeedbackBadges, TAG_PATTERN, ago, below, label, personName, recentAssignees, slug, useAssigneePicker, useContextMenu, type MenuItem,
 } from "../triage";
-
-/** A count that may have stopped at the server's cap: "10,000+". */
-const fmtCount = (n: number, capped: boolean) => `${n.toLocaleString()}${capped ? "+" : ""}`;
 
 type Density = "comfortable" | "compact";
 type QuickCounts = {
