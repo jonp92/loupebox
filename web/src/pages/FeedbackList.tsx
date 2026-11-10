@@ -6,6 +6,7 @@ import { useAuth } from "../auth";
 import { useConfirm } from "../confirm";
 import { useToast } from "../toast";
 import { Bar, Placeholder } from "../Skeleton";
+import InstallPrompt from "./InstallPrompt";
 import { EmptyState } from "../ui/EmptyState";
 import { Icon } from "../icons";
 import { useLive } from "../live";
@@ -430,7 +431,9 @@ export default function FeedbackList({ site }: { site?: Site }) {
           ))}
         </Placeholder>
       ) : (
-        <EmptyState>No feedback found.</EmptyState>
+        site && site.my_role === "admin" && !filtered && total === 0
+          ? <InstallPrompt site={site} />
+          : <EmptyState>No feedback found.</EmptyState>
       ))}
       <div className={loading ? "is-refreshing" : undefined} aria-busy={loading && items.length > 0}>
       {items.map((f) => (
