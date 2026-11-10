@@ -33,14 +33,19 @@ You can narrow the list by:
 * rating
 * whether the person left an email address
 * a date range
+* your site's [custom fields](custom-fields.md): choose **Fields…**, pick an answer for any of them, and each
+  active one shows as a chip you can remove
 
 Dates are whole days in UTC. The same filters work in the API as query parameters:
 `GET /v1/api/sites/{id}/feedback?status=&q=&issue_type=&rating=&has_email=&created_from=&created_to=`,
-with dates written `YYYY-MM-DD`.
+with dates written `YYYY-MM-DD`. A custom field is `cf=<field id>:<value>`, repeated for each one (for example
+`cf=plan:pro&cf=beta:true`); a choice takes the stored value, a checkbox `true` or `false`, and text matches
+anywhere in the answer, ignoring case. The cross-site inbox has no field filters.
 
 ## Open an item
 
-Choose an item to see the full message, who sent it, the page it came from, the notes and any replies.
+Choose an item to see the full message, who sent it, the page it came from, the answers to your custom fields
+(anything else the page sent is under **Other data**), the notes and any replies.
 Editors can change its status. See [Assign, tag and note](assign-tags-notes.md) and
 [Reply to people](replies.md).
 

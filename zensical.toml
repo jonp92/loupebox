@@ -29,6 +29,7 @@ nav = [
     { "Reply to people" = "manage/replies.md" },
     { "Answers by email" = "manage/inbound-email.md" },
     { "Export" = "manage/export.md" },
+    { "Custom fields" = "manage/custom-fields.md" },
     { "Images" = "manage/images.md" },
     { "Retention and erasure" = "manage/retention.md" },
     { "People and roles" = "manage/roles.md" },

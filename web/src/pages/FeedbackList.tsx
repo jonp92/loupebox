@@ -10,6 +10,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { Icon } from "../icons";
 import { useLive } from "../live";
 import { fmtCount } from "../unread";
+import { FieldFilterSheet, fieldChips, type FieldValues } from "../fieldFilters";
 import {
   FeedbackBadges, TAG_PATTERN, ago, below, label, personName, recentAssignees, slug, useAssigneePicker, useContextMenu, type MenuItem,
 } from "../triage";
@@ -71,6 +72,8 @@ export default function FeedbackList({ site }: { site?: Site }) {
     return a === "none" ? a : a === "me" ? me?.id ?? "" : "";
   });
   const [tag, setTag] = useState("");
+  const [fieldFilters, setFieldFilters] = useState<FieldValues>({});
+  const [fieldsOpen, setFieldsOpen] = useState(false);
   const picker = useAssigneePicker(focus?.id ?? "");
   const [assigneeLabel, setAssigneeLabel] = useState(""); // who a per-person filter is for
   const [counts, setCounts] = useState<QuickCounts | null>(null); // null until loaded
@@ -104,8 +107,9 @@ export default function FeedbackList({ site }: { site?: Site }) {
     if (to) params.set("created_to", to);
     if (assignee) params.set("assignee", assignee);
     if (tag) params.set("tag", tag);
+    for (const [id, value] of Object.entries(fieldFilters)) params.append("cf", `${id}:${value}`);
     return params;
-  }, [site, siteId, status, q, issueType, rating, hasEmail, from, to, assignee, tag]);
+  }, [site, siteId, status, q, issueType, rating, hasEmail, from, to, assignee, tag, fieldFilters]);
 
   /** `quiet`: a live refresh, which keeps the selection and does not dim the list. */
   const load = useCallback((quiet?: boolean) => {
@@ -206,7 +210,7 @@ export default function FeedbackList({ site }: { site?: Site }) {
     if (assignee !== "none" && assignee !== me?.id) setAssignee("");
     setOffset(0);
   }
-  const filtered = Boolean(siteId || status || q || issueType || rating || hasEmail || from || to || assignee || tag);
+  const filtered = Boolean(siteId || status || q || issueType || rating || hasEmail || from || to || assignee || tag || Object.keys(fieldFilters).length > 0);
   /** The active filters other than the search box and the quick tabs, as removable chips for when the panel is closed. */
   const chips: { text: string; clear: () => void }[] = [
     !site && focus && { text: `Site: ${focus.name}`, clear: () => pickSite("") },
@@ -216,6 +220,9 @@ export default function FeedbackList({ site }: { site?: Site }) {
     hasEmail && { text: hasEmail === "true" ? "Has email" : "No email", clear: () => setHasEmail("") },
     assignee && assignee !== "none" && assignee !== me?.id && { text: `Assignee: ${assigneeLabel}`, clear: () => setAssignee("") },
     tag && { text: `Tag: ${tag}`, clear: () => setTag("") },
+    ...fieldChips(site?.custom_fields ?? [], fieldFilters).map((c) => ({
+      text: c.text, clear: () => setFieldFilters(Object.fromEntries(Object.entries(fieldFilters).filter(([id]) => id !== c.id))),
+    })),
     from && { text: `From ${from}`, clear: () => setFrom("") },
     to && { text: `To ${to}`, clear: () => setTo("") },
   ].filter((c): c is { text: string; clear: () => void } => Boolean(c));
@@ -237,7 +244,7 @@ export default function FeedbackList({ site }: { site?: Site }) {
     ...(siteTags.length ? [{ label: "Remove tag" }, ...siteTags.map((t) => ({ label: t.tag, onSelect: () => bulk({ action: "remove_tag", tag: t.tag }) }))] : []),
   ];
   function clearFilters() {
-    setSiteId(""); setStatus(""); setQ(""); setIssueType(""); setRating(""); setHasEmail(""); setFrom(""); setTo(""); setAssignee(""); setTag(""); setOffset(0);
+    setSiteId(""); setStatus(""); setQ(""); setIssueType(""); setRating(""); setHasEmail(""); setFrom(""); setTo(""); setAssignee(""); setTag(""); setFieldFilters({}); setOffset(0);
   }
 
   async function remove(f: Item) {
@@ -386,6 +393,9 @@ export default function FeedbackList({ site }: { site?: Site }) {
             {siteTags.map((t) => <option key={t.tag} value={t.tag}>{t.tag} ({t.count})</option>)}
           </select>
         )}
+        {site && site.custom_fields.length > 0 && (
+          <button onClick={() => setFieldsOpen(true)}>Fields…</button>
+        )}
         <label className="muted">From <input type="date" value={from} max={to || undefined} onChange={resetTo(setFrom)} /></label>
         <label className="muted">To <input type="date" value={to} min={from || undefined} onChange={resetTo(setTo)} /></label>
         {filtered && <button onClick={clearFilters}>Clear filters</button>}
@@ -397,6 +407,10 @@ export default function FeedbackList({ site }: { site?: Site }) {
             {" "}{selected.size > 0 ? `${selected.size} selected` : "Select all on this page"}
           </label>
         </div>
+      )}
+      {site && (
+        <FieldFilterSheet open={fieldsOpen} fields={site.custom_fields} values={fieldFilters}
+          onApply={(v) => { setFieldFilters(v); setOffset(0); }} onClose={() => setFieldsOpen(false)} />
       )}
       <datalist id="site-tags">{siteTags.map((t) => <option key={t.tag} value={t.tag} />)}</datalist>
       {error && <p className="error">{error}</p>}
@@ -414,7 +428,7 @@ export default function FeedbackList({ site }: { site?: Site }) {
         <article key={f.id} className={`card fb compact ${f.status}${density === "compact" ? " dense" : ""}${site ? "" : " with-site"}`} {...ctx.bind(() => menuFor(f))}>
           <header>
             {mayEdit(f) && <label className="check"><input type="checkbox" checked={selected.has(f.id)} onChange={() => toggle(f.id)} aria-label="Select this feedback" /></label>}
-            <span className="fb-badges"><FeedbackBadges f={f} /></span>
+            <span className="fb-badges"><FeedbackBadges f={f} fields={site?.custom_fields} /></span>
             {!site && <span className="fb-site" title={f.site_name}>{f.site_name}</span>}
             <time className="muted grow-end" dateTime={f.created_at} title={new Date(f.created_at).toLocaleString()}>{ago(f.created_at)}</time>
             <button className="menu-btn" aria-label="Actions" aria-haspopup="menu" onClick={(e) => ctx.openAt(e.currentTarget, menuFor(f))}><Icon name="more" /></button>

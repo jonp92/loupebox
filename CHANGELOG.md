@@ -25,6 +25,12 @@ change between releases; breaking changes are called out below.
   retention and image storage events can be filtered, and new audited actions need no UI change.
 
 ### Added
+- Custom fields in the admin UI: the feedback page shows a site's answers first with their labels, and the rest of
+  the metadata under "Other data"; fields marked "show in list" appear as badges on the rows; **Fields…** on a
+  site's list filters on any of them (chips show the active ones); and the CSV export gets one column per field.
+  **API:** `cf=<field id>:<value>` (repeatable) on `GET /sites/{id}/feedback` and `/export.csv`; a choice matches
+  its stored value, a checkbox `true`/`false`, text is a case-insensitive contains. The cross-site inbox has no
+  field filters. The export's audit event lists which fields were filtered on, never their values.
 - Widget: the custom fields defined in a site's settings appear in the form with no change to the page, with
   required checks, translated questions and options (matched against the new `locale` option, which defaults to
   the page's language), and the metadata limit read from the server (`GET /feedback/config`). The widget now
