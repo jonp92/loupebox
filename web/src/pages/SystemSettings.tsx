@@ -1,11 +1,13 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { NavLink, Navigate, useParams } from "react-router-dom";
+import { NavLink, Navigate, useLocation, useParams } from "react-router-dom";
 import { api, json, type SystemSetting } from "../api";
 import { useAuth } from "../auth";
 import { ScrollTabs } from "../components";
 import SystemHealth from "./SystemHealth";
 import SystemStorage from "./SystemStorage";
 import SystemTestEmail from "./SystemTestEmail";
+import { SettingsResults, SettingsSearchBar, isSearching, matchSettings, type FilterKey } from "./SystemSearch";
+import { TABS } from "./systemTabs";
 import { useConfirm } from "../confirm";
 import { useToast } from "../toast";
 import { Bar, Placeholder } from "../Skeleton";
@@ -16,15 +18,6 @@ type Draft = Record<string, string | boolean>;
 
 const envName = (key: string) => key.toUpperCase();
 const shown = (v: unknown) => (Array.isArray(v) ? v.join(", ") : v === "" || v == null ? "(empty)" : String(v));
-
-/** Tabs in display order: URL segment, label and the setting groups each one shows. */
-const TABS = [
-  { path: "status", label: "Status", groups: ["Server"] },
-  { path: "email", label: "Email & notifications", groups: ["Email", "Inbound email", "Notifications"] },
-  { path: "form", label: "Public form", groups: ["Public feedback form"] },
-  { path: "storage", label: "Image storage", groups: ["Image storage"] },
-  { path: "accounts", label: "Accounts & limits", groups: ["Sign-in and accounts", "Replies and data"] },
-] as const;
 
 /** Words for the values of a setting that has a fixed list of choices (the stored values stay as they are). */
 const CHOICE_LABELS: Record<string, Record<string, string>> = {
@@ -109,12 +102,27 @@ export default function SystemSettings() {
   const [items, setItems] = useState<SystemSetting[] | null>(null);
   const [draft, setDraftState] = useState<Draft>({});
   const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<FilterKey | null>(null);
   const { tab: tabPath } = useParams();
+  const { hash } = useLocation();
   useEffect(() => {
     api<SystemSetting[]>("/settings").then(setItems).catch((e) => setError(e.message));
   }, []);
 
+  // Arriving from a search result (#setting-key): open its group, scroll to it and focus it.
+  useEffect(() => {
+    if (!items || !hash) return;
+    const key = decodeURIComponent(hash.slice(1));
+    const group = items.find((s) => `setting-${s.key}` === key)?.group;
+    const el = document.getElementById(key) ?? (group ? document.getElementById(`group-${group}`) : null);
+    if (!el) return;
+    el.closest("details")?.setAttribute("open", "");
+    el.scrollIntoView({ block: "center" });
+    el.focus({ preventScroll: true });
+  }, [items, hash, tabPath]);
   if (!me?.is_superadmin) return <Navigate to="/" replace />;
+  const searching = isSearching(query, filter);
   const tab = TABS.find((t) => t.path === tabPath);
   if (!tab) return <Navigate to={`/system/${TABS[0].path}`} replace />;
 
@@ -151,24 +159,25 @@ export default function SystemSettings() {
   return (
     <>
       <div className="page-head"><h1>System settings</h1></div>
-      <p className="muted">
-        Values saved here win over <code>.env</code> and take effect without a restart. Passwords and keys are
-        stored encrypted and can't be read back.
-      </p>
       {error && <p className="error" role="alert">{error}</p>}
       {!items && !error && (
         <Placeholder label="Loading the settings">
           <div className="ph"><Bar w="12rem" h="1.2rem" /><Bar w="100%" h="2.75rem" /><Bar w="100%" h="2.75rem" /></div>
         </Placeholder>
       )}
-      <ScrollTabs>
-        {TABS.map((t) => <NavLink key={t.path} to={`/system/${t.path}`}>{t.label}</NavLink>)}
-      </ScrollTabs>
-      {tab.path === "status" && <SystemHealth />}
-      {items && byGroup(items).filter(([group]) => (tab.groups as readonly string[]).includes(group)).map(([group, fields]) =>
+      <SettingsSearchBar query={query} filter={filter} onQuery={setQuery} onFilter={setFilter} />
+      {searching ? (
+        items && <SettingsResults results={matchSettings(items, query, filter)} onPick={() => { setQuery(""); setFilter(null); }} />
+      ) : (
+        <ScrollTabs>
+          {TABS.map((t) => <NavLink key={t.path} to={`/system/${t.path}`}>{t.label}</NavLink>)}
+        </ScrollTabs>
+      )}
+      {!searching && tab.path === "status" && <SystemHealth />}
+      {!searching && items && byGroup(items).filter(([group]) => (tab.groups as readonly string[]).includes(group)).map(([group, fields]) =>
         fields.some((s) => s.editable) ? (
           <form key={group} className="panel system-settings" onSubmit={(e) => submit(e, fields)} aria-labelledby={`group-${group}`}>
-            <h2 id={`group-${group}`}>{group}</h2>
+            <h2 id={`group-${group}`} tabIndex={-1}>{group}</h2>
             {fields.filter((s) => !s.show_when || String(draft[s.show_when.key] ?? items.find((i) => i.key === s.show_when!.key)?.value) === s.show_when.value).map((s) => (
               <div key={s.key} className="setting">
                 <Field s={s} draft={draft} setDraft={setDraft} />
@@ -178,7 +187,7 @@ export default function SystemSettings() {
             <div className="row-actions"><button className="primary">Save {group.toLowerCase()}</button></div>
           </form>
         ) : (
-          <details key={group} className="panel system-settings">
+          <details key={group} id={`group-${group}`} tabIndex={-1} className="panel system-settings">
             <summary>
               <span className="ruled-main-col"><h2>{group}</h2><span className="check-detail">Set in .env, needs a restart</span></span>
               <Badge tone="brass">.env</Badge>
@@ -186,7 +195,7 @@ export default function SystemSettings() {
             <dl className="readonly-settings">
               {fields.map((s) => (
                 <div key={s.key}>
-                  <dt>{s.label} <code>{envName(s.key)}</code></dt>
+                  <dt id={`setting-${s.key}`} tabIndex={-1}>{s.label} <code>{envName(s.key)}</code></dt>
                   <dd>{shown(s.value)}</dd>
                 </div>
               ))}
@@ -194,8 +203,8 @@ export default function SystemSettings() {
           </details>
         ),
       )}
-      {tab.path === "email" && <SystemTestEmail settings={items} />}
-      {tab.path === "storage" && <SystemStorage settings={items} />}
+      {!searching && tab.path === "email" && <SystemTestEmail settings={items} />}
+      {!searching && tab.path === "storage" && <SystemStorage settings={items} />}
     </>
   );
 }
