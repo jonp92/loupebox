@@ -52,6 +52,15 @@ def test_validation(client, db):
     assert post(client, {"message": "x", "metadata": {f"k{i}": 1 for i in range(21)}}).status_code == 422
 
 
+def test_metadata_key_cap_is_a_setting(client, db, monkeypatch):
+    make_site(db)
+    many = {"message": "x", "metadata": {f"k{i}": 1 for i in range(25)}}
+    assert post(client, many).status_code == 422
+    monkeypatch.setattr(settings, "metadata_max_keys", 25)
+    assert post(client, many).status_code == 201
+    assert client.get("/feedback/config", headers=HEADERS).json()["metadata_max_keys"] == 25
+
+
 def test_nul_bytes_stripped(client, db):
     make_site(db)
     assert post(client, {"message": "hi\x00there"}).status_code == 201

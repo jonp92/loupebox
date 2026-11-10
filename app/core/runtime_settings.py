@@ -131,6 +131,13 @@ SPECS: dict[str, Spec] = {
     "public_key_limit": Spec(_INGEST, "Submissions per site key", "Per rate-limit window.", minimum=1),
     "public_window_seconds": Spec(_INGEST, "Rate-limit window (seconds)", minimum=1),
     "default_site_daily_limit": Spec(_INGEST, "Daily limit for new sites", minimum=1),
+    "metadata_max_keys": Spec(
+        _INGEST,
+        "Metadata keys per submission",
+        "Extra data a visitor's browser may send with feedback. The widget uses 3 of them itself.",
+        minimum=13,  # the widget's own keys plus the most custom fields a site may define
+        maximum=100,
+    ),
     "dedupe_window_minutes": Spec(_INGEST, "Duplicate window (minutes)", minimum=0),
     "spam_link_threshold": Spec(
         _INGEST, "Links before quarantine", "Messages with more links than this go to spam.", minimum=0

@@ -56,7 +56,7 @@ also forward a matching `Origin` header (a proxy usually breaks the check).
 | `email` | no | valid email address |
 | `page_url` | no | must start with `http://` or `https://`, ≤2048 chars. Send `location.href`. |
 | `challenge` | only if the site requires one | Proof for the site's bot-protection challenge. Opaque string, see [Challenges](#challenges-bot-protection). |
-| `metadata` | no | object, ≤20 keys, key ≤64 chars, values string (≤256, longer are cut), number, boolean or null. Good for app version, plan, user id, route. |
+| `metadata` | no | object, ≤20 keys by default (configurable under System settings), key ≤64 chars, values string (≤256, longer are cut), number, boolean or null. Good for app version, plan, user id, route. |
 | `website` | no | **Honeypot.** Include a visually hidden input named `website` and send its value unchanged (empty for humans). Bots fill it in and are silently dropped. |
 
 **Unknown fields are rejected (422).** Don't add extra top-level fields; use `metadata`.
