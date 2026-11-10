@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, visible_sites
 from app.core.audit import audit
 from app.core.cache import menus
-from app.core.feedback_query import TOTAL_CAP, Filters, assignable, capped_count, conditions, filters
+from app.core.feedback_query import TOTAL_CAP, Filters, assignable, capped_count, conditions, filters, sort_by
 from app.db.session import get_db
 from app.models import ROLE_RANK, Feedback, FeedbackStatus, Role, User
 from app.schemas.feedback import BulkResult
@@ -37,6 +37,7 @@ def list_inbox(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     f: Filters = Depends(filters),
+    order: tuple = Depends(sort_by),
     site_id: uuid.UUID | None = None,
     limit: int = Query(default=25, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
@@ -47,7 +48,7 @@ def list_inbox(
     where = conditions(f, *scope)
     total, capped = capped_count(db, where, max(TOTAL_CAP, offset + limit))
     rows = db.scalars(
-        select(Feedback).where(*where).order_by(Feedback.created_at.desc()).limit(limit).offset(offset)
+        select(Feedback).where(*where).order_by(*order).limit(limit).offset(offset)
     )
     items = [InboxItem.of(r, sites[r.site_id][0].name, my_role=sites[r.site_id][1]) for r in rows]
     return InboxPage(items=items, total=total, total_capped=capped)

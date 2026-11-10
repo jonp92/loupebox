@@ -6,7 +6,7 @@ from datetime import UTC, date, datetime, time, timedelta
 
 from fastapi import HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import ColumnElement, func, or_, select
+from sqlalchemy import ColumnElement, case, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import NOT_SPAM, Feedback, FeedbackStatus, FeedbackTag, Membership, Role, User
@@ -16,6 +16,26 @@ from app.schemas.feedback import TAG_PATTERN
 TOTAL_CAP = 10_000  # the list and the quick tabs stop counting here
 ISSUE_TYPE = r"^[a-z0-9_-]{1,32}$"  # what the widget's badges send as metadata.issue_type
 issue_type_col = Feedback.meta["issue_type"].as_string()
+
+
+_newest = Feedback.created_at.desc()
+_unread = case((Feedback.status == FeedbackStatus.new, 0), else_=1)
+# Grouped in the enum order: new, read, archived, spam.
+_by_status = case(*((Feedback.status == st, n) for n, st in enumerate(FeedbackStatus)))
+
+SORTS = {
+    "unread": (_unread, _newest),
+    "status": (_by_status, _newest),
+    "newest": (Feedback.created_at.desc(),),
+    "oldest": (Feedback.created_at.asc(),),
+    "rating_high": (Feedback.rating.desc().nulls_last(), Feedback.created_at.desc()),
+    "rating_low": (Feedback.rating.asc().nulls_last(), Feedback.created_at.desc()),
+}
+
+
+def sort_by(sort: str = Query(default="newest", pattern="^(" + "|".join(SORTS) + ")$")) -> tuple:
+    """The `sort` query param as ORDER BY terms; `id` makes the order total so pages never overlap."""
+    return (*SORTS[sort], Feedback.id)
 
 
 def capped_count(db: Session, where: list, cap: int) -> tuple[int, bool]:

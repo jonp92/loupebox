@@ -438,7 +438,8 @@ code.key { display: inline-block; margin: 0 .75rem var(--space-4) 0; background:
   /* User and member cards: name and badges on the first row, controls wrap below. */
   .toolbar { flex-wrap: wrap; }
   .toolbar input { flex: 1 0 100%; }
-  .toolbar input.search { flex: 1 1 0; min-width: 0; }
+  .toolbar input.search { flex: 1 0 100%; } /* its own row; sort, Filters and the menu share the next */
+  .toolbar > select[aria-label="Sort by"] { flex: 1 1 0; min-width: 0; }
   .filters-toggle { display: inline-block; }
   .toolbar.filters:not([data-open]) { display: none; }
   .toolbar.filters select, .toolbar.filters > button, .toolbar.filters label { flex: 1 1 45%; }

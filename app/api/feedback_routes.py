@@ -26,6 +26,7 @@ from app.core.feedback_query import (
     conditions,
     filters,
     issue_type_col,
+    sort_by,
 )
 from app.db.session import get_db, get_sessionmaker
 from app.models import (
@@ -72,6 +73,7 @@ def list_feedback(
     access: SiteAccess = Depends(site_access(Role.viewer)),
     db: Session = Depends(get_db),
     f: Filters = Depends(filters),
+    order: tuple = Depends(sort_by),
     limit: int = Query(default=25, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
 ) -> FeedbackPage:
@@ -79,7 +81,7 @@ def list_feedback(
     # Stop counting at the cap, or at the end of the page being viewed if that is further.
     total, capped = capped_count(db, where, max(TOTAL_CAP, offset + limit))
     rows = db.scalars(
-        select(Feedback).where(*where).order_by(Feedback.created_at.desc()).limit(limit).offset(offset)
+        select(Feedback).where(*where).order_by(*order).limit(limit).offset(offset)
     )
     return FeedbackPage(items=[FeedbackOut.model_validate(r) for r in rows], total=total, total_capped=capped)
 

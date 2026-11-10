@@ -35,6 +35,8 @@ function savedDensity(): Density {
 const STATUSES: Status[] = ["new", "read", "archived", "spam"];
 
 /** One site's feedback (`site` given), or the feedback of every site the caller can see (the inbox). */
+const SORTS = [["newest", "Newest first"], ["unread", "Unread first"], ["status", "By status"], ["oldest", "Oldest first"], ["rating_high", "Highest rating"], ["rating_low", "Lowest rating"]];
+
 export default function FeedbackList({ site }: { site?: Site }) {
   const confirm = useConfirm();
   const toast = useToast();
@@ -72,6 +74,7 @@ export default function FeedbackList({ site }: { site?: Site }) {
     return a === "none" ? a : a === "me" ? me?.id ?? "" : "";
   });
   const [tag, setTag] = useState("");
+  const [sort, setSort] = useState("newest"); // the order only; unlike a filter it never narrows the list
   const [fieldFilters, setFieldFilters] = useState<FieldValues>({});
   const [fieldsOpen, setFieldsOpen] = useState(false);
   const picker = useAssigneePicker(focus?.id ?? "");
@@ -116,6 +119,7 @@ export default function FeedbackList({ site }: { site?: Site }) {
     const params = filterParams();
     params.set("limit", String(pageSize));
     params.set("offset", String(offset));
+    params.set("sort", sort);
     const mine = ++latest.current;
     if (!quiet) setLoading(true);
     api<{ items: Item[]; total: number; total_capped?: boolean }>(`${base}?${params}`)
@@ -129,7 +133,7 @@ export default function FeedbackList({ site }: { site?: Site }) {
       .catch((e) => setError(e.message))
       .finally(() => mine === latest.current && setLoading(false));
     api<QuickCounts>(site ? `${base}/counts` : `${base}/counts${siteId ? `?site_id=${siteId}` : ""}`).then(setCounts, () => undefined);
-  }, [base, site, siteId, offset, pageSize, filterParams]);
+  }, [base, site, siteId, offset, pageSize, sort, filterParams]);
   useEffect(() => load(), [load]);
   useLive(() => load(true), (e) => !site || e.site_id === site.id);
   // The inbox's site menu, and its filters in the address so the item page's back link can restore them.
@@ -343,6 +347,9 @@ export default function FeedbackList({ site }: { site?: Site }) {
           value={q}
           onChange={(e) => { setQ(e.target.value); setOffset(0); }}
         />
+        <select value={sort} onChange={resetTo(setSort)} aria-label="Sort by">
+          {SORTS.map(([value, text]) => <option key={value} value={value}>{text}</option>)}
+        </select>
         <button className="filters-toggle" aria-expanded={filtersOpen} aria-controls="filters-panel" onClick={() => setFiltersOpen(!filtersOpen)}>
           Filters{chips.length > 0 && ` (${chips.length})`}
         </button>

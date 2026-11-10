@@ -69,3 +69,9 @@ In the API, use `POST /v1/api/sites/{id}/feedback/bulk` with one of these bodies
 
 Ids from other sites are skipped. One request takes at most 100 ids (`BULK_MAX_IDS`). A bulk delete is one
 entry in the [audit log](../security/audit-log.md), with the ids and the count, never the messages.
+
+## Sorting
+
+The **Sort by** menu beside the search box orders the list: newest or oldest first, unread first, by status
+(new, read, archived, spam), or by highest or lowest rating (unrated items last). It does not narrow the list, and
+the CSV export ignores it.

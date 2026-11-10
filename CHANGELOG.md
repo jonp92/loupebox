@@ -9,6 +9,8 @@ change between releases; breaking changes are called out below.
 ### Added
 - System settings: a search box (press `/`) finds a setting by name, help text or `.env` key across every tab and
   jumps to it, with quick filters for settings changed in the UI, secrets not set yet, and settings only `.env` can change.
+- Sort the inbox and a site's feedback list: newest, oldest, unread first, by status, highest or lowest rating
+  (`sort` on the list API).
 
 ### Changed
 - Feedback detail: the data a visitor's page sent along (metadata) is a labelled list instead of a block of JSON:
