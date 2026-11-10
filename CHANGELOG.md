@@ -25,6 +25,11 @@ change between releases; breaking changes are called out below.
   retention and image storage events can be filtered, and new audited actions need no UI change.
 
 ### Added
+- Custom fields (backend): a site can define up to 10 questions for its form (select, checkbox or short text, with
+  optional translations of the labels) through `PATCH /sites/{id}` (`custom_fields`, admin only). Answers are
+  stored in the feedback's metadata under the field's id. An answer that does not fit its field (for example an
+  option that has since been removed) is dropped and the feedback kept; a missing required field is a 422 naming it.
+  `GET /feedback/config` lists the fields. Select values are stored as-is, so translations never split filters.
 - Unread count: the Inbox entry in the sidebar shows how many items are unread across your sites (99+ when large),
   the browser tab title shows it too (`(3) Loupebox Feedback`), and an installed app gets an icon badge where the
   browser supports it. It updates live, including while the tab is in the background.

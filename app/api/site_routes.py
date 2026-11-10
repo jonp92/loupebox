@@ -14,6 +14,7 @@ from app.core.origins import public_origins
 from app.core.security import new_public_key
 from app.db.session import get_db
 from app.models import Feedback, Membership, Role, Site, User, user_matches
+from app.schemas.custom_fields import validate_fields
 from app.schemas.site import (
     MemberOut,
     MemberUpsert,
@@ -36,6 +37,7 @@ _SITE_FIELDS = (
     "challenge_mode",
     "challenge_config",
     "attachments_enabled",
+    "custom_fields",
     *_RETENTION,
 )
 
@@ -134,6 +136,10 @@ def update_site(
     before = snapshot(access.site, _SITE_FIELDS)
     changes = body.model_dump(exclude_unset=True)
     _apply_challenge(access.site, changes.pop("challenge_mode", None), changes.pop("challenge_config", None))
+    if changes.get("custom_fields") is not None:
+        changes["custom_fields"] = validate_fields(
+            changes["custom_fields"]
+        )  # stored with every default filled in
     for field, value in changes.items():
         if value is None and field not in _RETENTION:  # for these, null means "keep forever"
             continue
@@ -141,7 +147,7 @@ def update_site(
     delete_days, strip_days = access.site.retention_delete_days, access.site.retention_strip_email_days
     if delete_days and strip_days and strip_days > delete_days:
         raise HTTPException(422, "Addresses cannot be kept longer than the submissions they belong to")
-    diff = changed(before, access.site)
+    diff = changed(before, access.site, redact=("custom_fields",))  # labels stay out of the log
     if diff:
         audit(
             db,
