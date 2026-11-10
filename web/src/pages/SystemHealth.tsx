@@ -39,10 +39,11 @@ const COUNT_LABELS = [["unmatched", "unmatched"], ["bounced", "bounced"], ["igno
 
 /** "Last read just now, last stored 2h ago, 4 emails matched, 2 unmatched in 24 h": only what happened is listed. */
 function inboundDetail(i: InstanceHealth["inbound"][number]) {
-  if (!i.last_ok_at) return "Not read yet, is the worker running?";
+  const pushed = i.source === "webhook"; // nothing reads a webhook: it is only heard from when mail arrives
+  if (!i.last_ok_at) return pushed ? "Nothing received yet." : "Not read yet, is the worker running?";
   const matched = i.counts.stored ?? 0;
   const parts = [
-    `Last read ${since(i.last_ok_at)}`,
+    `${pushed ? "Last received" : "Last read"} ${since(i.last_ok_at)}`,
     i.last_stored_at ? `last stored ${since(i.last_stored_at)}` : "nothing stored yet",
     `${matched} ${matched === 1 ? "email" : "emails"} matched`,
     ...COUNT_LABELS.filter(([key]) => i.counts[key]).map(([key, label]) => `${i.counts[key]} ${label}`),

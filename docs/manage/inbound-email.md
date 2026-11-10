@@ -41,6 +41,29 @@ username and password. The worker (`python -m app.worker`) must be running. Mess
 Reply mail only changes when both an address and a reader are set. Until then, **Reply-To** stays your own
 address, as before.
 
+## Receive mail by webhook instead
+
+If your mail provider or relay can forward mail to a URL, you do not need IMAP. Set `INBOUND_ADDRESS` (the
+address customers answer) and a secret, then point the relay at `POST /v1/api/inbound/webhook` on your API:
+
+```
+INBOUND_WEBHOOK_SECRET=whsec_...     # whsec_ followed by base64; generate one like a webhook channel's secret
+```
+
+Sign each request like a [webhook delivery](../notifications/webhooks.md) is signed ([Standard Webhooks](https://standardwebhooks.com)):
+send `webhook-id`, `webhook-timestamp` (unix seconds, within 5 minutes) and `webhook-signature`
+(`v1,<base64 HMAC-SHA256>` of `{id}.{timestamp}.{body}`). The body is JSON, either the parts
+
+```json
+{"from": "visitor@example.org", "to": ["replies+<code>@example.com"], "text": "Fixed, thanks.",
+ "message_id": "<abc@mail.test>", "in_reply_to": "<sent@loupebox.test>", "references": []}
+```
+
+or the whole message as `{"raw": "<base64 of the RFC 822 mail>"}`, which is read like IMAP mail (quoted text,
+out-of-office and bounces included). It answers `202` with no body whether or not the mail matched, `401` for a bad
+or old signature and `413` over `INBOUND_MAX_BYTES` (doubled for base64). Without a `message_id`, the `webhook-id`
+dedupes a retried delivery. Both sources can run at once.
+
 ## Checking it works
 
 **System > Status** has an **Inbound email** row, for example:

@@ -103,6 +103,8 @@ class Settings(BaseSettings):
     imap_folder: str = "INBOX"
     imap_poll_seconds: int = 60
     inbound_max_bytes: int = 262_144  # larger messages are skipped without being downloaded
+    # Signed webhook source (POST /inbound/webhook), Standard Webhooks signing. Empty: the endpoint is off.
+    inbound_webhook_secret: str = ""
     # Public origin of the admin UI, used for links in emails. Links are omitted when empty.
     public_url: str = ""
 

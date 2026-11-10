@@ -156,15 +156,16 @@ def inbound_health(db: Session, now: datetime) -> list[InboundHealth]:
     stale = max(INBOUND_STALE_MIN, timedelta(seconds=INBOUND_STALE_POLLS * settings.imap_poll_seconds))
     out = []
     for source in all_sources():
-        if not (isinstance(source, PollingSource) and source.is_configured()):
+        if not source.is_configured():
             continue
+        polled = isinstance(source, PollingSource)
         row = db.get(InboundStatus, source.key)
         ok_at = row.last_ok_at if row else None
         error_at = row.last_error_at if row else None
         failing = error_at is not None and (ok_at is None or error_at > ok_at)
         counts = _totals(row.counts if row else None, now)
         piling_up = counts.get("unmatched", 0) >= UNMATCHED_WARN and not counts.get("stored")
-        fresh = bool(ok_at) and ok_at >= now - stale and not piling_up
+        fresh = (not polled or (ok_at is not None and ok_at >= now - stale)) and not piling_up
         status: Status = "error" if failing else "ok" if fresh else "warn"
         out.append(
             InboundHealth(

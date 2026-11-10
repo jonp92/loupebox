@@ -118,6 +118,14 @@ SPECS: dict[str, Spec] = {
     "imap_password": Spec(_INBOUND, "IMAP password", secret=True),
     "imap_folder": Spec(_INBOUND, "IMAP folder"),
     "imap_poll_seconds": Spec(_INBOUND, "Check for replies every (seconds)", minimum=10, maximum=3600),
+    "inbound_webhook_secret": Spec(
+        _INBOUND,
+        "Inbound webhook secret",
+        "Signs mail pushed to POST /inbound/webhook (whsec_ followed by base64). Empty: no inbound webhook.",
+        pattern=r"^$|^whsec_[A-Za-z0-9+/]{16,}={0,2}$",
+        hint="whsec_ followed by base64, such as the secret of a webhook channel",
+        secret=True,
+    ),
     # Notifications
     "notify_hourly_cap": Spec(
         _NOTIFY, "Emails per channel per hour", "The rest are rolled into one summary.", minimum=1

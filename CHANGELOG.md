@@ -6,6 +6,12 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+### Added
+- Inbound email by signed webhook next to IMAP: `POST /inbound/webhook` takes a JSON mail (`from`, `to`, `text`,
+  Message-ID headers, or a base64 `raw` message), signed with the Standard Webhooks headers and
+  `INBOUND_WEBHOOK_SECRET` (editable under System > Inbound email). It matches, dedupes and stores like IMAP,
+  and appears in the System status row.
+
 ## [0.1.0-alpha.13] - 2026-11-10
 
 ### Added

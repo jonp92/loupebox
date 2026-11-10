@@ -14,6 +14,7 @@ from app.api import (
     default_routes,
     event_routes,
     feedback_routes,
+    inbound_routes,
     inbox_routes,
     notification_routes,
     password_reset_routes,
@@ -91,6 +92,7 @@ app.add_middleware(
     overrides={
         "/avatar": settings.avatar_max_bytes + 1024,
         "/feedback/with-images": settings.attachment_request_bytes,
+        "/inbound/webhook": settings.inbound_max_bytes * 2,  # base64 of a raw message is a third larger
     },
 )
 app.add_middleware(DynamicCORSMiddleware)
@@ -107,6 +109,7 @@ for module in (
     site_routes,
     feedback_routes,
     inbox_routes,
+    inbound_routes,
     attachment_routes,
     privacy_routes,
     reply_routes,
