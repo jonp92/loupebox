@@ -116,10 +116,12 @@ def get_challenge(site: Site = Depends(resolve_site_for_challenge)) -> dict[str,
 
 @router.get("/feedback/config")
 def get_config(site: Site = Depends(resolve_site_for_challenge)) -> dict[str, Any]:
-    """What this site accepts, so the widget can offer image upload only where it will work."""
+    """What this site accepts, so the widget can offer image upload only where it will work and keep its
+    metadata within the server's cap."""
+    out: dict[str, Any] = {"metadata_max_keys": settings.metadata_max_keys}
     if not site.attachments_enabled or not get_storage().is_configured():
-        return {"attachments": {"enabled": False}}
-    return {
+        return out | {"attachments": {"enabled": False}}
+    return out | {
         "attachments": {
             "enabled": True,
             "max_count": settings.attachment_max_count,
