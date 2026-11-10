@@ -164,3 +164,27 @@ def test_requires_login(client):
     assert (
         client.post("/inbox/bulk", json={"ids": [str(uuid.uuid4())], "action": "unassign"}).status_code == 401
     )
+
+
+def test_sort_order_on_inbox_and_site_list(client, db):
+    a, b, _, _ = world(db)
+    for msg, rating in (("old3", 3), ("mid5", 5), ("new-", None), ("newest1", 1)):
+        seed(db, a if msg != "mid5" else b, message=msg, rating=rating)
+    h = login(client, "me@example.com")
+    order = lambda qs: [i["message"] for i in inbox(client, h, qs)["items"]]
+    assert order("?sort=oldest") == ["old3", "mid5", "new-", "newest1"]
+    assert order("?sort=rating_high") == ["mid5", "old3", "newest1", "new-"]  # unrated last
+    assert order("?sort=rating_low") == ["newest1", "old3", "mid5", "new-"]
+    r = client.get(f"/sites/{a.id}/feedback?sort=oldest", headers=h)
+    assert [i["message"] for i in r.json()["items"]] == ["old3", "new-", "newest1"]
+    assert client.get("/inbox?sort=bogus", headers=h).status_code == 422
+
+
+def test_sort_unread_first_and_by_status(client, db):
+    a, _, _, _ = world(db)
+    for msg, st in (("r1", "read"), ("n1", "new"), ("ar", "archived"), ("r2", "read"), ("n2", "new")):
+        seed(db, a, message=msg, status=FeedbackStatus(st))
+    h = login(client, "me@example.com")
+    order = lambda qs: [i["message"] for i in inbox(client, h, qs)["items"]]
+    assert order("?sort=unread") == ["n2", "n1", "r2", "ar", "r1"]
+    assert order("?sort=status") == ["n2", "n1", "r2", "r1", "ar"]
