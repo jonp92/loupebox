@@ -29,6 +29,18 @@ export interface Me extends Profile {
   recovery_codes_left: number;
   memberships: { site_id: string; role: Role }[];
 }
+export interface FieldTranslation { label?: string; options: Record<string, string> }
+/** A question the site's form asks; the answer is stored in the feedback's metadata under `id`. */
+export interface CustomField {
+  id: string;
+  type: "select" | "checkbox" | "text";
+  label: string; // in the site's own language; `translations` holds the others, keyed by language code
+  required: boolean;
+  options: { value: string; label: string }[]; // select only; `value` is what is stored
+  max_length: number | null; // text only
+  show_in_list: boolean;
+  translations: Record<string, FieldTranslation>;
+}
 export interface Site {
   id: string;
   name: string;
@@ -39,6 +51,7 @@ export interface Site {
   challenge_mode: string; // "off" or a verifier key
   challenge_config: Record<string, unknown>;
   attachments_enabled: boolean;
+  custom_fields: CustomField[];
   attachments_ready: boolean; // false while the image storage is not fully set up
   attachment_max_count: number; // server-wide limits, read-only
   attachment_max_bytes: number;

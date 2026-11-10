@@ -32,6 +32,9 @@ class Site(Base):
     challenge_config: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
     # Whether visitors may send images with their feedback (the server also needs a storage backend).
     attachments_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    # What the form asks besides the message: CustomField dicts (app.schemas.custom_fields). The answers are
+    # stored in Feedback.meta under each field's id.
+    custom_fields: Mapped[list[dict]] = mapped_column(JSON, default=list, server_default="[]")
     # Per-site retention, run by the worker. None keeps the data; days are counted from submission.
     retention_delete_days: Mapped[int | None] = mapped_column(Integer, default=None)
     retention_strip_email_days: Mapped[int | None] = mapped_column(Integer, default=None)

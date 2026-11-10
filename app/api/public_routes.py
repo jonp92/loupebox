@@ -14,6 +14,7 @@ from starlette.datastructures import UploadFile  # the parser's class; fastapi's
 from app.challenges.registry import OFF, get_verifier
 from app.core.attachments import StoredFile, delete_files
 from app.core.config import settings
+from app.core.custom_fields import MissingField, apply_fields
 from app.core.events import publish
 from app.core.images import ImageRejected, StoredImage, process_image
 from app.core.rate_limit import client_ip, enforce
@@ -118,7 +119,7 @@ def get_challenge(site: Site = Depends(resolve_site_for_challenge)) -> dict[str,
 def get_config(site: Site = Depends(resolve_site_for_challenge)) -> dict[str, Any]:
     """What this site accepts, so the widget can offer image upload only where it will work and keep its
     metadata within the server's cap."""
-    out: dict[str, Any] = {"metadata_max_keys": settings.metadata_max_keys}
+    out: dict[str, Any] = {"metadata_max_keys": settings.metadata_max_keys, "fields": site.custom_fields}
     if not site.attachments_enabled or not get_storage().is_configured():
         return out | {"attachments": {"enabled": False}}
     return out | {
@@ -207,6 +208,11 @@ def _accept(
         record(db, site.id, StatKind.honeypot)
         return FeedbackReceipt(id="00000000-0000-0000-0000-000000000000")
 
+    try:
+        metadata = apply_fields(site.custom_fields, payload.metadata)
+    except MissingField as e:
+        raise _invalid(("metadata", e.field), "This field is required") from None
+
     # Spam never gets its images stored. Decoding is the costly part, so it happens before the lock below.
     spammy = len(_URL_RE.findall(payload.message)) > settings.spam_link_threshold
     stored: list[StoredImage] = []
@@ -252,7 +258,7 @@ def _accept(
         name=payload.name,
         email=payload.email.lower() if payload.email else None,
         page_url=payload.page_url,
-        meta=payload.metadata,
+        meta=metadata,
         status=FeedbackStatus.spam if spammy else FeedbackStatus.new,
         content_hash=content_hash,
         ip_hash=hash_ip(client_ip(request)),

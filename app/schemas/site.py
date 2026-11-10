@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.models import Role
 from app.schemas.common import normalize_origin
+from app.schemas.custom_fields import CustomField, CustomFields
 
 
 class _OriginsMixin(BaseModel):
@@ -34,9 +35,17 @@ class SiteUpdate(_OriginsMixin):
     challenge_mode: str | None = Field(default=None, max_length=24)
     challenge_config: dict[str, Any] | None = None
     attachments_enabled: bool | None = None  # accept images with feedback
+    custom_fields: list[CustomField] | None = None  # the whole list, replacing the old one
     # Days to keep submissions / their email address. Explicit null turns the rule off.
     retention_delete_days: int | None = Field(default=None, ge=1, le=36_500)
     retention_strip_email_days: int | None = Field(default=None, ge=1, le=36_500)
+
+    @field_validator("custom_fields")
+    @classmethod
+    def _custom_fields(cls, v: list[CustomField] | None) -> list[CustomField] | None:
+        if v is not None:
+            CustomFields(fields=v)  # the limits that span fields: unique ids, languages, list badges
+        return v
 
 
 class SiteOut(BaseModel):
@@ -51,6 +60,7 @@ class SiteOut(BaseModel):
     challenge_mode: str
     challenge_config: dict[str, Any]
     attachments_enabled: bool
+    custom_fields: list[CustomField]
     retention_delete_days: int | None
     retention_strip_email_days: int | None
     created_at: datetime
