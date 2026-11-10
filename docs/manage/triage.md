@@ -25,7 +25,7 @@ or `unassign`, and skips items you may not change.
 
 ## Filters
 
-You can narrow the list by:
+Search and sort are always visible; choose **Filters** to narrow the list by:
 
 * status
 * search text
@@ -33,7 +33,7 @@ You can narrow the list by:
 * rating
 * whether the person left an email address
 * a date range
-* your site's [custom fields](custom-fields.md): choose **Fields…**, pick an answer for any of them, and each
+* your site's [custom fields](custom-fields.md): choose **Custom fields**, pick an answer for any of them, and each
   active one shows as a chip you can remove
 
 Dates are whole days in UTC. The same filters work in the API as query parameters:

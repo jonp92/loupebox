@@ -13,6 +13,10 @@ change between releases; breaking changes are called out below.
   (`sort` on the list API).
 
 ### Changed
+- Feedback lists: the filters sit behind the **Filters** button at every screen width (they were always open on a
+  desktop), so search, sort and the list come first. Active filters show as chips. The filter controls are
+  labelled consistently: "Any status (not spam)", "Any type", "Any email", "Any assignee", and the field filter
+  button is now **Custom fields**.
 - Feedback detail: the data a visitor's page sent along (metadata) is a labelled list instead of a block of JSON:
   yes/no values show a mark and a word, `http(s)` values are links, empty values say so, and the widget version
   sits last. The type badge is not repeated in the list.
@@ -32,7 +36,7 @@ change between releases; breaking changes are called out below.
 
 ### Added
 - Custom fields in the admin UI: the feedback page shows a site's answers first with their labels, and the rest of
-  the metadata under "Other data"; fields marked "show in list" appear as badges on the rows; **Fields…** on a
+  the metadata under "Other data"; fields marked "show in list" appear as badges on the rows; **Custom fields** on a
   site's list filters on any of them (chips show the active ones); and the CSV export gets one column per field.
   **API:** `cf=<field id>:<value>` (repeatable) on `GET /sites/{id}/feedback` and `/export.csv`; a choice matches
   its stored value, a checkbox `true`/`false`, text is a case-insensitive contains. The cross-site inbox has no
