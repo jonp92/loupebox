@@ -47,9 +47,7 @@ def list_inbox(
         return InboxPage(items=[], total=0)
     where = conditions(f, *scope)
     total, capped = capped_count(db, where, max(TOTAL_CAP, offset + limit))
-    rows = db.scalars(
-        select(Feedback).where(*where).order_by(*order).limit(limit).offset(offset)
-    )
+    rows = db.scalars(select(Feedback).where(*where).order_by(*order).limit(limit).offset(offset))
     items = [InboxItem.of(r, sites[r.site_id][0].name, my_role=sites[r.site_id][1]) for r in rows]
     return InboxPage(items=items, total=total, total_capped=capped)
 

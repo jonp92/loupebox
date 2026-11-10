@@ -80,9 +80,7 @@ def list_feedback(
     where = conditions(f, Feedback.site_id == access.site.id, site_fields=access.site.custom_fields)
     # Stop counting at the cap, or at the end of the page being viewed if that is further.
     total, capped = capped_count(db, where, max(TOTAL_CAP, offset + limit))
-    rows = db.scalars(
-        select(Feedback).where(*where).order_by(*order).limit(limit).offset(offset)
-    )
+    rows = db.scalars(select(Feedback).where(*where).order_by(*order).limit(limit).offset(offset))
     return FeedbackPage(items=[FeedbackOut.model_validate(r) for r in rows], total=total, total_capped=capped)
 
 
