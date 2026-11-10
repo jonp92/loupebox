@@ -6,6 +6,7 @@ import { useConfirm } from "../confirm";
 import { useToast } from "../toast";
 import { Attachments } from "../attachments";
 import { Conversation } from "../replies";
+import { MetadataList } from "../metadata";
 import { FeedbackBadges, Tags, below, safeHref, useAssigneePicker, useContextMenu, type MenuItem } from "../triage";
 import { Icon } from "../icons";
 import { Bar, Placeholder } from "../Skeleton";
@@ -73,7 +74,7 @@ export default function FeedbackDetail({ site }: { site: Site }) {
             {href && <> · <a href={href} target="_blank" rel="noopener noreferrer">{href}</a></>}
           </p>
           {item.attachment_count > 0 && <Attachments siteId={site.id} item={item} canDelete={canDelete} onChange={load} />}
-          {Object.keys(item.metadata).length > 0 && <pre>{JSON.stringify(item.metadata, null, 2)}</pre>}
+          <MetadataList metadata={item.metadata} />
           <div className="tags-row">
             <Tags item={item} canEdit={canEdit} onChange={(tags) => patch({ tags })} />
             {canEdit ? (
