@@ -40,6 +40,10 @@ change between releases; breaking changes are called out below.
 - Audit log: the type and action filters now list what is actually in the log, so exports, personal data,
   retention and image storage events can be filtered, and new audited actions need no UI change.
 
+### Fixed
+- Dashboard rows (assigned and latest unread) no longer show a stray rule above the site name; the metadata list
+  on the feedback page now has its own `meta-list` class instead of sharing `meta`.
+
 ### Added
 - Custom fields in the admin UI: the feedback page shows a site's answers first with their labels, and the rest of
   the metadata under "Other data"; fields marked "show in list" appear as badges on the rows; **Custom fields** on a
