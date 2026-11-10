@@ -7,6 +7,9 @@ change between releases; breaking changes are called out below.
 ## [Unreleased]
 
 ### Added
+- A site with no feedback yet shows the widget script tag with a **Copy snippet** button where the list would be
+  (site admins only), with links to the site's Settings and the widget docs, and a note when the site has no allowed
+  origins. It disappears with the first feedback; the snippet stays on the Settings tab.
 - System settings: a search box (press `/`) finds a setting by name, help text or `.env` key across every tab and
   jumps to it, with quick filters for settings changed in the UI, secrets not set yet, and settings only `.env` can change.
 - Sort the inbox and a site's feedback list: newest, oldest, unread first, by status, highest or lowest rating

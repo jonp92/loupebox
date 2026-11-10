@@ -7,6 +7,7 @@ import { useConfirm } from "../confirm";
 import CustomFields from "./CustomFields";
 import Privacy from "./Privacy";
 import { useToast } from "../toast";
+import { widgetTag } from "../widgetSnippet";
 
 export default function Settings({ site, onChange }: { site: Site; onChange: (s: Site) => void }) {
   const confirm = useConfirm();
@@ -78,10 +79,7 @@ export default function Settings({ site, onChange }: { site: Site; onChange: (s:
   });
 </script>`;
 
-  // The script tag alone starts the widget. It looks for the API next to the script, so say where it is only when it isn't.
-  const apiNextToWidget = API_PREFIX === "/v1/api" && `${API_URL}${API_PREFIX}` === `${location.origin}${API_PREFIX}`;
-  const tagSnippet = `<script type="module" src="${location.origin}/widget/v1/loupebox.js"
-  data-key="${site.public_key}"${apiNextToWidget ? "" : `\n  data-url="${API_URL}${API_PREFIX}"`}></script>`;
+  const tagSnippet = widgetTag(site);
 
   const verifier = verifiers.find((v) => v.key === mode);
   const chalSnippet = `// Fetch a challenge, solve it, and send the proof with the submission.
