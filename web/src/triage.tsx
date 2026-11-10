@@ -1,7 +1,8 @@
 import {
   useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode,
 } from "react";
-import { api, type Assignee, type Feedback } from "./api";
+import { api, type Assignee, type CustomField, type Feedback } from "./api";
+import { answerText, answered } from "./fields";
 import { Badge } from "./ui/Badge";
 import { Status, type StatusTone } from "./ui/Status";
 
@@ -27,13 +28,17 @@ export const slug = (v: string) => v.trim().toLowerCase().replace(/\s+/g, "-");
 const STATUS_TONE: Record<string, StatusTone> = { new: "unread", read: "read", archived: "archived", spam: "danger" };
 
 /** Status, kind, rating and date: the top line of every feedback card. */
-export function FeedbackBadges({ f }: { f: Feedback }) {
+export function FeedbackBadges({ f, fields = [] }: { f: Feedback; fields?: CustomField[] }) {
   return (
     <>
       <Status tone={STATUS_TONE[f.status] ?? "muted"}>{f.status === "new" ? "unread" : f.status}</Status>
       {typeof f.metadata.issue_type === "string" && ISSUE_TYPE.test(f.metadata.issue_type) && (
         <Badge plain title="Type chosen by the visitor">{label(f.metadata.issue_type)}</Badge>
       )}
+      {fields.filter((c) => c.show_in_list && answered(f.metadata, c) && !(c.type === "checkbox" && f.metadata[c.id] !== true)).map((c) => {
+        const text = c.type === "checkbox" ? c.label : answerText(c, f.metadata[c.id]);
+        return <Badge plain key={c.id} title={`${c.label}: ${answerText(c, f.metadata[c.id])}`}>{text.length > 24 ? `${text.slice(0, 23)}…` : text}</Badge>;
+      })}
       {f.rating && <span className="stars" title={`${f.rating} / 5`}>{"★".repeat(f.rating)}<span className="dim">{"☆".repeat(5 - f.rating)}</span></span>}
     </>
   );

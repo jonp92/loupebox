@@ -1,14 +1,16 @@
 """The feedback list's filters and queries, shared by the per-site list and the cross-site inbox."""
 
+import re
 import uuid
 from datetime import UTC, date, datetime, time, timedelta
 
-from fastapi import Query
+from fastapi import HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import NOT_SPAM, Feedback, FeedbackStatus, FeedbackTag, Membership, Role, User
+from app.schemas.custom_fields import FIELD_ID, MAX_FIELDS, TEXT_LIMIT
 from app.schemas.feedback import TAG_PATTERN
 
 TOTAL_CAP = 10_000  # the list and the quick tabs stop counting here
@@ -36,6 +38,18 @@ class Filters(BaseModel):
     created_to: date | None = None
     assignee: str | None = None  # a user id, or "none" for unassigned
     tag: str | None = None
+    fields: dict[str, str] = {}  # custom field id -> wanted answer; only a single site's list can use these
+
+
+def _field_filters(raw: list[str]) -> dict[str, str]:
+    """`cf=plan:pro` pairs as {id: value}; conditions() checks the ids against the site."""
+    out: dict[str, str] = {}
+    for pair in raw:
+        field_id, _, value = pair.partition(":")
+        if not re.fullmatch(FIELD_ID, field_id) or not 1 <= len(value) <= TEXT_LIMIT:
+            raise HTTPException(422, "A field filter looks like cf=<field id>:<value>")
+        out[field_id] = value
+    return out
 
 
 def filters(
@@ -50,6 +64,7 @@ def filters(
         default=None, pattern=r"^(none|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
     ),
     tag: str | None = Query(default=None, pattern=TAG_PATTERN),
+    cf: list[str] = Query(default=[], max_length=MAX_FIELDS),
 ) -> Filters:
     return Filters(
         status=status_filter,
@@ -61,6 +76,7 @@ def filters(
         created_to=created_to,
         assignee=assignee,
         tag=tag,
+        fields=_field_filters(cf),
     )
 
 
@@ -68,9 +84,30 @@ def _day_start(day: date) -> datetime:
     return datetime.combine(day, time.min, tzinfo=UTC)
 
 
-def conditions(f: Filters, *scope: ColumnElement) -> list:
-    """The conditions for filters `f` within `scope` (the site, or the sites, being listed)."""
-    conds = list(scope)
+def _field_condition(field: dict, value: str) -> ColumnElement:
+    """One custom-field filter. A choice matches its stored value (so an option the site has since removed can
+    still be found), a checkbox is yes or no as stored, and text is a case-insensitive contains."""
+    col = Feedback.meta[field["id"]]
+    if field["type"] == "checkbox":
+        if value not in ("true", "false"):
+            raise HTTPException(422, f"{field['id']} is a checkbox: use true or false")
+        return col.as_boolean() == (value == "true")
+    if field["type"] == "select":
+        return col.as_string() == value
+    return col.as_string().icontains(value, autoescape=True)
+
+
+def _field_conditions(wanted: dict[str, str], site_fields: list[dict] | None) -> list[ColumnElement]:
+    defined = {d["id"]: d for d in site_fields or []}
+    if unknown := sorted(set(wanted) - set(defined)):
+        raise HTTPException(422, f"Unknown field {unknown[0]!r}")
+    return [_field_condition(defined[field_id], value) for field_id, value in wanted.items()]
+
+
+def conditions(f: Filters, *scope: ColumnElement, site_fields: list[dict] | None = None) -> list:
+    """The conditions for filters `f` within `scope` (the site, or the sites, being listed). `site_fields` are
+    that site's custom fields, which the field filters are checked against; without them there are none."""
+    conds = [*scope, *_field_conditions(f.fields, site_fields)]
     if f.issue_type:
         conds.append(issue_type_col == f.issue_type)
     if f.status:

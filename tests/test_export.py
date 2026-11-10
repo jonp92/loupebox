@@ -150,6 +150,7 @@ def test_export_is_audited_without_contents(client, db, viewer):
         "to": "",
         "assignee": None,
         "tag": None,
+        "fields": [],
     }
     assert "secret" not in ev.summary and "secret" not in str(ev.details)
     assert ev.actor_email == "v@example.com"
