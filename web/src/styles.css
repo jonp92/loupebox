@@ -243,7 +243,9 @@ dialog.sheet .hint { margin: calc(var(--space-2) * -1) 0 var(--space-5); }
 .toolbar.filters, .toolbar.bulk { flex-wrap: wrap; margin: .5rem 0; }
 .toolbar.filters:not([data-open]) { display: none; } /* the Filters button opens it, at every width */
 .toolbar.filters select, .toolbar.filters > button { flex: 1 1 10rem; }
-.toolbar.filters label { display: flex; align-items: center; gap: .4rem; flex: 1 1 14rem; }
+.toolbar.filters label { display: flex; align-items: center; gap: .4rem; flex: 1 1 10rem; }
+.date-range { display: flex; flex-wrap: wrap; flex: 2 1 22rem; gap: .75rem; } /* From and To wrap as a pair; they stack only when a row cannot hold both */
+.date-range label { flex-basis: 11rem; }
 .toolbar.filters input[type=date] { width: auto; margin: 0; flex: 1; min-width: 0; }
 .toolbar.bulk label { display: flex; align-items: center; gap: var(--space-2); min-height: var(--target-min); margin: 0 auto 0 0; }
 .stat-band { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: stretch; border-block: 1px solid var(--border-row); }

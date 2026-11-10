@@ -403,8 +403,10 @@ export default function FeedbackList({ site }: { site?: Site }) {
         {site && site.custom_fields.length > 0 && (
           <button onClick={() => setFieldsOpen(true)}>Custom fields</button>
         )}
-        <label className="muted">From <input type="date" value={from} max={to || undefined} onChange={resetTo(setFrom)} /></label>
-        <label className="muted">To <input type="date" value={to} min={from || undefined} onChange={resetTo(setTo)} /></label>
+        <div className="date-range">
+          <label className="muted">From <input type="date" value={from} max={to || undefined} onChange={resetTo(setFrom)} /></label>
+          <label className="muted">To <input type="date" value={to} min={from || undefined} onChange={resetTo(setTo)} /></label>
+        </div>
         {filtered && <button onClick={clearFilters}>Clear filters</button>}
       </div>
       {canEdit && items.length > 0 && (
