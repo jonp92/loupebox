@@ -6,6 +6,8 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+## [0.1.0-alpha.13] - 2026-11-10
+
 ### Added
 - Site settings: an "On this page" row of links (widget, API key, bot protection, general, custom fields, retention,
   personal data) jumps to a section and moves focus to its heading, and the API key has a **Copy key** button.
