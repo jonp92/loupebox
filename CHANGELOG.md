@@ -10,6 +10,9 @@ change between releases; breaking changes are called out below.
 - Two refreshes racing on one cookie (two tabs, or an iPhone app suspended before saving its new cookie) no longer sign
   you out on every device. A just-rotated refresh token works for `REFRESH_GRACE_SECONDS` (30); a stale one still
   signs everyone out, and now leaves an `auth.session_replay` audit event. Migration 0025.
+- A refresh token that was signed out on purpose (logout, password or 2FA change, an earlier replay) now gets a plain
+  401. Before, a dead cookie retrying could sign out a newer session over and over. Known trade-off: after a
+  logout, the cookie from just before the last refresh still works for up to the grace window (30 s).
 
 ### Added
 - Inbound email by signed webhook next to IMAP: `POST /inbound/webhook` takes a JSON mail (`from`, `to`, `text`,
