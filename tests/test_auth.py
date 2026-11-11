@@ -105,6 +105,24 @@ def test_refresh_rotates_and_a_stale_replay_signs_everyone_out_and_is_audited(cl
     assert all(t.revoked_at for t in db.scalars(select(RefreshToken)))
 
 
+def test_a_dead_cookie_retrying_does_not_sign_out_the_next_session(client, db):
+    old, _new = _rotate(client, db)
+    for t in db.scalars(select(RefreshToken)):
+        t.rotated_at = t.rotated_at and t.rotated_at - timedelta(seconds=settings.refresh_grace_seconds + 1)
+    db.commit()
+    client.cookies.set("refresh_token", old, path=settings.cookie_path)
+    assert client.post("/auth/refresh").status_code == 401  # the one real replay
+    client.cookies.clear()
+    client.post("/auth/login", json={"email": "a@example.com", "password": "correct-horse-battery"})
+    fresh = client.cookies.get("refresh_token")
+    client.cookies.set("refresh_token", old, path=settings.cookie_path)
+    assert client.post("/auth/refresh").status_code == 401  # the dead cookie keeps retrying
+    client.cookies.set("refresh_token", fresh, path=settings.cookie_path)
+    assert client.post("/auth/refresh").status_code == 200  # the new sign-in survives
+    audits = db.scalars(select(AuditEvent).where(AuditEvent.action == "auth.session_replay")).all()
+    assert len(audits) == 1
+
+
 def test_password_change_ends_the_grace_window(client, db):
     old, _new = _rotate(client, db)
     h = {"Authorization": "Bearer " + client.post("/auth/refresh").json()["access_token"]}

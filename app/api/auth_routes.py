@@ -180,25 +180,26 @@ def refresh(
     now = datetime.now(UTC)
     user = db.get(User, row.user_id)
     if row.revoked_at is not None:
-        # Just rotated: a second refresh racing on the same cookie, not theft. Hand out a token of its own.
-        since = None if row.rotated_at is None else now - row.rotated_at
-        in_grace = since is not None and since <= timedelta(seconds=settings.refresh_grace_seconds)
-        if not (in_grace and row.expires_at >= now and user is not None and user.is_active):
-            # A stale rotated token was replayed: assume theft and kill every session for this user.
-            if user is not None:
-                audit(
-                    db,
-                    user,
-                    "auth.session_replay",
-                    "A stale refresh token was presented; all sessions were signed out",
-                    target_type="user",
-                    target_id=user.id,
-                    details={"seconds_since_rotation": since and int(since.total_seconds())},
-                )
-            revoke_sessions(db, row.user_id)
-            db.commit()
-            raise invalid
-        return _issue(db, user, response)
+        if row.rotated_at is None:
+            raise invalid  # signed out on purpose (logout, password change, an earlier replay): not theft
+        since = now - row.rotated_at
+        fresh = since <= timedelta(seconds=settings.refresh_grace_seconds) and row.expires_at >= now
+        if fresh and user and user.is_active:
+            return _issue(db, user, response)  # just rotated: a second refresh racing on the cookie
+        # A stale rotated token was replayed: assume theft and kill every session for this user.
+        if user is not None:
+            audit(
+                db,
+                user,
+                "auth.session_replay",
+                "A stale refresh token was presented; all sessions were signed out",
+                target_type="user",
+                target_id=user.id,
+                details={"seconds_since_rotation": int(since.total_seconds())},
+            )
+        revoke_sessions(db, row.user_id)  # also nulls rotated_at, so this cookie's next retry is a plain 401
+        db.commit()
+        raise invalid
     if row.expires_at < now or user is None or not user.is_active:
         raise invalid
     row.revoked_at = row.rotated_at = now  # rotate
