@@ -4,7 +4,7 @@ import uuid
 from datetime import UTC, datetime
 
 from fastapi import HTTPException
-from sqlalchemy import delete, update
+from sqlalchemy import delete, func, update
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -13,11 +13,15 @@ from app.models import RecoveryCode, RefreshToken, User
 
 
 def revoke_sessions(db: Session, user_id: uuid.UUID) -> None:
-    """Sign the user out everywhere: revoke every live refresh token."""
+    """Sign the user out everywhere: revoke every live refresh token, and end the grace of rotated ones."""
+    now = datetime.now(UTC)
     db.execute(
         update(RefreshToken)
-        .where(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
-        .values(revoked_at=datetime.now(UTC))
+        .where(
+            RefreshToken.user_id == user_id,
+            RefreshToken.revoked_at.is_(None) | RefreshToken.rotated_at.is_not(None),
+        )
+        .values(revoked_at=func.coalesce(RefreshToken.revoked_at, now), rotated_at=None)
     )
 
 

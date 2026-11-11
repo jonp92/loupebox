@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     jwt_secret: str = _INSECURE_SECRET
     access_token_minutes: int = 15
     refresh_token_days: int = 14
+    # A just-rotated refresh token still works this long, so two refreshes racing on one cookie (tabs,
+    # an iOS app suspended before it saved the new cookie) don't read as theft and sign everyone out.
+    refresh_grace_seconds: int = 30
     cookie_secure: bool = False
     # Use "none" (with cookie_secure) if the SPA is on a different *site* than the API.
     cookie_samesite: str = "lax"

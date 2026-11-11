@@ -63,6 +63,8 @@ class RefreshToken(Base):
     token_hash: Mapped[str] = mapped_column(String(64), unique=True)
     expires_at: Mapped[datetime] = mapped_column()
     revoked_at: Mapped[datetime | None] = mapped_column(default=None)
+    # Set only when a refresh replaced this token (not logout or revoke_sessions); only these get the grace.
+    rotated_at: Mapped[datetime | None] = mapped_column(default=None)
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
 
 
