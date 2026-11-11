@@ -6,6 +6,11 @@ change between releases; breaking changes are called out below.
 
 ## [Unreleased]
 
+### Fixed
+- Two refreshes racing on one cookie (two tabs, or an iPhone app suspended before saving its new cookie) no longer sign
+  you out on every device. A just-rotated refresh token works for `REFRESH_GRACE_SECONDS` (30); a stale one still
+  signs everyone out, and now leaves an `auth.session_replay` audit event. Migration 0025.
+
 ### Added
 - Inbound email by signed webhook next to IMAP: `POST /inbound/webhook` takes a JSON mail (`from`, `to`, `text`,
   Message-ID headers, or a base64 `raw` message), signed with the Standard Webhooks headers and

@@ -1,7 +1,9 @@
+from datetime import timedelta
+
 from sqlalchemy import select
 
 from app.core.config import settings
-from app.models import RefreshToken
+from app.models import AuditEvent, RefreshToken
 from tests.conftest import login, make_user
 
 
@@ -69,20 +71,51 @@ def test_a_successful_sign_in_clears_failures(client, db, monkeypatch):
     assert set(codes) == {401}
 
 
-def test_refresh_rotates_and_detects_replay(client, db):
+def _rotate(client, db):
+    """Sign in, refresh once; returns (rotated cookie, current cookie)."""
     make_user(db, "a@example.com")
     client.post("/auth/login", json={"email": "a@example.com", "password": "correct-horse-battery"})
     old = client.cookies.get("refresh_token")
     assert client.post("/auth/refresh").status_code == 200
-    new = client.cookies.get("refresh_token")
-    assert new and new != old
+    return old, client.cookies.get("refresh_token")
 
-    # Replaying the rotated token fails and revokes the whole family.
+
+def test_just_rotated_token_is_accepted_in_the_grace_window(client, db):
+    old, new = _rotate(client, db)
+    client.cookies.set("refresh_token", old, path=settings.cookie_path)
+    assert client.post("/auth/refresh").status_code == 200  # a racing refresh, not theft
+    client.cookies.set("refresh_token", new, path=settings.cookie_path)
+    assert client.post("/auth/refresh").status_code == 200  # the other session survived
+    assert not db.scalar(select(AuditEvent).where(AuditEvent.action == "auth.session_replay"))
+
+
+def test_refresh_rotates_and_a_stale_replay_signs_everyone_out_and_is_audited(client, db):
+    old, new = _rotate(client, db)
+    assert new and new != old
+    for t in db.scalars(select(RefreshToken)):
+        t.rotated_at = t.rotated_at and t.rotated_at - timedelta(seconds=settings.refresh_grace_seconds + 1)
+    db.commit()
     client.cookies.set("refresh_token", old, path=settings.cookie_path)
     assert client.post("/auth/refresh").status_code == 401
     client.cookies.set("refresh_token", new, path=settings.cookie_path)
     assert client.post("/auth/refresh").status_code == 401
+    event = db.scalar(select(AuditEvent).where(AuditEvent.action == "auth.session_replay"))
+    assert event and event.details["seconds_since_rotation"] > settings.refresh_grace_seconds
+    db.expire_all()
     assert all(t.revoked_at for t in db.scalars(select(RefreshToken)))
+
+
+def test_password_change_ends_the_grace_window(client, db):
+    old, _new = _rotate(client, db)
+    h = {"Authorization": "Bearer " + client.post("/auth/refresh").json()["access_token"]}
+    r = client.post(
+        "/auth/me/password",
+        json={"current_password": "correct-horse-battery", "new_password": "another-long-password-1"},
+        headers=h,
+    )
+    assert r.status_code == 200, r.text
+    client.cookies.set("refresh_token", old, path=settings.cookie_path)
+    assert client.post("/auth/refresh").status_code == 401  # revoked on purpose, not rotated
 
 
 def test_logout_revokes(client, db):
