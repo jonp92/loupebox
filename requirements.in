@@ -1,7 +1,7 @@
 fastapi
 pydantic-settings
 uvicorn[standard]
-sqlalchemy>=2.0
+sqlalchemy>=2.1.9
 alembic
 psycopg[binary]
 pyjwt
